@@ -3,7 +3,7 @@ const isAdmin = (req, res, next) => {
   if (!user) return res.status(500).json({ msg: "Auth required." });
 
   const { role } = user;
-  if (role !== "ADMIN_ROLE") return res.status(401).json({ msg: "Admin required." });
+  if (role !== "ADMIN") return res.status(401).json({ msg: "Admin required." });
 
   next();
 };

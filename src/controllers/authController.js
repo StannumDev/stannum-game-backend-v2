@@ -15,21 +15,22 @@ const login = async (req = request, res = response) => {
       ]
     });
 
-    if (!user) return res.status(401).json({ message: "Datos incorrectos." });
+    if (!user) return res.status(401).json({ success: false, message: "Datos incorrectos." });
+    if (!user.status) return res.status(403).json({ success: false, message: "Esta cuenta se encuentra actualmente suspendida. Ponte en contacto con soporte." });
 
-    if (!user.status) return res.status(401).json({ message: "Cuenta desactivada." });
-
-    const validPassword = bcryptjs.compareSync(password, user.password);
-    if (!validPassword) return res.status(401).json({ message: "Datos incorrectos." });
-
+    const validPassword = await bcryptjs.compare(password, user.password);
+    if (!validPassword) return res.status(401).json({ success: false, message: "Datos incorrectos." });
+    
     const token = await newJWT(user.id);
-    if (!token) return res.status(500).json({ message: "Ocurrió un error inesperado." });
+    if (!token) return res.status(500).json({ success: false, message: "An unexpected error occurred while generating the token" });
 
-    return res.json({ token });
-
+    return res.status(200).json({
+      success: true,
+      token,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Ocurrió un error inesperado." });
+    return res.status(500).json({ success: false, message: "An unexpected error occurred" });
   }
 };
 
