@@ -1,13 +1,14 @@
 const rateLimit = require("express-rate-limit");
+const { getError } = require("../helpers/getError");
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 50,
+    windowMs: 60 * 60 * 1000,
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: {
-        success: false,
-        message: "Too many login attempts. Please try again in 15 minutes.",
+    handler: (req, res, next) => {
+        const error = getError("AUTH_TOO_MANY_ATTEMPTS");
+        return res.status(429).json(error);
     },
 });
 

@@ -1,0 +1,110 @@
+{
+    "VALIDATION_USERNAME_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The username field is required.",
+        "friendlyMessage": "El nombre de usuario es obligatorio."
+    },
+    "VALIDATION_PASSWORD_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The password field is required.",
+        "friendlyMessage": "La contraseña es obligatoria."
+    },
+    "VALIDATION_PASSWORD_TOO_SHORT": {
+        "success": false,
+        "code": "VALIDATION_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The password must be at least 8 characters long.",
+        "friendlyMessage": "La contraseña debe tener al menos 8 caracteres."
+    },
+    "AUTH_INVALID_CREDENTIALS": {
+        "success": false,
+        "code": "AUTH_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Inicio de sesión no autorizado",
+        "techMessage": "Invalid username or password.",
+        "friendlyMessage": "El nombre de usuario o la contraseña son incorrectos."
+    },
+    "AUTH_USER_NOT_FOUND": {
+        "success": false,
+        "code": "AUTH_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Inicio de sesión no autorizado",
+        "techMessage": "The username or email does not exist in the database.",
+        "friendlyMessage": "El nombre de usuario o la contraseña son incorrectos."
+    },
+    "AUTH_ACCOUNT_DISABLED": {
+        "success": false,
+        "code": "AUTH_003",
+        "type": "error",
+        "showAlert": true,
+        "title": "Inicio de sesión no autorizado",
+        "techMessage": "The user account is disabled.",
+        "friendlyMessage": "El nombre de usuario o la contraseña son incorrectos."
+    },
+    "AUTH_TOO_MANY_ATTEMPTS": {
+        "success": false,
+        "code": "AUTH_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Demasiados intentos fallidos",
+        "techMessage": "Too many failed login attempts.",
+        "friendlyMessage": "Has realizado demasiados intentos fallidos. Por favor, intenta nuevamente más tarde."
+    },
+    "AUTH_PASSWORD_EXPIRED": {
+        "success": false,
+        "code": "AUTH_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Contraseña expirada",
+        "techMessage": "The user's password has expired.",
+        "friendlyMessage": "Tu contraseña ha expirado. Por favor, restablece tu contraseña."
+    },
+    "JWT_GENERATION_ERROR": {
+        "success": false,
+        "code": "JWT_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al generar el token",
+        "techMessage": "Failed to generate JWT token.",
+        "friendlyMessage": "Hubo un problema al iniciar sesión. Por favor, intenta nuevamente."
+    },
+    "NETWORK_REQUEST_TIMEOUT": {
+        "success": false,
+        "code": "NETWORK_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Tiempo de espera excedido",
+        "techMessage": "The request took too long to complete.",
+        "friendlyMessage": "La solicitud tardó demasiado en completarse. Por favor, intenta nuevamente más tarde."
+    },
+    "NETWORK_CONNECTION_ERROR": {
+        "success": false,
+        "code": "NETWORK_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error de conexión",
+        "techMessage": "Unable to connect to the server.",
+        "friendlyMessage": "No se pudo conectar con el servidor. Verifica tu conexión a internet."
+    },
+    "SERVER_INTERNAL_ERROR": {
+        "success": false,
+        "code": "SERVER_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error del servidor",
+        "techMessage": "An unexpected error occurred on the server.",
+        "friendlyMessage": "Ocurrió un error inesperado en el servidor. Por favor, intenta nuevamente más tarde."
+    }
+}
