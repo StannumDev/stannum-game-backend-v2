@@ -1,5 +1,6 @@
-const bcryptjs = require("bcryptjs");
 const { request, response } = require("express");
+const bcryptjs = require("bcryptjs");
+const axios = require("axios");
 
 const { newJWT } = require("../helpers/newJWT");
 const { getError } = require("../helpers/getError");
@@ -38,4 +39,76 @@ const login = async (req = request, res = response) => {
   }
 };
 
-module.exports = { login };
+const checkEmailExists = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+
+  if (email.length > 254) return res.status(400).json(getError("VALIDATION_EMAIL_TOO_LONG"));
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
+
+  try {
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
+    if (userExists) return res.status(409).json(getError("AUTH_EMAIL_ALREADY_EXISTS"));
+
+    return res.status(200).json({ success: true, message: "Email is available." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const checkUsernameExists = async (req, res) => {
+  const { username } = req.body;
+
+  if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+
+  const usernameRegex = /^[a-z0-9._]+$/;
+  if (!usernameRegex.test(username)) return res.status(400).json(getError("VALIDATION_USERNAME_INVALID"));
+
+  if (username.length < 6 || username.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
+
+  try {
+    const userExists = await User.findOne({ username: username.toLowerCase().trim() });
+    if (userExists) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+    return res.status(200).json({ success: true, message: "Username is available." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const verifyReCAPTCHA = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) return res.status(400).json(getError("VALIDATION_RECAPTCHA_REQUIRED"));
+  try {
+    const googleVerifyUrl = "https://www.google.com/recaptcha/api/siteverify";
+    const response = await axios.post(googleVerifyUrl, null, {
+      params: {
+        secret: process.env.RECAPTCHA_SECRET_KEY,
+        response: token,
+      },
+    });
+
+    if (!response.data.success) {
+      const recaptchaErrorCode = response.data["error-codes"]?.[0] || "unknown-error";
+      const errorCodesMapping = {
+        "invalid-input-response": "VALIDATION_RECAPTCHA_INVALID",
+        "missing-input-response": "VALIDATION_RECAPTCHA_REQUIRED",
+        "timeout-or-duplicate": "VALIDATION_RECAPTCHA_TIMEOUT",
+      };
+      const customErrorCode = errorCodesMapping[recaptchaErrorCode] || "VALIDATION_RECAPTCHA_UNKNOWN";
+      return res.status(400).json(getError(customErrorCode));
+    }
+
+    return res.status(200).json({ success: true, message: "ReCAPTCHA validated successfully." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA };

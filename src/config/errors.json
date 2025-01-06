@@ -1,12 +1,12 @@
 {
-    "VALIDATION_USERNAME_REQUIRED": {
+    "VALIDATION_GENERIC_ERROR": {
         "success": false,
         "code": "VALIDATION_001",
         "type": "warning",
         "showAlert": true,
-        "title": "Error de validación",
-        "techMessage": "The username field is required.",
-        "friendlyMessage": "El nombre de usuario es obligatorio."
+        "title": "Validation Error",
+        "techMessage": "Multiple fields failed validation.",
+        "friendlyMessage": "Por favor, revisa los campos ingresados."
     },
     "VALIDATION_PASSWORD_REQUIRED": {
         "success": false,
@@ -25,6 +25,105 @@
         "title": "Error de validación",
         "techMessage": "The password must be at least 8 characters long.",
         "friendlyMessage": "La contraseña debe tener al menos 8 caracteres."
+    },
+    "VALIDATION_EMAIL_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The email field is required.",
+        "friendlyMessage": "El correo electrónico es obligatorio."
+    },
+    "VALIDATION_EMAIL_TOO_LONG": {
+        "success": false,
+        "code": "VALIDATION_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The email exceeds the maximum allowed length of 254 characters.",
+        "friendlyMessage": "El correo electrónico no puede superar los 254 caracteres."
+    },
+    "VALIDATION_EMAIL_INVALID": {
+        "success": false,
+        "code": "VALIDATION_006",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The email format is invalid.",
+        "friendlyMessage": "El formato del correo electrónico no es válido."
+    },
+    "VALIDATION_RECAPTCHA_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_007",
+        "type": "warning",
+        "showAlert": true,
+        "title": "ReCAPTCHA requerido",
+        "techMessage": "The reCAPTCHA token is required.",
+        "friendlyMessage": "Debes completar el reCAPTCHA para continuar."
+    },
+    "VALIDATION_RECAPTCHA_INVALID": {
+        "success": false,
+        "code": "VALIDATION_008",
+        "type": "error",
+        "showAlert": true,
+        "title": "ReCAPTCHA inválido",
+        "techMessage": "The reCAPTCHA token is invalid.",
+        "friendlyMessage": "El reCAPTCHA proporcionado no es válido. Por favor, inténtalo de nuevo."
+    },
+    "VALIDATION_RECAPTCHA_TIMEOUT": {
+        "success": false,
+        "code": "VALIDATION_009",
+        "type": "warning",
+        "showAlert": true,
+        "title": "ReCAPTCHA expirado",
+        "techMessage": "The reCAPTCHA token has timed out or is duplicated.",
+        "friendlyMessage": "El reCAPTCHA expiró o ya fue usado. Por favor, inténtalo de nuevo."
+    },
+    "VALIDATION_RECAPTCHA_UNKNOWN": {
+        "success": false,
+        "code": "VALIDATION_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error desconocido de ReCAPTCHA",
+        "techMessage": "An unknown error occurred while validating the reCAPTCHA token.",
+        "friendlyMessage": "Ocurrió un error desconocido con el reCAPTCHA. Por favor, inténtalo de nuevo más tarde."
+    },
+    "VALIDATION_USERNAME_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_011",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The username field is required.",
+        "friendlyMessage": "El nombre de usuario es obligatorio."
+    },
+    "VALIDATION_USERNAME_TOO_SHORT": {
+        "success": false,
+        "code": "VALIDATION_012",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The username must be at least 6 characters long.",
+        "friendlyMessage": "El nombre de usuario debe tener al menos 6 caracteres."
+    },
+    "VALIDATION_USERNAME_TOO_LONG": {
+        "success": false,
+        "code": "VALIDATION_013",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The username must be less than 25 characters.",
+        "friendlyMessage": "El nombre de usuario debe tener menos de 25 caracteres."
+    },
+    "VALIDATION_USERNAME_INVALID": {
+        "success": false,
+        "code": "VALIDATION_014",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The username contains invalid characters.",
+        "friendlyMessage": "El nombre de usuario contiene caracteres no válidos. Solo se permiten letras minúsculas, números, puntos y guiones bajos."
     },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
@@ -58,9 +157,9 @@
         "code": "AUTH_005",
         "type": "warning",
         "showAlert": true,
-        "title": "Demasiados intentos fallidos",
+        "title": "Demasiados intentos",
         "techMessage": "Too many failed login attempts.",
-        "friendlyMessage": "Has realizado demasiados intentos fallidos. Por favor, intenta nuevamente más tarde."
+        "friendlyMessage": "Has realizado demasiados intentos. Por favor, intenta nuevamente más tarde."
     },
     "AUTH_PASSWORD_EXPIRED": {
         "success": false,
@@ -70,6 +169,24 @@
         "title": "Contraseña expirada",
         "techMessage": "The user's password has expired.",
         "friendlyMessage": "Tu contraseña ha expirado. Por favor, restablece tu contraseña."
+    },
+    "AUTH_EMAIL_ALREADY_EXISTS": {
+        "success": false,
+        "code": "AUTH_007",
+        "type": "error",
+        "showAlert": true,
+        "title": "Correo ya registrado",
+        "techMessage": "The email is already registered in the database.",
+        "friendlyMessage": "El correo electrónico ya está registrado."
+    },
+    "AUTH_USERNAME_ALREADY_EXISTS": {
+        "success": false,
+        "code": "AUTH_008",
+        "type": "error",
+        "showAlert": true,
+        "title": "Nombre de usuario ya registrado",
+        "techMessage": "The username is already taken.",
+        "friendlyMessage": "El nombre de usuario ya está en uso. Por favor, elige otro."
     },
     "JWT_GENERATION_ERROR": {
         "success": false,
