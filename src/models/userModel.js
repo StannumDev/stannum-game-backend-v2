@@ -376,8 +376,30 @@ const userSchema = new Schema(
     achievements: [achievementSchema],
     unlockedCovers: [unlockedCoverSchema],
     programs: {
-      TMD: programSchema,
-      PROEM: programSchema,
+      TMD: {
+        type: programSchema,
+        default: () => ({
+          isPurchased: false,
+          acquiredAt: null,
+          instructions: [],
+          lessonsCompleted: [],
+          lastWatchedLesson: null,
+          tests: [],
+          productKey: null,
+        }),
+      },
+      PROEM: {
+        type: programSchema,
+        default: () => ({
+          isPurchased: false,
+          acquiredAt: null,
+          instructions: [],
+          lessonsCompleted: [],
+          lastWatchedLesson: null,
+          tests: [],
+          productKey: null,
+        }),
+      },
     },
     preferences: {
       welcomeMessage: {

@@ -29,8 +29,8 @@ const login = async (req = request, res = response) => {
       return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     }
 
-    const token = await newJWT(user.id);
-    if (!token) return res.status(500).json(getError("JWT_GENERATION_ERROR"));
+    const token = await newJWT(user.id, user.role);
+    if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
     return res.status(200).json({ success: true, token });
   } catch (error) {
@@ -111,4 +111,55 @@ const verifyReCAPTCHA = async (req, res) => {
   }
 };
 
-module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA };
+const createUser = async (req = request, res = response) => {
+  const { email, username, password, name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
+
+  try {
+    if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+    if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+    if (!password) return res.status(400).json(getError("VALIDATION_PASSWORD_REQUIRED"));
+
+    const [existingEmail, existingUsername] = await Promise.all([
+      User.findOne({ email: email.toLowerCase().trim() }),
+      User.findOne({ username: username.toLowerCase().trim() }),
+    ]);
+
+    if (existingEmail) return res.status(409).json(getError("AUTH_EMAIL_ALREADY_EXISTS"));
+    if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+
+    const birthDateObject = new Date(birthdate);
+    const age = new Date().getFullYear() - birthDateObject.getFullYear();
+    if (isNaN(birthDateObject.getTime()) || age < 18) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    const newUser = new User({
+      email: email.toLowerCase(),
+      username: username.toLowerCase(),
+      password: hashedPassword,
+      profile: {
+        name: name.trim(),
+        country: country.trim(),
+        region: region.trim(),
+        birthdate: birthDateObject,
+        aboutMe: aboutme.trim(),
+      },
+      enterprise: {
+        name: enterprise.trim(),
+        jobPosition: enterpriseRole.trim(),
+      },
+    });
+
+    await newUser.save();
+
+    const token = await newJWT(newUser.id, newUser.role);
+    if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+
+    return res.status(201).json({ success: true, token, message: "User created successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser };
