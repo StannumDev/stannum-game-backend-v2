@@ -3,7 +3,7 @@ const { getError } = require("../helpers/getError");
 
 const rateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 10,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {

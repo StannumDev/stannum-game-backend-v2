@@ -20,14 +20,7 @@ const login = async (req = request, res = response) => {
       ],
     });
 
-    if (!user) return res.status(401).json(getError("AUTH_USER_NOT_FOUND"));
-
-    if (!user.status) return res.status(401).json(getError("AUTH_ACCOUNT_DISABLED"));
-
-    const validPassword = await bcryptjs.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
-    }
+    if (!user || !user.status || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
 
     const token = await newJWT(user.id, user.role);
     if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
