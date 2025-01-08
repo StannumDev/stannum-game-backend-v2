@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const authRouter = require("./routes/authRoutes");
+const profilePictureRouter = require("./routes/profilePictureRoutes");
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
+app.use("/api/profile-picture", profilePictureRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);

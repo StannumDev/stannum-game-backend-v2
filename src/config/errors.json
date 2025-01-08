@@ -197,6 +197,123 @@
         "techMessage": "The username is already taken.",
         "friendlyMessage": "El nombre de usuario ya está en uso. Por favor, elige otro."
     },
+    "ACCESS_FORBIDDEN": {
+        "success": false,
+        "code": "AUTH_008",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acceso prohibido",
+        "techMessage": "User does not have sufficient permissions to access this resource.",
+        "friendlyMessage": "No tienes permiso para realizar esta acción."
+    },
+    "PHOTO_FILE_TOO_LARGE": {
+        "success": false,
+        "code": "PHOTO_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Archivo demasiado grande",
+        "techMessage": "The uploaded photo exceeds the maximum allowed size of 20MB.",
+        "friendlyMessage": "El archivo de la foto no puede superar los 20MB."
+    },
+    "PHOTO_INVALID_FORMAT": {
+        "success": false,
+        "code": "PHOTO_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Formato de archivo inválido",
+        "techMessage": "The uploaded photo format is not supported. Only JPEG and PNG are allowed.",
+        "friendlyMessage": "El formato del archivo no es válido. Solo se permiten imágenes JPEG y PNG."
+    },
+    "PHOTO_PROCESSING_FAILED": {
+        "success": false,
+        "code": "PHOTO_003",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al procesar la foto",
+        "techMessage": "An error occurred while processing the photo. Ensure the image is valid and try again.",
+        "friendlyMessage": "Hubo un error al procesar la foto. Por favor, inténtalo nuevamente."
+    },
+    "PHOTO_UPLOAD_FAILED": {
+        "success": false,
+        "code": "PHOTO_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al subir la foto",
+        "techMessage": "Failed to upload the photo to the server.",
+        "friendlyMessage": "No se pudo subir la foto. Por favor, inténtalo nuevamente."
+    },
+    "PHOTO_NOT_FOUND": {
+        "success": false,
+        "code": "PHOTO_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Foto no encontrada",
+        "techMessage": "No profile photo exists for the specified user.",
+        "friendlyMessage": "No se encontró una foto de perfil para este usuario."
+    },
+    "PHOTO_REQUIRED": {
+        "success": false,
+        "code": "PHOTO_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Foto requerida",
+        "techMessage": "No photo file was provided in the request.",
+        "friendlyMessage": "Debes seleccionar una foto para subir."
+    },
+    "PHOTO_UPLOAD_PARTIAL": {
+        "success": false,
+        "code": "PHOTO_007",
+        "type": "error",
+        "showAlert": true,
+        "title": "Subida incompleta",
+        "techMessage": "The photo upload was not completed successfully.",
+        "friendlyMessage": "La subida de la foto se interrumpió. Por favor, inténtalo nuevamente."
+    },
+    "PHOTO_ALREADY_EXISTS": {
+        "success": false,
+        "code": "PHOTO_008",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Foto ya existente",
+        "techMessage": "A profile photo already exists for this user.",
+        "friendlyMessage": "Ya tienes una foto de perfil. Si deseas reemplazarla, por favor confírmalo."
+    },
+    "PHOTO_URL_GENERATION_FAILED": {
+        "success": false,
+        "code": "PHOTO_009",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al generar la URL",
+        "techMessage": "Failed to generate the URL for the profile photo.",
+        "friendlyMessage": "Hubo un error al obtener la URL de la foto. Por favor, inténtalo nuevamente."
+    },
+    "PHOTO_DELETION_FAILED": {
+        "success": false,
+        "code": "PHOTO_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al eliminar la foto",
+        "techMessage": "Failed to delete the profile photo.",
+        "friendlyMessage": "No se pudo eliminar la foto. Por favor, inténtalo nuevamente."
+    },
+    "PHOTO_INVALID_CONTENT": {
+        "success": false,
+        "code": "PHOTO_011",
+        "type": "error",
+        "showAlert": true,
+        "title": "Contenido de archivo inválido",
+        "techMessage": "The photo file appears to be corrupt or unreadable.",
+        "friendlyMessage": "El archivo de la foto está dañado o no se puede leer. Por favor, selecciona otro archivo."
+    },
+    "PHOTO_UNAUTHORIZED_ACCESS": {
+        "success": false,
+        "code": "PHOTO_012",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acceso no autorizado",
+        "techMessage": "User is not authorized to perform this action.",
+        "friendlyMessage": "No tienes permisos para realizar esta acción."
+    },
     "JWT_GENERATION_FAILED": {
         "success": false,
         "code": "JWT_001",
@@ -214,6 +331,42 @@
         "title": "Configuration Error",
         "techMessage": "JWT secret key is not set in the environment variables.",
         "friendlyMessage": "Hubo un problema de configuración. Por favor, contacta al soporte."
+    },
+    "JWT_MISSING_TOKEN": {
+        "success": false,
+        "code": "JWT_003",
+        "type": "error",
+        "showAlert": true,
+        "title": "Token faltante",
+        "techMessage": "Authorization token is missing from the request headers.",
+        "friendlyMessage": "El token de autorización es obligatorio. Por favor, inicia sesión e inténtalo de nuevo."
+    },
+    "JWT_INVALID_TOKEN": {
+        "success": false,
+        "code": "JWT_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Token inválido",
+        "techMessage": "The provided JWT is invalid or has been tampered with.",
+        "friendlyMessage": "El token proporcionado no es válido. Por favor, inicia sesión e inténtalo nuevamente."
+    },
+    "JWT_EXPIRED_TOKEN": {
+        "success": false,
+        "code": "JWT_005",
+        "type": "error",
+        "showAlert": true,
+        "title": "Token expirado",
+        "techMessage": "The JWT has expired and is no longer valid.",
+        "friendlyMessage": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+    },
+    "JWT_CORRUPTED_TOKEN": {
+        "success": false,
+        "code": "JWT_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Token corrupto",
+        "techMessage": "The provided JWT is corrupted or unreadable.",
+        "friendlyMessage": "El token proporcionado está corrupto. Por favor, inicia sesión nuevamente."
     },
     "NETWORK_REQUEST_TIMEOUT": {
         "success": false,
