@@ -1,4 +1,5 @@
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const sharp = require("sharp");
 const { getError } = require("../helpers/getError");
 const User = require("../models/userModel");
@@ -41,9 +42,7 @@ const uploadProfilePicture = async (req, res) => {
 
         try {
             const command = new PutObjectCommand(params);
-            console.log(command)
-            const response = await s3Client.send(command);
-            console.log(response)
+            await s3Client.send(command);
         } catch (error) {
             console.error("Error uploading photo:", error);
             return res.status(500).json(getError("PHOTO_UPLOAD_FAILED"));
@@ -66,7 +65,7 @@ const getPhoto = async (req, res) => {
         };
 
         const command = new GetObjectCommand(params);
-        const signedUrl = await s3Client.getSignedUrl(command, { expiresIn: 604800 });
+        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 604800 });
 
         return res.status(200).json({ success: true, url: signedUrl });
     } catch (error) {
@@ -88,7 +87,7 @@ const getPhotoByUsername = async (req, res) => {
         };
 
         const command = new GetObjectCommand(params);
-        const signedUrl = await s3Client.getSignedUrl(command, { expiresIn: 604800 });
+        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 604800 });
 
         return res.status(200).json({ success: true, url: signedUrl });
     } catch (error) {
