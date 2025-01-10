@@ -417,28 +417,40 @@ const userSchema = new Schema(
   }
 );
 
-userSchema.methods.toJSON = function () {
-    const { __v, _id, password, ...user } = this.toObject();
-    return {
-        id: _id,
-        ...user,
-    };
-};
+userSchema.virtual("profilePhotoUrl").get(function () {
+  return `${process.env.AWS_S3_BASE_URL}/profile_pictures/${this._id}`;
+});
 
-userSchema.methods.getRankingData = function () {
+userSchema.methods.getUserSidebarDetails = function () {
   return {
+    id: this._id,
     username: this.username,
-    name: this.profile.name,
-    currentLevel: this.level.currentLevel,
-    team: this.teams.length > 0 ? this.teams[0].teamName : null
+    profilePhoto: this.profilePhotoUrl,
   };
 };
 
-userSchema.methods.getSearchData = function () {
+userSchema.methods.getRankingUserDetails = function () {
   return {
+    id: this._id,
     username: this.username,
-    name: this.profile.name,
-    team: this.teams.length > 0 ? this.teams[0].teamName : null,
+    profilePhoto: this.profilePhotoUrl,
+    team: this.teams?.length ? this.teams[0].teamName : null,
+    currentLevel: this.level?.currentLevel || 1,
+  };
+};
+
+userSchema.methods.getFullUserDetails = function () {
+  return {
+    id: this._id,
+    username: this.username,
+    profilePhoto: this.profilePhotoUrl,
+    profile: this.profile,
+    enterprise: this.enterprise,
+    teams: this.teams,
+    level: this.level,
+    achievements: this.achievements,
+    programs: this.programs,
+    preferences: this.preferences,
   };
 };
 

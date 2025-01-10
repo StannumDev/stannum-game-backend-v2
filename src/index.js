@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const authRouter = require("./routes/authRoutes");
 const profilePictureRouter = require("./routes/profilePictureRoutes");
+const userRouter = require("./routes/userRoutes");
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter);
 app.use("/api/profile-picture", profilePictureRouter);
+app.use("/api/users", userRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);
