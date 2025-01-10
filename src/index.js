@@ -16,6 +16,7 @@ mongoose
   .then(() => console.log("Conectado a la base de datos."));
     
 const allowedOrigins = [
+  'https://stannumgamev2prueba.netlify.app',
   'http://localhost:3000'
 ];
 
