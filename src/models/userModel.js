@@ -367,7 +367,7 @@ const userSchema = new Schema(
       },
       aboutMe: {
         type: String,
-        maxlength: [300, "About me section cannot exceed 300 characters"],
+        maxlength: [2600, "About me section cannot exceed 2600 characters"],
       },
     },
     enterprise: enterpriseSchema,
