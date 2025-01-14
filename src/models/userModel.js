@@ -1,5 +1,27 @@
 const { Schema, model } = require("mongoose");
 
+const tutorialSchema = new Schema({
+  name: {
+    type: String,
+    required: [true, "Tutorial name is required"],
+    trim: true,
+    maxlength: [50, "Tutorial name cannot exceed 50 characters"],
+  },
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
+  completedAt: {
+    type: Date,
+    validate: {
+      validator: function (value) {
+        return !value || value <= Date.now();
+      },
+      message: "Completed date cannot be in the future",
+    },
+  },
+});
+
 const levelSchema = new Schema({
   currentLevel: {
     type: Number,
@@ -402,9 +424,13 @@ const userSchema = new Schema(
       },
     },
     preferences: {
-      welcomeMessage: {
-        type: Boolean,
-        default: true,
+      tutorials: {
+        type: [tutorialSchema],
+        default: [
+          { name: "initial_tutorial",
+            isCompleted: false,
+            completedAt: null
+          }],
       },
       notificationsEnabled: {
         type: Boolean,
@@ -452,6 +478,22 @@ userSchema.methods.getFullUserDetails = function () {
     programs: this.programs,
     preferences: this.preferences,
   };
+};
+
+userSchema.methods.markTutorialAsCompleted = function (tutorialName) {
+  const tutorial = this.preferences.tutorials.find((t) => t.name === tutorialName);
+  if (tutorial) {
+    tutorial.isCompleted = true;
+    tutorial.completedAt = new Date();
+  } else {
+    this.preferences.tutorials.push({
+      name: tutorialName,
+      isCompleted: true,
+      completedAt: new Date(),
+    });
+  }
+
+  return this.save();
 };
 
 module.exports = model("User", userSchema);

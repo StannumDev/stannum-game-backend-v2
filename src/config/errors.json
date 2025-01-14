@@ -5,7 +5,7 @@
         "type": "warning",
         "showAlert": true,
         "title": "Validation Error",
-        "techMessage": "Multiple fields failed validation.",
+        "techMessage": "Multiple fields failed validation. Express validator",
         "friendlyMessage": "Por favor, revisa los campos ingresados."
     },
     "VALIDATION_PASSWORD_REQUIRED": {
@@ -133,6 +133,33 @@
         "title": "Invalid birthdate",
         "techMessage": "The provided birthdate is invalid or user is underage.",
         "friendlyMessage": "La fecha de nacimiento no es válida o debes ser mayor de 18 años."
+    },
+    "VALIDATION_TUTORIAL_NAME_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_016",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Nombre del tutorial requerido",
+        "techMessage": "The tutorial name is required.",
+        "friendlyMessage": "El nombre del tutorial es obligatorio."
+    },
+    "VALIDATION_TUTORIAL_NOT_FOUND": {
+        "success": false,
+        "code": "VALIDATION_017",
+        "type": "error",
+        "showAlert": true,
+        "title": "Tutorial no encontrado",
+        "techMessage": "The specified tutorial was not found.",
+        "friendlyMessage": "El tutorial especificado no existe."
+    },
+    "VALIDATION_TUTORIAL_ALREADY_COMPLETED": {
+        "success": false,
+        "code": "VALIDATION_018",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Tutorial ya completado",
+        "techMessage": "The tutorial is already marked as completed.",
+        "friendlyMessage": "El tutorial ya fue completado."
     },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,

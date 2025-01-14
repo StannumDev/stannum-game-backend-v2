@@ -1,6 +1,5 @@
 const { Router } = require("express");
 const { check } = require("express-validator");
-
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const { rateLimiter } = require("../middlewares/rateLimiter");

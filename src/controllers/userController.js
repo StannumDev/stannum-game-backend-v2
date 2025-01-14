@@ -30,4 +30,52 @@ const getUserDetailsByUsername = async (req, res) => {
     }
 };
 
-module.exports = { getUserSidebarDetails, getUserDetailsByUsername };
+const getTutorialStatus = async (req, res) => {
+    const { tutorialName } = req.params;
+  
+    if (!tutorialName) return res.status(400).json(getError("VALIDATION_TUTORIAL_NAME_REQUIRED"));
+  
+    try {
+        const user = await User.findById(req.userAuth.id);
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    
+        const tutorial = user.preferences.tutorials.find((t) => t.name === tutorialName);
+        if (!tutorial) return res.status(404).json(getError("VALIDATION_TUTORIAL_NOT_FOUND"));
+    
+        return res.status(200).json({ success: true, tutorial });
+      
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+const markTutorialAsCompleted = async (req, res) => {
+    const { tutorialName } = req.params;
+    const userId = req.userAuth.id;
+ 
+    if (!tutorialName) return res.status(400).json(getError("VALIDATION_TUTORIAL_NAME_REQUIRED"));
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+        const tutorial = user.preferences.tutorials.find(t => t.name === tutorialName);
+        if (!tutorial) return res.status(404).json(getError("TUTORIAL_NOT_FOUND"));
+
+        if (tutorial.isCompleted) {
+            return res.status(400).json(getError("TUTORIAL_ALREADY_COMPLETED"));
+        }
+
+        tutorial.isCompleted = true;
+        tutorial.completedAt = new Date();
+
+        await user.save();
+        return res.status(200).json({ success: true, message: "Tutorial marked as completed." });
+    } catch (error) {
+        console.error("Error marking tutorial as completed:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted };
