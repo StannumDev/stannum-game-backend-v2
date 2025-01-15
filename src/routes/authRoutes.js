@@ -70,6 +70,7 @@ router.post(
     check("aboutme", "About me is required.").trim().escape().not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
     fieldsValidate,
   ],
+  rateLimiter,
   authController.createUser
 );
 
