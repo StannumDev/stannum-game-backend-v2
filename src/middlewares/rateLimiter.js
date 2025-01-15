@@ -10,6 +10,9 @@ const rateLimiter = rateLimit({
         const error = getError("AUTH_TOO_MANY_ATTEMPTS");
         return res.status(429).json(error);
     },
+    keyGenerator: (req) => {
+        return req.ip;
+    },
 });
 
 module.exports = { rateLimiter };
