@@ -53,7 +53,7 @@ router.post(
     check("email", "Email is required and must be valid.").trim().escape().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
     check("username", "Username is required.").trim().escape().not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
     check("password", "Password is required and must be valid.").trim().escape().not().isEmpty().withMessage("Password cannot be empty.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
-    check("name", "Name is required and must be valid.").trim().escape().not().isEmpty().withMessage("Name cannot be empty.").isLength({ min: 2, max: 50 }).withMessage("Name must be between 2 and 50 characters.").matches(/^[a-zA-Z\s]+$/).withMessage("Name can only contain letters and spaces."),
+    check("name", "El nombre debe tener entre 2 y 50 caracteres.").optional().trim().escape().isLength({ min: 2, max: 50 }).withMessage("El nombre debe tener entre 2 y 50 caracteres.").matches(/^[\p{L}\s]+$/u).withMessage("El nombre solo puede contener letras y espacios."),
     check("birthdate", "Birthdate is required.").trim().escape().not().isEmpty().withMessage("Birthdate cannot be empty.")
       .custom((value) => {
         const today = new Date();

@@ -78,4 +78,30 @@ const markTutorialAsCompleted = async (req, res) => {
     }
 };
 
-module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted };
+const editUser = async (req, res) => {
+    const userId = req.userAuth.id;
+    const { name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+  
+      user.profile.name = name || user.profile.name;
+      user.profile.birthdate = birthdate || user.profile.birthdate;
+      user.profile.country = country || user.profile.country;
+      user.profile.region = region || user.profile.region;
+      user.profile.aboutMe = aboutme || user.profile.aboutMe;
+  
+      user.enterprise.name = enterprise || user.enterprise.name;
+      user.enterprise.jobPosition = enterpriseRole || user.enterprise.jobPosition;
+  
+      await user.save();
+      return res.status(200).json({ success: true, message: "User updated successfully.", data: user.getFullUserDetails() });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+  };
+  
+
+module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted, editUser };
