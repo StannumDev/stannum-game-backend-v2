@@ -38,7 +38,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter);
 app.use("/api/profile-picture", profilePictureRouter);
-app.use("/api/users", userRouter);
+app.use("/api/user", userRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);
