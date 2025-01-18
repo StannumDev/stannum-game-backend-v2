@@ -74,4 +74,25 @@ router.post(
   authController.createUser
 );
 
+router.post(
+  "/password-recovery",
+  [
+    check("username", "Username or email is required.").trim().escape().not().isEmpty().withMessage("Username or email cannot be empty."),
+    fieldsValidate,
+  ],
+  rateLimiter,
+  authController.sendPasswordRecoveryEmail
+);
+
+router.post(
+  "/password-reset",
+  [
+    check("token", "El token es obligatorio.").not().isEmpty().withMessage("El token no puede estar vacío."),
+    check("password", "La contraseña es obligatoria.").isLength({ min: 8, max: 50 }).withMessage("La contraseña debe tener entre 8 y 50 caracteres.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("La contraseña debe incluir una mayúscula, una minúscula y un número."),
+    fieldsValidate,
+  ],
+  rateLimiter,
+  authController.resetPassword
+);
+
 module.exports = router;

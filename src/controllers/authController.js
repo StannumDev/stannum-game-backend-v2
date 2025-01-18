@@ -1,6 +1,8 @@
 const { request, response } = require("express");
 const bcryptjs = require("bcryptjs");
 const axios = require("axios");
+const nodemailer = require("nodemailer");
+const jwt = require("jsonwebtoken");
 
 const { newJWT } = require("../helpers/newJWT");
 const { getError } = require("../helpers/getError");
@@ -154,4 +156,99 @@ const createUser = async (req = request, res = response) => {
   }
 };
 
-module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser };
+const sendPasswordRecoveryEmail = async (req = request, res = response) => {
+  const { username } = req.body;
+  try {
+    if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+
+    const user = await User.findOne({
+      $or: [
+        { username: username.toLowerCase().trim() },
+        { email: username.toLowerCase().trim() },
+      ],
+    });
+
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    let token;
+    try {
+      token = jwt.sign({ id: user.id }, process.env.SECRET_PASSWORD_RECOVERY, { expiresIn: "15m" });
+    } catch (error) {
+      return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+    }
+
+    const tokenBase64 = Buffer.from(token).toString("base64");
+    let transporter;
+    try {
+      transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.SMTP_EMAIL,
+          pass: process.env.SMTP_PASSWORD,
+        },
+      });
+    } catch (error) {
+      console.error("Error configurando el transporte de nodemailer:", error);
+      return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
+    }
+
+    const recoveryUrl = `${process.env.FRONTEND_URL}/password-recovery/${tokenBase64}`;
+    const mailOptions = {
+      from: `"Stannum Support" <${process.env.SMTP_EMAIL}>`,
+      to: user.email,
+      subject: "Password Recovery - Stannum",
+      html: `
+        <p>Hola ${user.username},</p>
+        <p>Parece que solicitaste restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:</p>
+        <a href="${recoveryUrl}" target="_blank">${recoveryUrl}</a>
+        <p>Si no solicitaste este cambio, ignora este correo.</p>
+        <p>Saludos,</p>
+        <p>Equipo Stannum</p>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error("Error enviando el correo:", error);
+      return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
+    }
+
+    return res.status(200).json({ success: true, message: "Recovery email sent successfully." });
+  } catch (error) {
+    console.error("Error en el proceso de recuperación de contraseña:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const resetPassword = async (req = request, res = response) => {
+  const { token, password } = req.body;
+
+  try {
+    if (!token) return res.status(400).json(getError("VALIDATION_TOKEN_REQUIRED"));
+    let decodedToken;
+    try {
+      const tokenDecoded = Buffer.from(token, "base64").toString("utf-8");
+      decodedToken = jwt.verify(tokenDecoded, process.env.SECRET_PASSWORD_RECOVERY);
+    } catch (error) {
+      if (error.name === "TokenExpiredError") return res.status(401).json(getError("JWT_EXPIRED_TOKEN"));
+      if (error.name === "JsonWebTokenError") return res.status(400).json(getError("JWT_INVALID_TOKEN"));
+      return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+
+    const user = await User.findById(decodedToken.id);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Error al restablecer la contraseña:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, resetPassword };
