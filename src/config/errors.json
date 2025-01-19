@@ -161,6 +161,24 @@
         "techMessage": "The tutorial is already marked as completed.",
         "friendlyMessage": "El tutorial ya fue completado."
     },
+    "VALIDATION_OTP_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_019",
+        "type": "error",
+        "showAlert": true,
+        "title": "OTP requerido",
+        "techMessage": "The recovery OTP field is required.",
+        "friendlyMessage": "El código de recuperación es obligatorio."
+    },
+    "VALIDATION_PASSWORD_INVALID": {
+        "success": false,
+        "code": "VALIDATION_020",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Contraseña inválida",
+        "techMessage": "The password must include at least one uppercase letter, one lowercase letter, and one number, and be 8-50 characters long.",
+        "friendlyMessage": "La contraseña debe incluir al menos una mayúscula, una minúscula, un número y tener entre 8 a 50 caracteres."
+    },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
         "code": "AUTH_001",
@@ -232,6 +250,33 @@
         "title": "Acceso prohibido",
         "techMessage": "User does not have sufficient permissions to access this resource.",
         "friendlyMessage": "No tienes permiso para realizar esta acción."
+    },
+    "AUTH_INVALID_OTP": {
+        "success": false,
+        "code": "AUTH_009",
+        "type": "error",
+        "showAlert": true,
+        "title": "OTP inválido",
+        "techMessage": "The recovery OTP provided does not match.",
+        "friendlyMessage": "El código de recuperación ingresado no es válido."
+    },
+    "AUTH_OTP_EXPIRED": {
+        "success": false,
+        "code": "AUTH_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "OTP expirado",
+        "techMessage": "The recovery OTP has expired.",
+        "friendlyMessage": "El código de recuperación ha expirado. Solicita uno nuevo."
+    },
+    "AUTH_OTP_MISSING": {
+        "success": false,
+        "code": "AUTH_011",
+        "type": "error",
+        "showAlert": true,
+        "title": "OTP no configurado",
+        "techMessage": "The user does not have a recovery OTP configured.",
+        "friendlyMessage": "No se ha generado un código de recuperación para este usuario. Solicita uno nuevo."
     },
     "PHOTO_FILE_TOO_LARGE": {
         "success": false,

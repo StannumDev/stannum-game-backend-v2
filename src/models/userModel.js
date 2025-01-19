@@ -437,6 +437,30 @@ const userSchema = new Schema(
         default: true,
       },
     },
+    otp: {
+      recoveryOtp: {
+        type: String,
+        default: null,
+        minlength: [6, "El OTP debe tener exactamente 6 dígitos."],
+        maxlength: [6, "El OTP debe tener exactamente 6 dígitos."],
+        validate: {
+          validator: function (value) {
+            return !value || /^\d{6}$/.test(value);
+          },
+          message: "El OTP debe ser un número de 6 dígitos.",
+        },
+      },
+      otpExpiresAt: {
+        type: Date,
+        default: null,
+        validate: {
+          validator: function (value) {
+            return !value || value > Date.now();
+          },
+          message: "La fecha de expiración debe ser en el futuro.",
+        },
+      },
+    },
   },
   {
     timestamps: true,

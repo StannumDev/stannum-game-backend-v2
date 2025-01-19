@@ -85,10 +85,22 @@ router.post(
 );
 
 router.post(
+  "/verify-recovery-otp",
+  [
+    check("username", "Username or email is required.").trim().escape().not().isEmpty().withMessage("Username or email cannot be empty."),
+    check("otp", "OTP is required and must be exactly 6 digits.").isLength({ min: 6, max: 6 }).matches(/^\d{6}$/).withMessage("OTP must be a 6-digit number."),
+    fieldsValidate,
+  ],
+  rateLimiter,
+  authController.verifyRecoveryOtp
+);
+
+router.post(
   "/password-reset",
   [
-    check("token", "El token es obligatorio.").not().isEmpty().withMessage("El token no puede estar vacío."),
-    check("password", "La contraseña es obligatoria.").isLength({ min: 8, max: 50 }).withMessage("La contraseña debe tener entre 8 y 50 caracteres.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("La contraseña debe incluir una mayúscula, una minúscula y un número."),
+    check("username", "Username or email is required.").trim().escape().not().isEmpty().withMessage("Username or email cannot be empty."),
+    check("otp", "OTP is required.").isLength({ min: 6, max: 6 }).matches(/^\d{6}$/).withMessage("OTP must be a 6-digit number."),
+    check("password", "Password is required and must be valid.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
     fieldsValidate,
   ],
   rateLimiter,

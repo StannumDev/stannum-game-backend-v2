@@ -2,7 +2,6 @@ const { request, response } = require("express");
 const bcryptjs = require("bcryptjs");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
-const jwt = require("jsonwebtoken");
 
 const { newJWT } = require("../helpers/newJWT");
 const { getError } = require("../helpers/getError");
@@ -170,14 +169,13 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-    let token;
-    try {
-      token = jwt.sign({ id: user.id }, process.env.SECRET_PASSWORD_RECOVERY, { expiresIn: "15m" });
-    } catch (error) {
-      return res.status(500).json(getError("JWT_GENERATION_FAILED"));
-    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = {
+      recoveryOtp: otp,
+      otpExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    };
+    await user.save();
 
-    const tokenBase64 = Buffer.from(token).toString("base64");
     let transporter;
     try {
       transporter = nodemailer.createTransport({
@@ -192,18 +190,38 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
       return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
     }
 
-    const recoveryUrl = `${process.env.FRONTEND_URL}/password-recovery/${tokenBase64}`;
     const mailOptions = {
-      from: `"Stannum Support" <${process.env.SMTP_EMAIL}>`,
+      from: `"STANNUM Game Soporte" <${process.env.SMTP_EMAIL}>`,
       to: user.email,
-      subject: "Password Recovery - Stannum",
+      subject: "Restablecer contraseña - STANNUM Game",
       html: `
-        <p>Hola ${user.username},</p>
-        <p>Parece que solicitaste restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:</p>
-        <a href="${recoveryUrl}" target="_blank">${recoveryUrl}</a>
-        <p>Si no solicitaste este cambio, ignora este correo.</p>
-        <p>Saludos,</p>
-        <p>Equipo Stannum</p>
+        <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; text-align: center;">
+          <img src="https://drive.google.com/uc?export=view&id=1UWz8LoVr9RsLskEKXAx-KaB9xZgAK-PN" alt="STANNUM Logo" style="max-width: 150px; margin-top: 20px;" />
+          <h1 style="color: #41cfc9; font-size: 28px;">Recupera tu contraseña en <b style="color:#ffffff; font-weight: 600; display: block;">STANNUM Game</b></h1>
+          <p style="font-size: 16px; color: #ccc; line-height: 1.6;">
+            Hola <span style="color: #41cfc9;">${user.username}</span>, hemos recibido una solicitud para recuperar tu contraseña.
+          </p>
+          <p style="font-size: 16px; color: #fff; line-height: 1.6; margin: 20px 0;">
+            Aquí tienes tu código de verificación:
+          </p>
+          <div style="background-color: #333333; padding: 15px; border-radius: 8px; display: inline-block; margin: 8px 0;">
+            <h2 style="color: #ffffff; font-size: 32px; letter-spacing: 2px; margin: 0;">${otp}</h2>
+          </div>
+          <p style="font-size: 16px; color: #ccc; line-height: 1.6;">
+            Este código es válido solo por 30 minutos</b>.
+          </p>
+          <hr style="border: none; border-top: 1px solid #515151; margin: 20px 0;" />
+          <p style="font-size: 14px; color: #aaa; line-height: 1.6;">
+            Si no solicitaste este cambio, puedes ignorar este correo. Tu cuenta permanecerá segura.
+          </p>
+          <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin-top: 20px;">
+            Saludos,<br />
+            <span style="color: #66eae5;">Equipo STANNUM</span>
+          </p>
+          <footer style="margin-top: 30px; font-size: 12px; color: #515151;">
+            &copy; ${new Date().getFullYear()} STANNUM Game. Todos los derechos reservados.
+          </footer>
+        </div>
       `,
     };
 
@@ -214,41 +232,74 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
       return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
     }
 
-    return res.status(200).json({ success: true, message: "Recovery email sent successfully." });
+    return res.status(200).json({ success: true, message: "OTP enviado al correo." });
   } catch (error) {
     console.error("Error en el proceso de recuperación de contraseña:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
 
-const resetPassword = async (req = request, res = response) => {
-  const { token, password } = req.body;
-
+const verifyRecoveryOtp = async (req, res) => {
+  const { username, otp } = req.body;
   try {
-    if (!token) return res.status(400).json(getError("VALIDATION_TOKEN_REQUIRED"));
-    let decodedToken;
-    try {
-      const tokenDecoded = Buffer.from(token, "base64").toString("utf-8");
-      decodedToken = jwt.verify(tokenDecoded, process.env.SECRET_PASSWORD_RECOVERY);
-    } catch (error) {
-      if (error.name === "TokenExpiredError") return res.status(401).json(getError("JWT_EXPIRED_TOKEN"));
-      if (error.name === "JsonWebTokenError") return res.status(400).json(getError("JWT_INVALID_TOKEN"));
-      return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-    }
+    if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+    if (!otp) return res.status(400).json(getError("VALIDATION_OTP_REQUIRED"));
 
-    const user = await User.findById(decodedToken.id);
+    const user = await User.findOne({
+      $or: [
+        { username: username.toLowerCase().trim() },
+        { email: username.toLowerCase().trim() },
+      ],
+    });
+
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    if (!user.otp || user.otp.recoveryOtp !== otp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
 
-    const hashedPassword = await bcryptjs.hash(password, 10);
-
-    user.password = hashedPassword;
-    await user.save();
-
-    return res.status(200).json({ success: true, message: "Password changed successfully." });
+    return res.status(200).json({ success: true, message: "OTP validado con éxito." });
   } catch (error) {
-    console.error("Error al restablecer la contraseña:", error);
+    console.error("Error al verificar el OTP:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
 
-module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, resetPassword };
+const resetPassword = async (req, res) => {
+  const { username, otp, password } = req.body;
+  try {
+    if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+    if (!otp) return res.status(400).json(getError("VALIDATION_OTP_REQUIRED"));
+    if (!password) return res.status(400).json(getError("VALIDATION_PASSWORD_REQUIRED"));
+
+    const user = await User.findOne({
+      $or: [
+        { username: username.toLowerCase().trim() },
+        { email: username.toLowerCase().trim() },
+      ],
+    });
+
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    if (!user.otp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
+    if (user.otp.recoveryOtp !== otp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json(getError("VALIDATION_PASSWORD_INVALID"));
+    }
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    user.password = hashedPassword;
+    user.otp = {
+      recoveryOtp: null,
+      otpExpiresAt: null,
+    };
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Contraseña actualizada exitosamente." });
+  } catch (error) {
+    console.error("Error al restablecer contraseña:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword };
