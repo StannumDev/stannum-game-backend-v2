@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const authRouter = require("./routes/authRoutes");
-const profilePictureRouter = require("./routes/profilePictureRoutes");
+const profilePhotoRouter = require("./routes/profilePhotoRoutes");
 const userRouter = require("./routes/userRoutes");
 
 const app = express();
@@ -37,7 +37,7 @@ app.use(express.json());
 // app.set('trust proxy', true);
 
 app.use("/api/auth", authRouter);
-app.use("/api/profile-picture", profilePictureRouter);
+app.use("/api/profile-photo", profilePhotoRouter);
 app.use("/api/user", userRouter);
 
 app.listen(PORT, () => {

@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const multer = require("multer");
 
-const profilePictureController = require("../controllers/profilePictureController");
+const profilePhotoController = require("../controllers/profilePhotoController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const { rateLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
@@ -28,7 +28,7 @@ router.post(
         fieldsValidate,
     ],
     rateLimiter,
-    profilePictureController.uploadProfilePicture
+    profilePhotoController.uploadProfilePhoto
 );
 
 router.get(
@@ -37,7 +37,7 @@ router.get(
         validateJWT,
     ],
     rateLimiter,
-    profilePictureController.getPhoto
+    profilePhotoController.getPhoto
 );
 
 router.get(
@@ -47,7 +47,7 @@ router.get(
         fieldsValidate,
     ],
     rateLimiter,
-    profilePictureController.getPhotoByUsername
+    profilePhotoController.getPhotoByUsername
 );
 
 router.delete(
@@ -56,7 +56,7 @@ router.delete(
         validateJWT,
     ],
     rateLimiter,
-    profilePictureController.deletePhoto
+    profilePhotoController.deletePhoto
 );
 
 module.exports = router;

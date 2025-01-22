@@ -11,7 +11,7 @@ const s3Client = new S3Client({
     },
 });
 
-const uploadProfilePicture = async (req, res) => {
+const uploadProfilePhoto = async (req, res) => {
     const userId = req.userAuth.id;
     const file = req.file;
 
@@ -34,7 +34,7 @@ const uploadProfilePicture = async (req, res) => {
 
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,
-            Key: `profile_pictures/${userId}`,
+            Key: `${process.env.AWS_FOLDER_NAME}/${userId}`,
             Body: optimizedImage,
             ContentType: file.mimetype,
             Metadata: {
@@ -51,9 +51,11 @@ const uploadProfilePicture = async (req, res) => {
             return res.status(500).json(getError("PHOTO_UPLOAD_FAILED"));
         }
 
-        return res.status(200).json({ success: true, message: "Profile picture uploaded successfully." });
+        await User.findByIdAndUpdate(userId, { "preferences.hasProfilePhoto": true });
+
+        return res.status(200).json({ success: true, message: "Profile photo uploaded successfully." });
     } catch (error) {
-        console.error("Error uploading profile picture:", error);
+        console.error("Error uploading profile photo:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
 };
@@ -62,7 +64,7 @@ const getPhoto = async (req, res) => {
     const userId = req.userAuth.id;
 
     try {
-        const profilePhotoUrl = `${process.env.S3_BASE_URL}/profile_pictures/${userId}`;
+        const profilePhotoUrl = `${process.env.S3_BASE_URL}/profile_photo/${userId}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });
     } catch (error) {
         console.error("Error fetching photo:", error);
@@ -77,7 +79,7 @@ const getPhotoByUsername = async (req, res) => {
         const user = await User.findOne({ username: username.toLowerCase() });
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const profilePhotoUrl = `${process.env.S3_BASE_URL}/profile_pictures/${user.id}`;
+        const profilePhotoUrl = `${process.env.S3_BASE_URL}/profile_photo/${user.id}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });
     } catch (error) {
         console.error("Error fetching photo by username:", error);
@@ -91,16 +93,17 @@ const deletePhoto = async (req, res) => {
     try {
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,
-            Key: `profile_pictures/${userId}`,
+            Key: `profile_photo/${userId}`,
         };
 
         const command = new DeleteObjectCommand(params);
         await s3Client.send(command);
-        return res.status(200).json({ success: true, message: "Profile picture deleted successfully." });
+        await User.findByIdAndUpdate(userId, { "preferences.hasProfilePhoto": false });
+        return res.status(200).json({ success: true, message: "Profile photo deleted successfully." });
     } catch (error) {
         console.error("Error deleting photo:", error);
         return res.status(500).json(getError("PHOTO_DELETION_FAILED"));
     }
 };
 
-module.exports = { uploadProfilePicture, getPhoto, getPhotoByUsername, deletePhoto };
+module.exports = { uploadProfilePhoto, getPhoto, getPhotoByUsername, deletePhoto };

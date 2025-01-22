@@ -67,7 +67,7 @@ router.post(
     check("region", "Region is required.").trim().escape().not().isEmpty().withMessage("Region cannot be empty."),
     check("enterprise", "Enterprise is required.").trim().customSanitizer(value => value.replace(/\s+/g, ' ')).escape().not().isEmpty().withMessage("Enterprise cannot be empty.").isLength({ max: 100 }).withMessage("Enterprise must be less than 100 characters."),
     check("enterpriseRole", "Enterprise role is required.").trim().customSanitizer(value => value.replace(/\s+/g, ' ')).escape().not().isEmpty().withMessage("Enterprise role cannot be empty.").isLength({ max: 50 }).withMessage("Enterprise role must be less than 50 characters."),
-    check("aboutme", "About me is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
+    check("aboutme", "About me is required.").trim().escape().customSanitizer(value => value.replace(/(?<!\n)\s{2,}(?!\n)/g, ' ')).not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
     fieldsValidate,
   ],
   rateLimiter,

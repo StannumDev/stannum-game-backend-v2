@@ -436,6 +436,10 @@ const userSchema = new Schema(
         type: Boolean,
         default: true,
       },
+      hasProfilePhoto: {
+        type: Boolean,
+        default: false,
+      },
     },
     otp: {
       recoveryOtp: {
@@ -468,7 +472,10 @@ const userSchema = new Schema(
 );
 
 userSchema.virtual("profilePhotoUrl").get(function () {
-  return `${process.env.AWS_S3_BASE_URL}/profile_pictures/${this._id}`;
+  if (this.preferences.hasProfilePhoto) {
+    return `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_FOLDER_NAME}/${this._id}`;
+  }
+  return null;
 });
 
 userSchema.methods.getUserSidebarDetails = function () {
