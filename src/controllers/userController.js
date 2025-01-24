@@ -86,14 +86,13 @@ const editUser = async (req, res) => {
       const user = await User.findById(userId);
       if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
   
-      user.profile.name = name || user.profile.name;
-      user.profile.birthdate = birthdate || user.profile.birthdate;
-      user.profile.country = country || user.profile.country;
-      user.profile.region = region || user.profile.region;
-      user.profile.aboutMe = aboutme || user.profile.aboutMe;
-  
-      user.enterprise.name = enterprise || user.enterprise.name;
-      user.enterprise.jobPosition = enterpriseRole || user.enterprise.jobPosition;
+      if(name) user.profile.name = name;
+      if(birthdate) user.profile.birthdate = birthdate;
+      if(country) user.profile.country = country;
+      if(region) user.profile.region = region;
+      if(aboutme) user.profile.aboutMe = aboutme;
+      if(enterprise) user.enterprise.name = enterprise;
+      if(enterpriseRole) user.enterprise.jobPosition = enterpriseRole;
   
       await user.save();
       return res.status(200).json({ success: true, message: "User updated successfully.", data: user.getFullUserDetails() });

@@ -285,9 +285,7 @@ const programSchema = new Schema({
 const enterpriseSchema = new Schema({
   name: {
     type: String,
-    required: [true, "Enterprise name is required"],
     trim: true,
-    minlength: [2, "Enterprise name must be at least 2 characters long"],
     maxlength: [100, "Enterprise name cannot exceed 100 characters"],
   },
   jobPosition: {
@@ -341,7 +339,6 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
       minlength: [8, "Password must be at least 8 characters long"],
     },
     role: {
@@ -366,16 +363,12 @@ const userSchema = new Schema(
       },
       country: {
         type: String,
-        required: [true, "Country is required"],
         trim: true,
-        minlength: [2, "Country name must be at least 2 characters long"],
         maxlength: [50, "Country name cannot exceed 50 characters"],
       },
       region: {
         type: String,
-        required: [true, "Region is required"],
         trim: true,
-        minlength: [2, "Region name must be at least 2 characters long"],
         maxlength: [50, "Region name cannot exceed 50 characters"],
       },
       birthdate: {
@@ -473,7 +466,7 @@ const userSchema = new Schema(
 
 userSchema.virtual("profilePhotoUrl").get(function () {
   if (this.preferences.hasProfilePhoto) {
-    return `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_FOLDER_NAME}/${this._id}`;
+    return `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${this._id}`;
   }
   return null;
 });

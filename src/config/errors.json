@@ -278,6 +278,24 @@
         "techMessage": "The user does not have a recovery OTP configured.",
         "friendlyMessage": "No se ha generado un código de recuperación para este usuario. Solicita uno nuevo."
     },
+    "AUTH_GOOGLE_TOKEN_REQUIRED": {
+        "success": false,
+        "code": "AUTH_012",
+        "type": "error",
+        "showAlert": true,
+        "title": "Token de Google requerido",
+        "techMessage": "No Google access token provided.",
+        "friendlyMessage": "No se proporcionó el token de acceso de Google. Por favor, intenta de nuevo."
+    },
+    "AUTH_INVALID_GOOGLE_TOKEN": {
+        "success": false,
+        "code": "AUTH_013",
+        "type": "error",
+        "showAlert": true,
+        "title": "Google token inválido",
+        "techMessage": "Invalid or expired Google access token.",
+        "friendlyMessage": "El token de acceso de Google no es válido o ha expirado. Por favor, inicia sesión nuevamente."
+    },
     "PHOTO_FILE_TOO_LARGE": {
         "success": false,
         "code": "PHOTO_001",
@@ -386,6 +404,24 @@
         "techMessage": "User is not authorized to perform this action.",
         "friendlyMessage": "No tienes permisos para realizar esta acción."
     },
+    "PHOTO_DOWNLOAD_FAILED": {
+        "success": false,
+        "code": "PHOTO_013",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al descargar la foto",
+        "techMessage": "Failed to download the photo from the external source.",
+        "friendlyMessage": "No se pudo descargar la foto. Por favor, inténtalo nuevamente."
+    },
+    "GOOGLE_PHOTO_UPLOAD_FAILED": {
+        "success": false,
+        "code": "PHOTO_014",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al subir la foto de Google",
+        "techMessage": "Failed to upload the Google profile photo to S3.",
+        "friendlyMessage": "Hubo un problema al subir la foto de perfil. Por favor, inténtalo nuevamente."
+    },
     "EMAIL_TRANSPORT_CONFIG_ERROR": {
         "success": false,
         "code": "EMAIL_001",
@@ -403,6 +439,15 @@
         "title": "Error al enviar el correo",
         "techMessage": "Failed to send the recovery email.",
         "friendlyMessage": "No se pudo enviar el correo de recuperación. Por favor, intenta nuevamente."
+    },
+    "USERNAME_GENERATION_FAILED": {
+        "success": false,
+        "code": "USER_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al generar el nombre de usuario",
+        "techMessage": "Failed to generate a unique username.",
+        "friendlyMessage": "Ocurrió un error al generar el nombre de usuario. Por favor, inténtalo nuevamente."
     },
     "JWT_GENERATION_FAILED": {
         "success": false,

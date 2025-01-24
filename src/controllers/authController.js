@@ -3,9 +3,11 @@ const bcryptjs = require("bcryptjs");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
 
+const User = require("../models/userModel");
 const { newJWT } = require("../helpers/newJWT");
 const { getError } = require("../helpers/getError");
-const User = require("../models/userModel");
+const { generateUsername } = require("../helpers/generateUsername");
+const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
 
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
@@ -302,4 +304,87 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword };
+const googleAuth = async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json(getError("AUTH_GOOGLE_TOKEN_REQUIRED"));
+
+  try {
+    const response = await axios.get(process.env.GOOGLE_USERINFO_API, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const { email, name, picture } = response.data;
+
+    if (!email) return res.status(400).json(getError("AUTH_EMAIL_REQUIRED"));
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({
+        email,
+        username: await generateUsername("google"),
+        password: null,
+        profile: {
+          name,
+          country: '',
+          region: '',
+          birthdate: null,
+          aboutMe: '',
+        },
+        enterprise: {
+          name: '',
+          jobPosition: '',
+        },
+        preferences: {
+          hasProfilePhoto: !!picture,
+        },
+      });
+
+      await user.save();
+
+      try {
+        if(picture) await uploadGoogleProfilePhoto(picture, user._id);
+      } catch (error) {
+        return res.status(500).json(getError("PHOTO_UPLOAD_FAILED"));
+      }
+    }
+
+    const jwt = await newJWT(user.id);
+    if (!jwt) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
+
+    return res.status(200).json({ success: true, token: jwt, username: user.username });
+  } catch (error) {
+    console.error('Google Auth Error:', error);
+    if (error.response?.status === 401) return res.status(401).json(getError("AUTH_INVALID_GOOGLE_TOKEN"));
+    return res.status(500).json(getError('SERVER_INTERNAL_ERROR'));
+  }
+};
+
+const updateUsername = async (req = request, res = response) => {
+  const { username } = req.body;
+  try {
+    if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
+
+    const normalizedUsername = username.trim().toLowerCase();
+    if (normalizedUsername.length < 6 || normalizedUsername.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
+    if (!/^[a-z0-9._]+$/.test(normalizedUsername)) return res.status(400).json(getError("VALIDATION_USERNAME_FORMAT"));
+
+    const existingUsername = await User.findOne({ username: normalizedUsername });
+    if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+
+    const user = await User.findById(req.userAuth.id);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    user.username = normalizedUsername;
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Username updated successfully" });
+  } catch (error) {
+    console.error("Error updating username:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername };

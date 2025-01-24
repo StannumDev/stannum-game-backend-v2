@@ -3,6 +3,7 @@ const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const { rateLimiter } = require("../middlewares/rateLimiter");
+const { validateJWT } = require("../middlewares/validateJWT");
 
 const router = Router();
 
@@ -106,5 +107,22 @@ router.post(
   rateLimiter,
   authController.resetPassword
 );
+
+router.post(
+  '/google',
+  // rateLimiter,
+  authController.googleAuth
+);
+
+router.put(
+  "/update-username",
+  [
+    validateJWT,
+    check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, " ")).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
+    fieldsValidate,
+  ],
+  authController.updateUsername
+);
+
 
 module.exports = router;
