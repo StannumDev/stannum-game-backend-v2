@@ -110,7 +110,7 @@ router.post(
 
 router.post(
   '/google',
-  // rateLimiter,
+  rateLimiter,
   authController.googleAuth
 );
 
