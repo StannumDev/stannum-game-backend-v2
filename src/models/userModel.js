@@ -433,6 +433,10 @@ const userSchema = new Schema(
         type: Boolean,
         default: false,
       },
+      isGoogleAccount: {
+        type: Boolean,
+        default: false,
+      },
     },
     otp: {
       recoveryOtp: {

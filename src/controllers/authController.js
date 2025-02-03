@@ -339,6 +339,7 @@ const googleAuth = async (req, res) => {
         },
         preferences: {
           hasProfilePhoto: !!picture,
+          isGoogleAccount: true,
         },
       });
 
