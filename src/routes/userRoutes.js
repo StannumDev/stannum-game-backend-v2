@@ -1,7 +1,9 @@
 const { Router } = require("express");
 const { check } = require("express-validator");
+
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
+const { searchRateLimiter } = require("../middlewares/rateLimiter");
 const userController = require("../controllers/userController");
 
 const router = Router();
@@ -64,6 +66,17 @@ router.put(
         fieldsValidate,
     ],
     userController.editUser
+);
+
+router.get(
+    "/search-users",
+    [
+        validateJWT,
+        check("query", "Search query is required.").trim().escape().not().isEmpty().withMessage("Search query cannot be empty.").isLength({ min: 2 }).withMessage("Search query must be at least 2 characters long."),
+        fieldsValidate,
+    ],
+    searchRateLimiter,
+    userController.searchUsers
 );
 
 module.exports = router;

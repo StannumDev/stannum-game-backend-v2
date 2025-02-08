@@ -1,3 +1,5 @@
+const Fuse = require("fuse.js");
+
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 
@@ -100,7 +102,35 @@ const editUser = async (req, res) => {
       console.error("Error updating user:", error);
       return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
-  };
-  
+};
 
-module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted, editUser };
+const searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        if (!query || query.trim().length < 2) return res.status(400).json(getError("VALIDATION_SEARCH_QUERY_TOO_SHORT"));
+
+        const users = await User.find();
+        if (!users.length) return res.status(404).json(getError("AUTH_NO_USERS_FOUND"));
+
+        const fuse = new Fuse(users.map(user => user.getSearchUserDetails()), {
+            keys: ["username", "name", "enterprise", "jobPosition"],
+            threshold: 0.3,
+            findAllMatches: true,
+            includeScore: true,
+            ignoreLocation: true,
+            ignoreDiacritics: true,
+        });
+
+        const results = fuse.search(query).map(result => result.item);
+
+        if (!results.length) return res.status(404).json(getError("AUTH_NO_USERS_FOUND"));
+        
+        return res.status(200).json({ success: true, data: results });
+    } catch (error) {
+        console.error("Error searching users:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted, editUser, searchUsers };

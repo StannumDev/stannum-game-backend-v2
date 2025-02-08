@@ -179,6 +179,15 @@
         "techMessage": "The password must include at least one uppercase letter, one lowercase letter, and one number, and be 8-50 characters long.",
         "friendlyMessage": "La contraseña debe incluir al menos una mayúscula, una minúscula, un número y tener entre 8 a 50 caracteres."
     },
+    "VALIDATION_SEARCH_QUERY_TOO_SHORT": {
+        "success": false,
+        "code": "VALIDATION_021",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Búsqueda demasiado corta",
+        "techMessage": "Search query must be at least 2 characters long.",
+        "friendlyMessage": "El término de búsqueda debe tener al menos 2 caracteres."
+    },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
         "code": "AUTH_001",
@@ -295,6 +304,15 @@
         "title": "Google token inválido",
         "techMessage": "Invalid or expired Google access token.",
         "friendlyMessage": "El token de acceso de Google no es válido o ha expirado. Por favor, inicia sesión nuevamente."
+    },
+    "AUTH_NO_USERS_FOUND": {
+        "success": false,
+        "code": "AUTH_014",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Usuarios no encontrados",
+        "techMessage": "No users match the search criteria.",
+        "friendlyMessage": "No se encontraron usuarios con los criterios de búsqueda ingresados."
     },
     "PHOTO_FILE_TOO_LARGE": {
         "success": false,

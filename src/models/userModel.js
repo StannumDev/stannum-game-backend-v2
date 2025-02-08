@@ -508,6 +508,17 @@ userSchema.methods.getFullUserDetails = function () {
   };
 };
 
+userSchema.methods.getSearchUserDetails = function () {
+  return {
+    id: this._id,
+    username: this.username,
+    name: this.profile.name,
+    profilePhoto: this.profilePhotoUrl,
+    enterprise: this.enterprise?.name || null,
+    jobPosition: this.enterprise?.jobPosition || null,
+  };
+};
+
 userSchema.methods.markTutorialAsCompleted = function (tutorialName) {
   const tutorial = this.preferences.tutorials.find((t) => t.name === tutorialName);
   if (tutorial) {

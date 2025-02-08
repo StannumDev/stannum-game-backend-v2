@@ -15,4 +15,18 @@ const rateLimiter = rateLimit({
     },
 });
 
-module.exports = { rateLimiter };
+const searchRateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 50,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+        const error = getError("AUTH_TOO_MANY_ATTEMPTS");
+        return res.status(429).json(error);
+    },
+    keyGenerator: (req) => {
+        return req.ip;
+    },
+});
+
+module.exports = { rateLimiter, searchRateLimiter };
