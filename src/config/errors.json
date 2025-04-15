@@ -188,6 +188,96 @@
         "techMessage": "Search query must be at least 2 characters long.",
         "friendlyMessage": "El término de búsqueda debe tener al menos 2 caracteres."
     },
+    "VALIDATION_PROGRAM_NAME_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_022",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa requerido",
+        "techMessage": "The program name is required.",
+        "friendlyMessage": "El nombre del programa es obligatorio."
+    },
+    "VALIDATION_LESSON_ID_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_023",
+        "type": "warning",
+        "showAlert": true,
+        "title": "ID de lección requerido",
+        "techMessage": "The lesson ID is required.",
+        "friendlyMessage": "El ID de la lección es obligatorio."
+    },
+    "VALIDATION_PROGRAM_NOT_FOUND": {
+        "success": false,
+        "code": "VALIDATION_024",
+        "type": "error",
+        "showAlert": true,
+        "title": "Programa no encontrado",
+        "techMessage": "The specified program does not exist.",
+        "friendlyMessage": "El programa especificado no existe."
+    },
+    "VALIDATION_LESSON_NOT_FOUND": {
+        "success": false,
+        "code": "VALIDATION_025",
+        "type": "error",
+        "showAlert": true,
+        "title": "Lección no encontrada",
+        "techMessage": "The specified lesson ID does not exist in the system.",
+        "friendlyMessage": "La lección especificada no existe."
+    },
+    "VALIDATION_LESSON_ALREADY_COMPLETED": {
+        "success": false,
+        "code": "VALIDATION_026",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Lección ya completada",
+        "techMessage": "The lesson is already marked as completed.",
+        "friendlyMessage": "Esta lección ya ha sido completada."
+    },
+    "VALIDATION_LESSON_INVALID_PROGRAM": {
+        "success": false,
+        "code": "VALIDATION_027",
+        "type": "error",
+        "showAlert": true,
+        "title": "Programa incorrecto",
+        "techMessage": "The lesson ID does not belong to the specified program.",
+        "friendlyMessage": "La lección no pertenece al programa seleccionado."
+    },
+    "VALIDATION_LESSON_CANNOT_BE_MARKED": {
+        "success": false,
+        "code": "VALIDATION_028",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No se puede completar la lección",
+        "techMessage": "The lesson cannot be marked as completed due to missing requirements.",
+        "friendlyMessage": "No puedes completar esta lección aún. Revisa los requisitos previos."
+    },
+    "VALIDATION_LESSON_UNAUTHORIZED": {
+        "success": false,
+        "code": "VALIDATION_029",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acceso no autorizado",
+        "techMessage": "The user is not authorized to complete this lesson.",
+        "friendlyMessage": "No tienes permisos para marcar esta lección como completada."
+    },
+    "VALIDATION_LESSON_NOT_PURCHASED": {
+        "success": false,
+        "code": "VALIDATION_030",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acceso restringido",
+        "techMessage": "The lesson cannot be completed because the program has not been purchased.",
+        "friendlyMessage": "No puedes completar esta lección porque no has adquirido el programa."
+    },
+    "VALIDATION_LESSON_UPDATE_FAILED": {
+        "success": false,
+        "code": "VALIDATION_031",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al actualizar la lección",
+        "techMessage": "Failed to update lesson completion status in the database.",
+        "friendlyMessage": "Hubo un error al actualizar la lección. Intenta nuevamente más tarde."
+    },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
         "code": "AUTH_001",
@@ -313,6 +403,51 @@
         "title": "Usuarios no encontrados",
         "techMessage": "No users match the search criteria.",
         "friendlyMessage": "No se encontraron usuarios con los criterios de búsqueda ingresados."
+    },
+    "LESSON_ALREADY_COMPLETED": {
+        "success": false,
+        "code": "LESSON_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Lección ya completada",
+        "techMessage": "The lesson is already marked as completed.",
+        "friendlyMessage": "Esta lección ya ha sido completada."
+    },
+    "VALIDATION_KEY_NOT_FOUND": {
+    "success": false,
+    "code": "PRODUCT_001",
+    "type": "error",
+    "showAlert": true,
+    "title": "Clave no encontrada",
+    "techMessage": "The product key was not found in the database.",
+    "friendlyMessage": "La clave ingresada no es válida o no existe."
+    },
+    "VALIDATION_KEY_ALREADY_USED": {
+        "success": false,
+        "code": "PRODUCT_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Clave ya utilizada",
+        "techMessage": "The product key has already been used.",
+        "friendlyMessage": "Esta clave ya fue utilizada."
+    },
+    "VALIDATION_PROGRAM_ALREADY_OWNED": {
+        "success": false,
+        "code": "PRODUCT_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa ya activado",
+        "techMessage": "The user already has access to this program.",
+        "friendlyMessage": "Ya tienes este programa activado."
+    },
+    "VALIDATION_KEY_PRODUCT_MISMATCH": {
+        "success": false,
+        "code": "PRODUCT_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Producto incorrecto",
+        "techMessage": "The key is not compatible with the program to be activated.",
+        "friendlyMessage": "Esta clave no es válida para este programa."
     },
     "PHOTO_FILE_TOO_LARGE": {
         "success": false,

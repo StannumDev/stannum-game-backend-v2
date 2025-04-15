@@ -5,6 +5,8 @@ const cors = require("cors");
 const authRouter = require("./routes/authRoutes");
 const profilePhotoRouter = require("./routes/profilePhotoRoutes");
 const userRouter = require("./routes/userRoutes");
+const lessonRouter = require("./routes/lessonRoutes");
+const productKeyRouter = require("./routes/productKeyRoutes");
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/profile-photo", profilePhotoRouter);
 app.use("/api/user", userRouter);
+app.use("/api/lesson", lessonRouter);
+app.use("/api/product-key", productKeyRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);

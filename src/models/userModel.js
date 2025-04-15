@@ -230,8 +230,8 @@ const programSchema = new Schema({
   lessonsCompleted: [
     {
       lessonId: {
-        type: Schema.Types.ObjectId,
-        ref: "Lesson",
+        type: String,
+        required: true
       },
       viewedAt: {
         type: Date,
