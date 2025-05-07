@@ -122,46 +122,30 @@ const instructionSchema = new Schema({
     type: String,
     required: [true, "Instruction ID is required"],
     validate: {
-      validator: function (value) {
-        return typeof value === "string" && value.trim().length > 0;
-      },
+      validator: (value) => typeof value === "string" && value.trim().length > 0,
       message: "Instruction ID must be a non-empty string",
-    },
-  },
-  fileUrl: {
-    type: String,
-    validate: {
-      validator: function (value) {
-        return !value || /^https?:\/\/[\w\-]+(\.[\w\-]+)+[/#?]?.*$/.test(value);
-      },
-      message: "File URL must be a valid URL",
-    },
-  },
-  submittedAt: {
-    type: Date,
-    validate: {
-      validator: function (value) {
-        return !value || value > this.startDate;
-      },
-      message: "Submitted date must be later than the start date",
     },
   },
   startDate: {
     type: Date,
     default: Date.now,
     validate: {
-      validator: function (value) {
-        return value <= Date.now();
-      },
+      validator: (value) => value <= Date.now(),
       message: "Start date cannot be in the future",
     },
   },
-  timeToComplete: {
-    type: Number,
-    min: [0, "Time to complete cannot be negative"],
+  submittedAt: {
+    type: Date,
     validate: {
-      validator: Number.isInteger,
-      message: "Time to complete must be an integer",
+      validator: function (value) { return !value || value >= this.startDate },
+      message: "Submitted date must be after start date",
+    },
+  },
+  reviewedAt: {
+    type: Date,
+    validate: {
+      validator: (value) => !value || value <= Date.now(),
+      message: "Reviewed date cannot be in the future",
     },
   },
   score: {
@@ -169,9 +153,7 @@ const instructionSchema = new Schema({
     min: [0, "Score cannot be less than 0"],
     max: [100, "Score cannot exceed 100"],
     validate: {
-      validator: function (value) {
-        return value === null || Number.isInteger(value);
-      },
+      validator: function (value) { return value === null || Number.isInteger(value) },
       message: "Score must be an integer or null",
     },
   },
@@ -183,7 +165,8 @@ const instructionSchema = new Schema({
     type: String,
     enum: {
       values: ["PENDING", "IN_PROCESS", "SUBMITTED", "GRADED"],
-      message: "Status must be one of: PENDING, IN_PROCESS, SUBMITTED, GRADED",
+      message:
+        "Status must be one of: PENDING, IN_PROCESS, SUBMITTED, GRADED",
     },
     default: "PENDING",
   },
@@ -437,6 +420,10 @@ const userSchema = new Schema(
         type: Boolean,
         default: false,
       },
+      allowPasswordLogin: {
+        type: Boolean,
+        default: true
+      }
     },
     otp: {
       recoveryOtp: {
@@ -486,10 +473,11 @@ userSchema.methods.getUserSidebarDetails = function () {
 userSchema.methods.getRankingUserDetails = function () {
   return {
     id: this._id,
+    name: this.profile.name,
     username: this.username,
-    profilePhoto: this.profilePhotoUrl,
-    team: this.teams?.length ? this.teams[0].teamName : null,
-    currentLevel: this.level?.currentLevel || 1,
+    photo: this.profilePhotoUrl,
+    enterprise: this.enterprise?.name || "",
+    points: this.level?.experienceTotal || 0
   };
 };
 
@@ -533,6 +521,11 @@ userSchema.methods.markTutorialAsCompleted = function (tutorialName) {
   }
 
   return this.save();
+};
+
+userSchema.methods.getInstructionStatus = function (programId, instructionId) {
+  const instruction = this.programs?.[programId]?.instructions?.find(i => i.instructionId === instructionId);
+  return instruction?.status || 'PENDING';
 };
 
 module.exports = model("User", userSchema);

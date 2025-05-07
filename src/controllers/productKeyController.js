@@ -50,37 +50,40 @@ const verifyProductKey = async (req, res) => {
 const activateProductKey = async (req, res) => {
     try {
         const userId = req.userAuth.id;
+
         const { code } = req.body;
         if (!code) return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_REQUIRED"));
-        
+    
         const key = await ProductKey.findOne({ code: code.toUpperCase() });
         if (!key) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
         if (key.used) return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_ALREADY_USED"));
+    
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-        
+    
         const alreadyHasProduct = user.programs?.[key.product]?.isPurchased;
         if (alreadyHasProduct) return res.status(400).json(getError("VALIDATION_PRODUCT_ALREADY_OWNED"));
-        
-        await User.findByIdAndUpdate( userId,
-            {
-                $set: {
-                    [`programs.${key.product}`]: {
-                        isPurchased: true,
-                        activatedAt: new Date(),
-                        team: key.team,
-                        activatedByKey: true,
-                    },
-                },
-            }, { new: true }
-        );
-
+    
+        user.programs[key.product].isPurchased = true;
+        user.programs[key.product].acquiredAt = new Date();
+    
+        const alreadyInTeam = user.teams.some(t => t.programName === key.product);
+        if (!alreadyInTeam && key.team?.teamName && key.team?.role) {
+            user.teams.push({
+            programName: key.product,
+            teamName: key.team.teamName,
+            role: key.team.role,
+            });
+        }
+    
+        await user.save();
+    
         await ProductKey.findByIdAndUpdate(key._id, {
             used: true,
             usedAt: new Date(),
             usedBy: userId,
         });
-        
+
         return res.status(200).json({ success: true, message: "Programa activado correctamente." });
     } catch (error) {
         console.error("Error al activar la clave de producto:", error);

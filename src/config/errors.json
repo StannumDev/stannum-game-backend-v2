@@ -404,6 +404,24 @@
         "techMessage": "No users match the search criteria.",
         "friendlyMessage": "No se encontraron usuarios con los criterios de búsqueda ingresados."
     },
+    "AUTH_PASSWORD_LOGIN_DISABLED": {
+        "success": false,
+        "code": "AUTH_015",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Inicio de sesión deshabilitado",
+        "techMessage": "Password login is disabled for this user.",
+        "friendlyMessage": "Tu cuenta está configurada para iniciar sesión únicamente con Google. Si deseas usar una contraseña, habilita esta opción desde tu perfil."
+    },
+    "AUTH_GOOGLE_ACCOUNT_PASSWORD_SET_REQUIRED": {
+        "success": false,
+        "code": "AUTH_016",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Contraseña no configurada",
+        "techMessage": "Google-authenticated user attempted password login without setting one.",
+        "friendlyMessage": "Para iniciar sesión con contraseña, primero debes configurar una desde tu perfil."
+    },
     "LESSON_ALREADY_COMPLETED": {
         "success": false,
         "code": "LESSON_001",
@@ -413,14 +431,113 @@
         "techMessage": "The lesson is already marked as completed.",
         "friendlyMessage": "Esta lección ya ha sido completada."
     },
+    "INSTRUCTION_NOT_FOUND": {
+        "success": false,
+        "code": "INSTRUCTION_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Instrucción no encontrada",
+        "techMessage": "The instruction ID does not exist in the program.",
+        "friendlyMessage": "La instrucción solicitada no existe."
+    },
+    "INSTRUCTION_ALREADY_SUBMITTED": {
+        "success": false,
+        "code": "INSTRUCTION_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Instrucción ya entregada",
+        "techMessage": "This instruction has already been submitted.",
+        "friendlyMessage": "Ya entregaste esta instrucción."
+    },
+    "INSTRUCTION_FILE_REQUIRED": {
+        "success": false,
+        "code": "INSTRUCTION_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Archivo requerido",
+        "techMessage": "No file was provided with the instruction submission.",
+        "friendlyMessage": "Debes subir un archivo para entregar la instrucción."
+    },
+    "INSTRUCTION_INVALID_FORMAT": {
+        "success": false,
+        "code": "INSTRUCTION_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Formato inválido",
+        "techMessage": "The uploaded file format is not allowed for this instruction.",
+        "friendlyMessage": "El formato del archivo no está permitido. Revisa los requisitos de la instrucción."
+    },
+    "INSTRUCTION_FILE_TOO_LARGE": {
+        "success": false,
+        "code": "INSTRUCTION_005",
+        "type": "error",
+        "showAlert": true,
+        "title": "Archivo demasiado grande",
+        "techMessage": "The uploaded file exceeds the maximum allowed size for this instruction.",
+        "friendlyMessage": "El archivo que intentas subir excede el tamaño permitido."
+    },
+    "INSTRUCTION_NOT_PURCHASED": {
+        "success": false,
+        "code": "INSTRUCTION_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Programa no adquirido",
+        "techMessage": "The user has not purchased the program required for this instruction.",
+        "friendlyMessage": "No tienes acceso a esta instrucción porque no has adquirido el programa."
+    },
+    "INSTRUCTION_ALREADY_GRADED": {
+        "success": false,
+        "code": "INSTRUCTION_007",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Instrucción ya calificada",
+        "techMessage": "This instruction has already been graded.",
+        "friendlyMessage": "Esta instrucción ya fue calificada."
+    },
+    "INSTRUCTION_INVALID_SCORE": {
+        "success": false,
+        "code": "INSTRUCTION_008",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Puntaje inválido",
+        "techMessage": "The score must be between 0 and 100.",
+        "friendlyMessage": "El puntaje debe estar entre 0 y 100."
+    },
+    "VALIDATION_LIMIT_INVALID": {
+        "success": false,
+        "code": "RANKING_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Límite inválido",
+        "techMessage": "The limit must be a positive integer.",
+        "friendlyMessage": "El número de posiciones del ranking debe ser mayor a 0."
+    },
+        "VALIDATION_PROGRAM_INVALID": {
+        "success": false,
+        "code": "RANKING_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa inválido",
+        "techMessage": "The specified program is not valid.",
+        "friendlyMessage": "El programa indicado no es válido."
+    },
+    "RANKING_NO_USERS_FOUND": {
+        "success": false,
+        "code": "RANKING_003",
+        "type": "info",
+        "showAlert": true,
+        "title": "Ranking vacío",
+        "techMessage": "No users found with the specified program purchased.",
+        "friendlyMessage": "Aún no hay usuarios en el ranking para este programa."
+    },
     "VALIDATION_KEY_NOT_FOUND": {
-    "success": false,
-    "code": "PRODUCT_001",
-    "type": "error",
-    "showAlert": true,
-    "title": "Clave no encontrada",
-    "techMessage": "The product key was not found in the database.",
-    "friendlyMessage": "La clave ingresada no es válida o no existe."
+        "success": false,
+        "code": "PRODUCT_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Clave no encontrada",
+        "techMessage": "The product key was not found in the database.",
+        "friendlyMessage": "La clave ingresada no es válida o no existe."
     },
     "VALIDATION_KEY_ALREADY_USED": {
         "success": false,

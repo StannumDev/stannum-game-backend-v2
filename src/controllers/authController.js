@@ -2,6 +2,7 @@ const { request, response } = require("express");
 const bcryptjs = require("bcryptjs");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 const User = require("../models/userModel");
 const { newJWT } = require("../helpers/newJWT");
@@ -23,14 +24,16 @@ const login = async (req = request, res = response) => {
       ],
     });
 
+    
     if (!user || !user.status || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
-
+    if (!user.preferences?.allowPasswordLogin) return res.status(403).json(getError("AUTH_PASSWORD_LOGIN_DISABLED"));
+    
     const token = await newJWT(user.id, user.role);
     if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
     return res.status(200).json({ success: true, token });
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
@@ -295,6 +298,7 @@ const resetPassword = async (req, res) => {
       recoveryOtp: null,
       otpExpiresAt: null,
     };
+    user.preferences.allowPasswordLogin = true;
     await user.save();
 
     return res.status(200).json({ success: true, message: "Contraseña actualizada exitosamente." });
@@ -325,7 +329,7 @@ const googleAuth = async (req, res) => {
       user = new User({
         email,
         username: await generateUsername("google"),
-        password: null,
+        password: crypto.randomBytes(64).toString("hex"),
         profile: {
           name,
           country: '',
@@ -340,6 +344,7 @@ const googleAuth = async (req, res) => {
         preferences: {
           hasProfilePhoto: !!picture,
           isGoogleAccount: true,
+          allowPasswordLogin: false
         },
       });
 

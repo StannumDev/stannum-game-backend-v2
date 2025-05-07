@@ -6,7 +6,9 @@ const authRouter = require("./routes/authRoutes");
 const profilePhotoRouter = require("./routes/profilePhotoRoutes");
 const userRouter = require("./routes/userRoutes");
 const lessonRouter = require("./routes/lessonRoutes");
+const instructionRouter = require("./routes/instructionRoutes");
 const productKeyRouter = require("./routes/productKeyRoutes");
+const rankingRouter = require("./routes/rankingRoutes");
 
 const app = express();
 
@@ -42,7 +44,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/profile-photo", profilePhotoRouter);
 app.use("/api/user", userRouter);
 app.use("/api/lesson", lessonRouter);
+app.use("/api/instruction", instructionRouter);
 app.use("/api/product-key", productKeyRouter);
+app.use("/api/ranking", rankingRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);

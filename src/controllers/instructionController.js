@@ -1,79 +1,108 @@
 const User = require("../models/userModel");
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const { s3Client } = require("../helpers/s3Client");
 const { getError } = require("../helpers/getError");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 
-const uploadInstructionFile = async (req, res) => {
+const startInstruction = async (req, res) => {
   try {
     const { programName, instructionId } = req.params;
     const userId = req.userAuth.id;
-    const file = req.file;
-
-    if (!file) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
-
-    const fileExtension = file.originalname.split('.').pop().toLowerCase();
-    const fileSizeInMB = file.size / (1024 * 1024);
 
     const config = getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
-    if (!config.allowedFormats.includes(fileExtension)) {
-      return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
-    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-    if (fileSizeInMB > config.maxSizeMB) {
-      return res.status(400).json(getError("INSTRUCTION_FILE_TOO_LARGE"));
-    }
+    const program = user.programs?.[programName];
+    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
-    const s3Key = `${process.env.AWS_S3_INSTRUCTIONS_FOLDER}/${userId}/${programName}/${instructionId}.${fileExtension}`;
+    const exists = program.instructions.find(i => i.instructionId === instructionId);
+    if (exists) return res.status(400).json(getError("INSTRUCTION_ALREADY_STARTED"));
 
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: s3Key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      Metadata: {
-        userId: userId.toString(),
-        instructionId,
-      },
-    };
+    program.instructions.push({
+      instructionId,
+      startDate: new Date(),
+      status: "IN_PROCESS",
+    });
 
-    await s3Client.send(new PutObjectCommand(params));
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "Instrucción iniciada correctamente." });
+  } catch (error) {
+    console.error("Error iniciando instrucción:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const submitInstruction = async (req, res) => {
+  try {
+    const { programName, instructionId } = req.params;
+    const userId = req.userAuth.id;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-    const program = user.programs[programName];
+    const program = user.programs?.[programName];
     if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     const instructionIndex = program.instructions.findIndex(i => i.instructionId === instructionId);
+    if (instructionIndex === -1) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
-    const instructionData = {
-      instructionId,
-      fileUrl: `${process.env.S3_BASE_URL}/${s3Key}`,
-      submittedAt: new Date(),
-      status: "SUBMITTED"
-    };
+    const instruction = program.instructions[instructionIndex];
+    if (["SUBMITTED", "GRADED"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_ALREADY_SUBMITTED"));
 
-    if (instructionIndex >= 0) {
-      program.instructions[instructionIndex] = { ...program.instructions[instructionIndex], ...instructionData };
-    } else {
-      program.instructions.push(instructionData);
-    }
+    instruction.submittedAt = new Date();
+    instruction.status = "SUBMITTED";
+
+    await user.save();
+    return res.status(200).json({ success: true, message: "Instrucción entregada correctamente." });
+  } catch (error) {
+    console.error("Error al entregar la instrucción:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const gradeInstruction = async (req, res) => {
+  try {
+    const { userId, programName, instructionId } = req.params;
+    const { score, observations } = req.body;
+
+    if (score < 0 || score > 100) return res.status(400).json(getError("INSTRUCTION_INVALID_SCORE"));
+
+    if (observations?.length > 500) return res.status(400).json(getError("VALIDATION_OBSERVATIONS_TOO_LONG"));
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    const program = user.programs?.[programName];
+    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+
+    const instruction = program.instructions.find(i => i.instructionId === instructionId);
+    if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
+
+    if (instruction.status === "GRADED") return res.status(400).json(getError("INSTRUCTION_ALREADY_GRADED"));
+
+    if (instruction.status !== "SUBMITTED") return res.status(400).json(getError("INSTRUCTION_NOT_IN_REVIEW"));
+
+    instruction.score = Math.round(score);
+    instruction.observations = observations || "";
+    instruction.reviewedAt = new Date();
+    instruction.status = "GRADED";
 
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: "Archivo subido correctamente.",
-      fileUrl: instructionData.fileUrl
+      message: "Instrucción calificada correctamente.",
+      result: {
+        score: instruction.score,
+        observations: instruction.observations,
+      },
     });
-
   } catch (error) {
-    console.error("Error subiendo archivo de instrucción:", error);
+    console.error("Error al calificar la instrucción:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
 
-module.exports = { uploadInstructionFile };
+module.exports = { startInstruction, submitInstruction, gradeInstruction };
