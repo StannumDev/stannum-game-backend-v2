@@ -9,6 +9,12 @@ const userController = require("../controllers/userController");
 const router = Router();
 
 router.get(
+    "/",
+    validateJWT,
+    userController.getUserByToken
+);
+
+router.get(
     "/sidebar-details",
     validateJWT,
     userController.getUserSidebarDetails

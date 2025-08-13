@@ -14,7 +14,7 @@ const createProductKey = async () => {
     const newKeyData = {
         code: generateProductCode(),
         email: "comprador@example.com",
-        product: "TMD",
+        product: "tmd",
         team: "STANNUM",
     };
   

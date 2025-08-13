@@ -1,10 +1,13 @@
-const { TMD_PROGRAM } = require('../config/programs/tmdProgram');
+const { TMD_PROGRAM, TIA_PROGRAM } = require('../config/programs');
 
 const getInstructionConfig = (programName, instructionId) => {
   let program;
   switch (programName) {
-    case "TMD":
+    case "tmd":
       program = TMD_PROGRAM;
+      break;
+    case "tia":
+      program = TIA_PROGRAM;
       break;
     default:
       return null;

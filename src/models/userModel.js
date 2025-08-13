@@ -224,16 +224,18 @@ const programSchema = new Schema({
   ],
   lastWatchedLesson: {
     lessonId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: "Lesson",
+      default: null,
     },
     viewedAt: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
     currentTime: {
       type: Number,
       min: [0, "Current time cannot be negative"],
+      default: 0
     },
   },
   tests: [
@@ -374,7 +376,7 @@ const userSchema = new Schema(
     achievements: [achievementSchema],
     unlockedCovers: [unlockedCoverSchema],
     programs: {
-      TMD: {
+      tia: {
         type: programSchema,
         default: () => ({
           isPurchased: false,
@@ -386,7 +388,7 @@ const userSchema = new Schema(
           productKey: null,
         }),
       },
-      PROEM: {
+      tmd: {
         type: programSchema,
         default: () => ({
           isPurchased: false,
@@ -397,7 +399,7 @@ const userSchema = new Schema(
           tests: [],
           productKey: null,
         }),
-      },
+      }
     },
     preferences: {
       tutorials: {
@@ -441,12 +443,12 @@ const userSchema = new Schema(
       otpExpiresAt: {
         type: Date,
         default: null,
-        validate: {
-          validator: function (value) {
-            return !value || value > Date.now();
-          },
-          message: "La fecha de expiración debe ser en el futuro.",
-        },
+        // validate: {
+        //   validator: function (value) {
+        //     return !value || value > Date.now();
+        //   },
+        //   message: "La fecha de expiración debe ser en el futuro.",
+        // },
       },
     },
   },

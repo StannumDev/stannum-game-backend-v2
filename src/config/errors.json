@@ -228,7 +228,7 @@
         "success": false,
         "code": "VALIDATION_026",
         "type": "warning",
-        "showAlert": true,
+        "showAlert": false,
         "title": "Lección ya completada",
         "techMessage": "The lesson is already marked as completed.",
         "friendlyMessage": "Esta lección ya ha sido completada."
@@ -525,7 +525,7 @@
         "success": false,
         "code": "RANKING_003",
         "type": "info",
-        "showAlert": true,
+        "showAlert": false,
         "title": "Ranking vacío",
         "techMessage": "No users found with the specified program purchased.",
         "friendlyMessage": "Aún no hay usuarios en el ranking para este programa."

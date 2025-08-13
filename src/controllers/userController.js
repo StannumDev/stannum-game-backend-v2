@@ -3,6 +3,21 @@ const Fuse = require("fuse.js");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 
+
+const getUserByToken = async (req, res) => {
+    try {
+        const userId = req.userAuth.id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+        const userDetails = user.getFullUserDetails();
+        return res.status(200).json({ success: true, data: userDetails });
+    } catch (error) {
+        console.error("Error fetching user details by token:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
 const getUserSidebarDetails = async (req, res) => {
     try {
         const userId = req.userAuth.id;
@@ -133,4 +148,4 @@ const searchUsers = async (req, res) => {
     }
 };
 
-module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted, editUser, searchUsers };
+module.exports = { getUserSidebarDetails, getUserDetailsByUsername, getTutorialStatus, markTutorialAsCompleted, editUser, searchUsers, getUserByToken };
