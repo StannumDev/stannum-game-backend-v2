@@ -145,7 +145,7 @@ const createUser = async (req = request, res = response) => {
       enterprise: {
         name: enterprise.trim(),
         jobPosition: enterpriseRole.trim(),
-      },
+      }
     });
 
     await newUser.save();
@@ -345,7 +345,7 @@ const googleAuth = async (req, res) => {
           hasProfilePhoto: !!picture,
           isGoogleAccount: true,
           allowPasswordLogin: false
-        },
+        }
       });
 
       await user.save();

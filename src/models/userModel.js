@@ -90,6 +90,47 @@ const levelSchema = new Schema({
   },
 });
 
+const xpEventSchema = new Schema({
+  type: {
+    type: String,
+    enum: [
+      'LESSON_COMPLETED',
+      'INSTRUCTION_GRADED',
+      'DAILY_STREAK_BONUS'
+    ],
+    required: true
+  },
+  xp: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  meta: {
+    type: Schema.Types.Mixed,
+    default: {}
+  }
+}, { _id: false });
+
+const dailyStreakSchema = new Schema({
+  count: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  lastActivityLocalDate: {
+    type: String,
+    default: null
+  },
+  timezone: {
+    type: String,
+    default: 'America/Argentina/Buenos_Aires'
+  }
+}, { _id: false });
+
 const achievementSchema = new Schema({
   achievementId: {
     type: String,
@@ -120,11 +161,7 @@ const achievementSchema = new Schema({
 const instructionSchema = new Schema({
   instructionId: {
     type: String,
-    required: [true, "Instruction ID is required"],
-    validate: {
-      validator: (value) => typeof value === "string" && value.trim().length > 0,
-      message: "Instruction ID must be a non-empty string",
-    },
+    required: true
   },
   startDate: {
     type: Date,
@@ -150,24 +187,29 @@ const instructionSchema = new Schema({
   },
   score: {
     type: Number,
-    min: [0, "Score cannot be less than 0"],
-    max: [100, "Score cannot exceed 100"],
+    min: [0],
+    max: [100],
     validate: {
       validator: function (value) { return value === null || Number.isInteger(value) },
       message: "Score must be an integer or null",
     },
   },
+  estimatedTimeSec: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  xpGrantedAt: {
+    type: Date,
+    default: null,
+  },
   observations: {
     type: String,
-    maxlength: [500, "Observations cannot exceed 500 characters"],
+    maxlength: 500,
   },
   status: {
     type: String,
-    enum: {
-      values: ["PENDING", "IN_PROCESS", "SUBMITTED", "GRADED"],
-      message:
-        "Status must be one of: PENDING, IN_PROCESS, SUBMITTED, GRADED",
-    },
+    enum: ["PENDING", "IN_PROCESS", "SUBMITTED", "GRADED"],
     default: "PENDING",
   },
 });
@@ -372,7 +414,9 @@ const userSchema = new Schema(
     },
     enterprise: enterpriseSchema,
     teams: [teamSchema],
-    level: levelSchema,
+    level: { type: levelSchema, default: () => ({}) },
+    dailyStreak: { type: dailyStreakSchema, default: () => ({}) },
+    xpHistory: { type: [xpEventSchema], default: [] },
     achievements: [achievementSchema],
     unlockedCovers: [unlockedCoverSchema],
     programs: {
@@ -478,8 +522,9 @@ userSchema.methods.getRankingUserDetails = function () {
     name: this.profile.name,
     username: this.username,
     photo: this.profilePhotoUrl,
-    enterprise: this.enterprise?.name || "",
-    points: this.level?.experienceTotal || 0
+    enterprise: this.enterprise.name || "",
+    points: this.level.experienceTotal,
+    level: this.level.currentLevel
   };
 };
 
@@ -494,6 +539,9 @@ userSchema.methods.getFullUserDetails = function () {
     level: this.level,
     achievements: this.achievements,
     programs: this.programs,
+    dailyStreak: this.dailyStreak,
+    xpHistory: this.xpHistory,
+    unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
   };
 };
