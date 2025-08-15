@@ -2,7 +2,6 @@ const User = require('../models/userModel');
 const { clamp, nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay } = require('../helpers/experienceHelper');
 const { resolveLessonInfo } = require('../helpers/resolveLessonInfo');
 const xpCfg = require('../config/xpConfig');
-const { programs } = require('../config/programs');
 
 const XP_HISTORY_MAX = 1000;
 
