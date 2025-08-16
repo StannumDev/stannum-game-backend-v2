@@ -8,6 +8,7 @@ const User = require("../models/userModel");
 const { newJWT } = require("../helpers/newJWT");
 const { getError } = require("../helpers/getError");
 const { generateUsername } = require("../helpers/generateUsername");
+const { isOffensive } = require('../helpers/profanityChecker');
 const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
 
 const login = async (req = request, res = response) => {
@@ -59,7 +60,7 @@ const checkEmailExists = async (req, res) => {
   }
 };
 
-const checkUsernameExists = async (req, res) => {
+const validateUsername = async (req, res) => {
   const { username } = req.body;
 
   if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
@@ -67,6 +68,8 @@ const checkUsernameExists = async (req, res) => {
   const usernameRegex = /^[a-z0-9._]+$/;
   if (!usernameRegex.test(username)) return res.status(400).json(getError("VALIDATION_USERNAME_INVALID"));
   if (username.length < 6 || username.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
+
+  if (isOffensive(username)) return res.status(400).json(getError("VALIDATION_USERNAME_OFFENSIVE"));
 
   try {
     const userExists = await User.findOne({ username: username.toLowerCase().trim() });
@@ -393,4 +396,4 @@ const updateUsername = async (req = request, res = response) => {
   }
 };
 
-module.exports = { login, checkEmailExists, checkUsernameExists, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername };
+module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername };

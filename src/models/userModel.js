@@ -1,3 +1,4 @@
+const { censor } = require('../helpers/profanityChecker');
 const { Schema, model } = require("mongoose");
 
 const tutorialSchema = new Schema({
@@ -519,10 +520,10 @@ userSchema.methods.getUserSidebarDetails = function () {
 userSchema.methods.getRankingUserDetails = function () {
   return {
     id: this._id,
-    name: this.profile.name,
+    name: censor(this.profile.name),
     username: this.username,
     photo: this.profilePhotoUrl,
-    enterprise: this.enterprise.name || "",
+    enterprise: censor(this.enterprise.name) || "",
     points: this.level.experienceTotal,
     level: this.level.currentLevel
   };
@@ -533,8 +534,16 @@ userSchema.methods.getFullUserDetails = function () {
     id: this._id,
     username: this.username,
     profilePhoto: this.profilePhotoUrl,
-    profile: this.profile,
-    enterprise: this.enterprise,
+    profile: {
+      ...this.profile,
+      name: censor(this.profile.name),
+      aboutMe: censor(this.profile.aboutMe),
+    },
+    enterprise: {
+      ...this.enterprise,
+      name: censor(this.enterprise?.name),
+      jobPosition: censor(this.enterprise?.jobPosition),
+    },
     teams: this.teams,
     level: this.level,
     achievements: this.achievements,
@@ -550,10 +559,10 @@ userSchema.methods.getSearchUserDetails = function () {
   return {
     id: this._id,
     username: this.username,
-    name: this.profile.name,
+    name: censor(this.profile.name),
     profilePhoto: this.profilePhotoUrl,
-    enterprise: this.enterprise?.name || null,
-    jobPosition: this.enterprise?.jobPosition || null,
+    enterprise: censor(this.enterprise?.name) || null,
+    jobPosition: censor(this.enterprise?.jobPosition) || null,
   };
 };
 

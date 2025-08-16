@@ -39,13 +39,13 @@ router.post(
 );
 
 router.post(
-  "/check-username",
+  "/validate-username",
   [
     check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
     fieldsValidate,
   ],
   rateLimiter,
-  authController.checkUsernameExists
+  authController.validateUsername
 );
 
 router.post(

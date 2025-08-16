@@ -54,7 +54,8 @@ const getTeamRanking = async (req, res) => {
     if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
 
     const users = await User.find({ [`programs.${programName}.isPurchased`]: true });
-    if (!users.length) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
+    // if (!users.length) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
+    if (!users.length) return res.status(404).json(getError("HOLAAA"));
 
     const teams = {};
 
