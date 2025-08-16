@@ -89,7 +89,7 @@ const levelSchema = new Schema({
       message: "Progress must be between 0 and 100",
     },
   },
-});
+}, { _id: false });
 
 const xpEventSchema = new Schema({
   type: {
@@ -135,29 +135,14 @@ const dailyStreakSchema = new Schema({
 const achievementSchema = new Schema({
   achievementId: {
     type: String,
-    required: [true, "Achievement ID is required"],
-    validate: {
-      validator: function (value) {
-        return typeof value === "string" && value.trim().length > 0;
-      },
-      message: "Achievement ID must be a non-empty string",
-    },
+    required: [true]
   },
-  progress: {
-    type: Number,
-    default: 0,
-    min: [0, "Progress cannot be less than 0"],
-    max: [100, "Progress cannot exceed 100"],
-    validate: {
-      validator: Number.isInteger,
-      message: "Progress must be an integer",
-    },
-  },
-  isCompleted: {
-    type: Boolean,
-    default: false,
-  },
-});
+  unlockedAt: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  }
+}, { _id: false });
 
 const instructionSchema = new Schema({
   instructionId: {
@@ -308,7 +293,7 @@ const programSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "ProductKey",
   },
-});
+}, { _id: false });
 
 const enterpriseSchema = new Schema({
   name: {
@@ -321,7 +306,7 @@ const enterpriseSchema = new Schema({
     trim: true,
     maxlength: [50, "Job position cannot exceed 50 characters"],
   },
-});
+}, { _id: false });
 
 const teamSchema = new Schema({
   programName: {
@@ -345,7 +330,7 @@ const teamSchema = new Schema({
     minlength: [2, "Program name must be at least 2 characters long"],
     maxlength: [50, "Program name cannot exceed 50 characters"],
   },
-});
+}, { _id: false });
 
 const userSchema = new Schema(
   {

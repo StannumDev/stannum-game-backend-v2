@@ -24,10 +24,10 @@ const markLessonAsCompleted = async (req, res) => {
         const isAlreadyCompleted = userProgram.lessonsCompleted.some(lesson => lesson.lessonId === lessonId);
         if (isAlreadyCompleted) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
         
-        const { moduleIndex, durationSec } = lessonInfo;
-        await addExperience(userId, 'LESSON_COMPLETED', { programId: programName, lessonId, moduleIndex, durationSec });
-
         userProgram.lessonsCompleted.push({ lessonId, viewedAt: new Date() });
+
+        const { moduleIndex, durationSec } = lessonInfo;
+        await addExperience(user, 'LESSON_COMPLETED', { programId: programName, lessonId, moduleIndex, durationSec });
         const updateResult = await user.save();
         if (!updateResult) return res.status(500).json(getError("VALIDATION_LESSON_UPDATE_FAILED"));
        

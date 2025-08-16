@@ -1,12 +1,11 @@
-const User = require('../models/userModel');
-const { clamp, nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay } = require('../helpers/experienceHelper');
+const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
 const { resolveLessonInfo } = require('../helpers/resolveLessonInfo');
+const { checkAndAddAchievements } = require('./achievementsService');
 const xpCfg = require('../config/xpConfig');
 
 const XP_HISTORY_MAX = 1000;
 
-const addExperience = async (userId, type, payload) => {
-    const user = await User.findById(userId);
+const addExperience = async (user, type, payload) => {
     if (!user) throw new Error('USER_NOT_FOUND');
 
     if (type === 'LESSON_COMPLETED') {
@@ -69,40 +68,9 @@ const addExperience = async (userId, type, payload) => {
 
     user.xpHistory.push({ type, xp: gained, meta: payload });
     if (user.xpHistory.length > XP_HISTORY_MAX) user.xpHistory = user.xpHistory.slice(-XP_HISTORY_MAX);
-
+    const achievementsUnlocked = await checkAndAddAchievements(user);
     await user.save();
-    return { gained, streakBonus, totalGain, level: user.level, streak: user.dailyStreak };
+    return { gained, streakBonus, totalGain, level: user.level, streak: user.dailyStreak, achievementsUnlocked };
 };
 
-
-const computeLessonXP = ({ moduleIndex = 0, durationSec = 0 }) => {
-    const baseArr = xpCfg.LESSON.BASE_BY_MODULE_INDEX;
-    const base = baseArr[moduleIndex] ?? baseArr[baseArr.length - 1];
-    const factor = 1 + (durationSec / 600) * xpCfg.LESSON.DURATION_FACTOR_PER_10MIN;
-    return clamp(Math.round(base * factor), xpCfg.LESSON.MIN_XP, xpCfg.LESSON.MAX_XP);
-};
-
-const computeInstructionXP = ({ rewardXP = 0, score = 0, timeTakenSec = 0, estimatedTimeSec = 0 }) => {
-    let xp = rewardXP;
-    if (estimatedTimeSec > 0 && timeTakenSec > 0) {
-        const ratio = timeTakenSec / estimatedTimeSec;
-        if (ratio <= xpCfg.INSTRUCTION.SPEED_BONUS.THRESHOLD_FAST) {
-            xp += Math.round(rewardXP * xpCfg.INSTRUCTION.SPEED_BONUS.BONUS_FAST);
-        } else if (ratio <= xpCfg.INSTRUCTION.SPEED_BONUS.THRESHOLD_OK) {
-            xp += Math.round(rewardXP * xpCfg.INSTRUCTION.SPEED_BONUS.BONUS_OK);
-        }
-    }
-    const scoreFactor = clamp(score, 0, 100) / 100;
-    xp += Math.round(rewardXP * xpCfg.INSTRUCTION.SCORE_BONUS_FACTOR * scoreFactor);
-    return clamp(xp, xpCfg.INSTRUCTION.MIN_XP, xpCfg.INSTRUCTION.MAX_XP);
-};
-
-const computeLevelProgress = (level) => {
-    const { experienceTotal, experienceCurrentLevel, experienceNextLevel } = level;
-    if (experienceTotal <= experienceCurrentLevel) return 0;
-    if (experienceTotal >= experienceNextLevel) return 100;
-    const span = experienceNextLevel - experienceCurrentLevel;
-    return Math.round(((experienceTotal - experienceCurrentLevel) / span) * 100);
-};
-
-module.exports = { addExperience, computeLessonXP, computeInstructionXP };
+module.exports = { addExperience };
