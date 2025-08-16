@@ -1,6 +1,8 @@
 const achievementsConfig = require('../config/achievementsConfig');
+const { nextLevelTarget, computeLevelProgress } = require('../helpers/experienceHelper');
+const xpCfg = require('../config/xpConfig');
 
-async function checkAndAddAchievements(user) {
+const checkAndAddAchievements = async (user) => {
     if (!user) throw new Error("USER_NOT_FOUND");
 
     const newlyUnlocked = [];
@@ -9,13 +11,43 @@ async function checkAndAddAchievements(user) {
 
     for (const achievement of lockedAchievements) {
         if (achievement.condition(user)) {
-            const newAchievement = { achievementId: achievement.id, unlockedAt: new Date() };
+            const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0 };
             user.achievements.push(newAchievement);
             newlyUnlocked.push(newAchievement);
         }
     }
 
     return newlyUnlocked;
-}
+};
 
-module.exports = { checkAndAddAchievements };
+const unlockAchievements = async (user) => {
+    if (!user) throw new Error('USER_NOT_FOUND');
+
+    let newlyUnlocked = [];
+    let pending = true;
+
+    while (pending) {
+        const unlocked = await checkAndAddAchievements(user);
+        if (!unlocked.length) break;
+
+        newlyUnlocked.push(...unlocked);
+
+        for (const ach of unlocked) {
+            if (ach.xpReward) {
+                user.level.experienceTotal += ach.xpReward;
+                user.xpHistory.push({ type: 'ACHIEVEMENT_UNLOCKED', xp: ach.xpReward, meta: { achievementId: ach.achievementId } });
+            }
+        }
+
+        while (user.level.experienceTotal >= user.level.experienceNextLevel) {
+            user.level.currentLevel += 1;
+            user.level.experienceCurrentLevel = user.level.experienceNextLevel;
+            user.level.experienceNextLevel = nextLevelTarget(user.level.experienceNextLevel, xpCfg);
+        }
+        user.level.progress = computeLevelProgress(user.level);
+    }
+
+    return { newlyUnlocked };
+};
+
+module.exports = { checkAndAddAchievements, unlockAchievements };

@@ -97,6 +97,7 @@ const xpEventSchema = new Schema({
     enum: [
       'LESSON_COMPLETED',
       'INSTRUCTION_GRADED',
+      'ACHIEVEMENT_UNLOCKED',
       'DAILY_STREAK_BONUS'
     ],
     required: true
