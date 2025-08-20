@@ -14,16 +14,9 @@ const app = express();
 
 const PORT = process.env.PORT || 4000;
 
-mongoose
-  .connect(process.env.DB_URL)
-  .catch((error) => console.log(error))
-  .then(() => console.log("Conectado a la base de datos."));
-    
-const allowedOrigins = [
-  'https://stannumgamev2prueba.netlify.app',
-  'https://stannumgame.com',
-  'http://localhost:3000'
-];
+mongoose.connect(process.env.DB_URL).catch((error) => console.log(error)).then(() => console.log("Conectado a la base de datos."));
+
+const allowedOrigins = JSON.parse(process.env.ALLOWED_ORIGINS||"[]")
 
 const corsOptions = {
   origin: (origin, callback) => {
