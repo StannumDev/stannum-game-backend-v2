@@ -1,6 +1,5 @@
 const User = require("../models/userModel");
 const { addExperience } = require("../services/experienceService");
-const { unlockAchievements } = require("../services/achievementsService");
 const { getError } = require("../helpers/getError");
 
 const markLessonAsCompleted = async (req, res) => {
@@ -24,15 +23,13 @@ const markLessonAsCompleted = async (req, res) => {
         userProgram.lessonsCompleted.push({ lessonId, viewedAt: new Date() });
 
         const xpResult = await addExperience(user, 'LESSON_COMPLETED', { programId: programName, lessonId });
-        const achievementsResult = await unlockAchievements(user);
 
         await user.save();
 
         return res.status(200).json({
             success: true,
             message: "Lección marcada como completada.",
-            ...xpResult,
-            achievementsUnlocked: achievementsResult.newlyUnlocked
+            ...xpResult
         });
 
     } catch (error) {

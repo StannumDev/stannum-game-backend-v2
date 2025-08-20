@@ -1,6 +1,6 @@
 module.exports = {
     LEVELS: {
-        base: 1000,
+        base: 250,
         growth: 1.2
     },
     LESSON: {
@@ -12,11 +12,11 @@ module.exports = {
     INSTRUCTION: {
         SPEED_BONUS: {
             THRESHOLD_FAST: 0.7,
-            BONUS_FAST: 0.30,
+            BONUS_FAST: 0.3,
             THRESHOLD_OK: 1.0,
-            BONUS_OK: 0.10,
+            BONUS_OK: 0.1,
         },
-        SCORE_BONUS_FACTOR: 0.50,
+        SCORE_BONUS_FACTOR: 0.5,
         MIN_XP: 50,
         MAX_XP: 3000
     },

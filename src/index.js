@@ -21,6 +21,7 @@ mongoose
     
 const allowedOrigins = [
   'https://stannumgamev2prueba.netlify.app',
+  'https://stannumgame.com',
   'http://localhost:3000'
 ];
 

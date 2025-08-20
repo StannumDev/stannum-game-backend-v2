@@ -142,7 +142,12 @@ const achievementSchema = new Schema({
     type: Date,
     required: true,
     default: Date.now,
-  }
+  },
+  xpReward: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
 }, { _id: false });
 
 const instructionSchema = new Schema({
@@ -526,7 +531,6 @@ userSchema.methods.getFullUserDetails = function () {
       aboutMe: censor(this.profile.aboutMe),
     },
     enterprise: {
-      ...this.enterprise,
       name: censor(this.enterprise?.name),
       jobPosition: censor(this.enterprise?.jobPosition),
     },

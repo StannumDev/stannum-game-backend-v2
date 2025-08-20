@@ -1,8 +1,8 @@
 const Fuse = require("fuse.js");
-
 const User = require("../models/userModel");
-const { getError } = require("../helpers/getError");
 
+const { unlockAchievements } = require("../services/achievementsService");
+const { getError } = require("../helpers/getError");
 
 const getUserByToken = async (req, res) => {
     try {
@@ -100,22 +100,25 @@ const editUser = async (req, res) => {
     const { name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
   
     try {
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-  
-      if(name) user.profile.name = name;
-      if(birthdate) user.profile.birthdate = birthdate;
-      if(country) user.profile.country = country;
-      if(region) user.profile.region = region;
-      if(aboutme) user.profile.aboutMe = aboutme;
-      if(enterprise) user.enterprise.name = enterprise;
-      if(enterpriseRole) user.enterprise.jobPosition = enterpriseRole;
-  
-      await user.save();
-      return res.status(200).json({ success: true, message: "User updated successfully.", data: user.getFullUserDetails() });
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    
+        if(name) user.profile.name = name;
+        if(birthdate) user.profile.birthdate = birthdate;
+        if(country) user.profile.country = country;
+        if(region) user.profile.region = region;
+        if(aboutme) user.profile.aboutMe = aboutme;
+        if(enterprise) user.enterprise.name = enterprise;
+        if(enterpriseRole) user.enterprise.jobPosition = enterpriseRole;
+
+        let achievementsResult = { newlyUnlocked: [] };
+        if(!!name && !!birthdate && !!country && !!region && !!aboutme && !!enterprise && !!enterpriseRole) achievementsResult = await unlockAchievements(user);
+
+        await user.save();
+        return res.status(200).json({ success: true, message: "User updated successfully.", data: user.getFullUserDetails(), achievementsUnlocked: achievementsResult.newlyUnlocked });
     } catch (error) {
-      console.error("Error updating user:", error);
-      return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+        console.error("Error updating user:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
 };
 

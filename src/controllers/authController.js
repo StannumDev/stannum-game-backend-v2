@@ -10,6 +10,7 @@ const { getError } = require("../helpers/getError");
 const { generateUsername } = require("../helpers/generateUsername");
 const { isOffensive } = require('../helpers/profanityChecker');
 const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
+const { unlockAchievements } = require("../services/achievementsService");
 
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
@@ -25,14 +26,15 @@ const login = async (req = request, res = response) => {
       ],
     });
 
-    
     if (!user || !user.status || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.preferences?.allowPasswordLogin) return res.status(403).json(getError("AUTH_PASSWORD_LOGIN_DISABLED"));
     
     const token = await newJWT(user.id, user.role);
     if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    return res.status(200).json({ success: true, token });
+    const achievementsResult = await unlockAchievements(user);
+
+    return res.status(200).json({ success: true, token, achievementsUnlocked: achievementsResult });
   } catch (error) {
     // console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));

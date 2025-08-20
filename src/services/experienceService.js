@@ -1,6 +1,7 @@
 const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
 const { resolveLessonInfo } = require('../helpers/resolveLessonInfo');
 const xpCfg = require('../config/xpConfig');
+const { unlockAchievements } = require('./achievementsService');
 
 const XP_HISTORY_MAX = 1000;
 
@@ -48,6 +49,7 @@ const addExperience = async (user, type, payload) => {
         if (streakBonus > 0) user.xpHistory.push({ type: 'DAILY_STREAK_BONUS', xp: streakBonus, meta: { day: newCount } });
     }
 
+    const initialLevel = user.level.currentLevel;
     let totalGain = gained + streakBonus;
     user.level.experienceTotal += totalGain;
     while (user.level.experienceTotal >= user.level.experienceNextLevel) {
@@ -57,10 +59,13 @@ const addExperience = async (user, type, payload) => {
     }
     user.level.progress = computeLevelProgress(user.level);
 
+    if(initialLevel < user.level.currentLevel || user.dailyStreak.count >= 3) await unlockAchievements(user)
     if (gained > 0) user.xpHistory.push({ type, xp: gained, meta: payload });
     if (user.xpHistory.length > XP_HISTORY_MAX) user.xpHistory = user.xpHistory.slice(-XP_HISTORY_MAX);
+    
+    const achievementsResult = await unlockAchievements(user);
 
-    return { gained, streakBonus, totalGain };
+    return { gained, streakBonus, totalGain, achievementsUnlocked: achievementsResult };
 };
 
 module.exports = { addExperience };

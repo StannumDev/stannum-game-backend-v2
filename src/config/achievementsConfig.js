@@ -14,8 +14,9 @@ module.exports = [
         description: "Completa todos los campos esenciales de tu perfil",
         xpReward: 50,
         condition: (user) => {
-            const profile = user.profile;
-            return !!profile.name && !!profile.country && !!profile.region && !!profile.birthdate;
+            const { name, birthdate, country, region, aboutMe } = user.profile;
+            const { name: enterpriseName, jobPosition } = user.enterprise;
+            return !!name && !!birthdate && !!country && !!region && !!aboutMe && !!enterpriseName && !!jobPosition;
         }
     },
     {
