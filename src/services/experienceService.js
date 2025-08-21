@@ -63,9 +63,9 @@ const addExperience = async (user, type, payload) => {
     if (gained > 0) user.xpHistory.push({ type, xp: gained, meta: payload });
     if (user.xpHistory.length > XP_HISTORY_MAX) user.xpHistory = user.xpHistory.slice(-XP_HISTORY_MAX);
     
-    const achievementsResult = await unlockAchievements(user);
+    const { newlyUnlocked } = await unlockAchievements(user);
 
-    return { gained, streakBonus, totalGain, achievementsUnlocked: achievementsResult };
+    return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked };
 };
 
 module.exports = { addExperience };

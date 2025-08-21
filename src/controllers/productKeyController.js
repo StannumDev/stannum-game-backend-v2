@@ -14,9 +14,9 @@ const generateProductCode = () => {
 const createProductKey = async () => {
     const newKeyData = {
         code: generateProductCode(),
-        email: "comprador@example.com",
+        email: "stannum@stannum.com.ar",
         product: "tia",
-        team: "STANNUM",
+        team: "TRENNO IA XTREME SALTA",
     };
   
     try {
@@ -77,7 +77,7 @@ const activateProductKey = async (req, res) => {
             });
         }
     
-        const achievementsResult = await unlockAchievements(user);
+        const { newlyUnlocked } = await unlockAchievements(user);
         await user.save();
         await ProductKey.findByIdAndUpdate(key._id, {
             used: true,
@@ -85,7 +85,7 @@ const activateProductKey = async (req, res) => {
             usedBy: userId,
         });
 
-        return res.status(200).json({ success: true, message: "Programa activado correctamente.", achievementsUnlocked: achievementsResult.newlyUnlocked });
+        return res.status(200).json({ success: true, message: "Programa activado correctamente.", achievementsUnlocked: newlyUnlocked });
     } catch (error) {
         console.error("Error al activar la clave de producto:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));

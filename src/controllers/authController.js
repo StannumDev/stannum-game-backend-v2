@@ -32,9 +32,9 @@ const login = async (req = request, res = response) => {
     const token = await newJWT(user.id, user.role);
     if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    const achievementsResult = await unlockAchievements(user);
+    const { newlyUnlocked } = await unlockAchievements(user);
 
-    return res.status(200).json({ success: true, token, achievementsUnlocked: achievementsResult });
+    return res.status(200).json({ success: true, token, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
     // console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
