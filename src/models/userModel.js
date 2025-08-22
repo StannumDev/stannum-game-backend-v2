@@ -58,7 +58,7 @@ const levelSchema = new Schema({
   experienceNextLevel: {
     type: Number,
     required: [true, "Next level experience is required"],
-    default: 1000,
+    default: 250,
     min: [1, "Next level experience must be at least 1"],
     validate: {
       validator: function (value) {
