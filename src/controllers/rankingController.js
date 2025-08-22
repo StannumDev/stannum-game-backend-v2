@@ -14,7 +14,7 @@ const getIndividualRanking = async (req, res) => {
       status: true
     });
 
-    if (!users.length) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
+    if (!users) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
 
     const rankedUsers = users.map(user => user.getRankingUserDetails()).sort((a, b) => b.points - a.points).slice(0, limit).map((user, index) => ({ ...user, position: index + 1 }));
     return res.status(200).json({ success: true, data: rankedUsers });
