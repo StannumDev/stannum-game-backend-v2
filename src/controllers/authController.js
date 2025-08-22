@@ -189,7 +189,9 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
     let transporter;
     try {
       transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
           user: process.env.SMTP_EMAIL,
           pass: process.env.SMTP_PASSWORD,
@@ -201,16 +203,16 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
     }
 
     const mailOptions = {
-      from: `"STANNUM Game Soporte" <${process.env.SMTP_EMAIL}>`,
+      from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
       to: user.email,
       subject: "Restablecer contraseña - STANNUM Game",
       html: `
         <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; text-align: center;">
-          <img src="https://drive.google.com/uc?export=view&id=1UWz8LoVr9RsLskEKXAx-KaB9xZgAK-PN" alt="STANNUM Logo" style="max-width: 150px; margin-top: 20px;" />
-          <h1 style="color: #41cfc9; font-size: 28px;">Recupera tu contraseña en <b style="color:#ffffff; font-weight: 600; display: block;">STANNUM Game</b></h1>
+          <img src="https://drive.google.com/uc?export=view&id=1nAyByJSrn774hiOe5s594il7mUwMYgWy" alt="STANNUM Logo" style="max-width: 150px; margin-top: 20px;" />
+          <h1 style="color: #00FFCC; font-size: 28px;">Recupera tu contraseña en <b style="color:#ffffff; font-weight: 600; display: block;">STANNUM Game</b></h1>
           <p style="font-size: 16px; color: #ccc; line-height: 1.6;">
-            Hola <span style="color: #41cfc9;">${user.username}</span>, hemos recibido una solicitud para recuperar tu contraseña.
           </p>
+          Hola <span style="color: #00FFCC;">${user.username}</span>, hemos recibido una solicitud para recuperar tu contraseña.
           <p style="font-size: 16px; color: #fff; line-height: 1.6; margin: 20px 0;">
             Aquí tienes tu código de verificación:
           </p>
@@ -398,4 +400,17 @@ const updateUsername = async (req = request, res = response) => {
   }
 };
 
-module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername };
+const authUser = async (req = request, res = response) => {
+  try {
+    const userId = req.userAuth.id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser };

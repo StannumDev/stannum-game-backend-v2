@@ -15,7 +15,6 @@ const getError = (code, overrides = {}) => {
             ...overrides
         };
     }
-    console.log(error)
     return { ...error, ...overrides };
 };
 

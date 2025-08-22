@@ -7,6 +7,12 @@ const { validateJWT } = require("../middlewares/validateJWT");
 
 const router = Router();
 
+router.get(
+  "/auth-user",
+  validateJWT,
+  authController.authUser
+);
+
 router.post(
   "/",
   [
