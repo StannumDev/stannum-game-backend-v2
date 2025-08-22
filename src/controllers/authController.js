@@ -405,8 +405,9 @@ const authUser = async (req = request, res = response) => {
     const userId = req.userAuth.id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    const { newlyUnlocked } = await unlockAchievements(user);
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
     console.error("Error fetching user:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
