@@ -67,7 +67,7 @@ const validateUsername = async (req, res) => {
 
   if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
 
-  const usernameRegex = /^[a-z0-9._]+$/;
+  const usernameRegex = /^[a-zA-Z0-9._]+$/;
   if (!usernameRegex.test(username)) return res.status(400).json(getError("VALIDATION_USERNAME_INVALID"));
   if (username.length < 6 || username.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
 
