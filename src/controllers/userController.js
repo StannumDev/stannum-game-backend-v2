@@ -36,7 +36,7 @@ const getUserSidebarDetails = async (req, res) => {
 const getUserDetailsByUsername = async (req, res) => {
     try {
         const { username } = req.params;
-        const user = await User.findOne({ username: username.toLowerCase() });
+        const user = await User.findOne({ username: username.toLowerCase().trim() });
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const userDetails = user.getFullUserDetails();
