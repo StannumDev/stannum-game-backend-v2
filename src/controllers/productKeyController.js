@@ -16,7 +16,7 @@ const createProductKey = async () => {
         code: generateProductCode(),
         email: "stannum@stannum.com.ar",
         product: "tia",
-        team: "TRENNO IA XTREME SALTA",
+        team: "STANNUM",
     };
   
     try {

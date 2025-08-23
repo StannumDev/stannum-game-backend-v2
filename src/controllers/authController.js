@@ -382,7 +382,7 @@ const updateUsername = async (req = request, res = response) => {
 
     const normalizedUsername = username.trim().toLowerCase();
     if (normalizedUsername.length < 6 || normalizedUsername.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
-    if (!/^[a-z0-9._]+$/.test(normalizedUsername)) return res.status(400).json(getError("VALIDATION_USERNAME_FORMAT"));
+    if (!/^[a-zA-Z0-9._]+$/.test(normalizedUsername)) return res.status(400).json(getError("VALIDATION_USERNAME_FORMAT"));
 
     const existingUsername = await User.findOne({ username: normalizedUsername });
     if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));

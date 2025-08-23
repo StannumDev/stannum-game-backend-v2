@@ -24,7 +24,7 @@ router.get(
     "/profile/:username",
     [
         validateJWT,
-        check("username", "El nombre de usuario es inválido.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("El nombre de usuario no puede estar vacío.").isLength({ min: 6, max: 25 }).withMessage("El nombre de usuario debe tener entre 6 y 25 caracteres.").matches(/^[a-z0-9._]+$/).withMessage("El nombre de usuario solo puede contener letras minúsculas, números, puntos y guiones bajos."),
+        check("username", "El nombre de usuario es inválido.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("El nombre de usuario no puede estar vacío.").isLength({ min: 6, max: 25 }).withMessage("El nombre de usuario debe tener entre 6 y 25 caracteres.").matches(/^[a-zA-Z0-9._]+$/).withMessage("El nombre de usuario solo puede contener letras minúsculas, números, puntos y guiones bajos."),
         fieldsValidate,
     ],
     userController.getUserDetailsByUsername
