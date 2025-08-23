@@ -137,8 +137,8 @@ const createUser = async (req = request, res = response) => {
     const hashedPassword = await bcryptjs.hash(password, 10);
 
     const newUser = new User({
-      email: email.toLowerCase(),
-      username: username.toLowerCase(),
+      email: email.toLowerCase().trim(),
+      username: username.toLowerCase().trim(),
       password: hashedPassword,
       profile: {
         name: name.trim(),
