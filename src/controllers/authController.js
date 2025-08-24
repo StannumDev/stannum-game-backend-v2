@@ -32,7 +32,7 @@ const login = async (req = request, res = response) => {
     const token = await newJWT(user.id, user.role);
     if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    const { newlyUnlocked } = await unlockAchievements(user);
+    const { newlyUnlocked } = await unlockAchievements(user, true);
 
     return res.status(200).json({ success: true, token, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
@@ -405,7 +405,7 @@ const authUser = async (req = request, res = response) => {
     const userId = req.userAuth.id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    const { newlyUnlocked } = await unlockAchievements(user);
+    const { newlyUnlocked } = await unlockAchievements(user, true);
 
     return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked });
   } catch (error) {

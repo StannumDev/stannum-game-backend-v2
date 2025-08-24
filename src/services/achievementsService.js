@@ -20,7 +20,7 @@ const checkAndAddAchievements = async (user) => {
     return newlyUnlocked;
 };
 
-const unlockAchievements = async (user) => {
+const unlockAchievements = async (user, save = false) => {
     if (!user) throw new Error('USER_NOT_FOUND');
 
     let newlyUnlocked = [];
@@ -46,6 +46,8 @@ const unlockAchievements = async (user) => {
         }
         user.level.progress = computeLevelProgress(user.level);
     }
+
+    if (save && newlyUnlocked.length) await user.save();
 
     return { newlyUnlocked };
 };
