@@ -61,11 +61,9 @@ module.exports = [
             return programs.some(programCfg => {
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
-
+                
                 return programCfg.modules.some(module => {
-                    return module.instructions.every(inst =>
-                        (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
-                    );
+                    return (module.instructions > 0 && module.instructions.every(inst => (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")));
                 });
             });
         }
@@ -164,9 +162,11 @@ module.exports = [
             return tiaProgramCfg.modules.every(module => 
                 module.lessons.every(lesson =>
                     (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
-                ) &&
-                module.instructions.every(inst =>
-                    (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                ) && (
+                    (module.instructions || []).length === 0 ||
+                    module.instructions.every(inst =>
+                        (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                    )
                 )
             )
         }
