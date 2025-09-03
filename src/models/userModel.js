@@ -157,23 +157,22 @@ const instructionSchema = new Schema({
   },
   startDate: {
     type: Date,
+    required: true,
     default: Date.now,
-    validate: {
-      validator: (value) => value <= Date.now(),
-      message: "Start date cannot be in the future",
-    },
   },
   submittedAt: {
     type: Date,
+    default: null,
     validate: {
-      validator: function (value) { return !value || value >= this.startDate },
+      validator: (value) => !value || value >= this.startDate,
       message: "Submitted date must be after start date",
     },
   },
   reviewedAt: {
     type: Date,
+    default: null,
     validate: {
-      validator: (value) => !value || value <= Date.now(),
+      validator: (value) => !value || value <= this.submittedAt,
       message: "Reviewed date cannot be in the future",
     },
   },
@@ -181,15 +180,7 @@ const instructionSchema = new Schema({
     type: Number,
     min: [0],
     max: [100],
-    validate: {
-      validator: function (value) { return value === null || Number.isInteger(value) },
-      message: "Score must be an integer or null",
-    },
-  },
-  estimatedTimeSec: {
-    type: Number,
-    min: 0,
-    default: 0
+    default: null,
   },
   xpGrantedAt: {
     type: Date,
@@ -201,8 +192,8 @@ const instructionSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["PENDING", "IN_PROCESS", "SUBMITTED", "GRADED"],
-    default: "PENDING",
+    enum: ["IN_PROCESS", "SUBMITTED", "GRADED"],
+    default: "IN_PROCESS",
   },
 });
 
