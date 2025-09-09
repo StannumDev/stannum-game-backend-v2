@@ -98,7 +98,6 @@ const markTutorialAsCompleted = async (req, res) => {
 const editUser = async (req, res) => {
     const userId = req.userAuth.id;
     const { name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
-  
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
