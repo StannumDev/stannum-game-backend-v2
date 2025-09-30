@@ -296,6 +296,168 @@
         "techMessage": "username is offensive",
         "friendlyMessage": "Por favor elige un nombre de usuario apropiado sin palabras ofensivas."
     },
+    "VALIDATION_PROMPT_TITLE_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_034",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Título requerido",
+        "techMessage": "Prompt title is required.",
+        "friendlyMessage": "El título del prompt es obligatorio."
+    },
+    "VALIDATION_PROMPT_TITLE_LENGTH": {
+        "success": false,
+        "code": "VALIDATION_035",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Título inválido",
+        "techMessage": "Prompt title must be between 5 and 80 characters.",
+        "friendlyMessage": "El título debe tener entre 5 y 80 caracteres."
+    },
+    "VALIDATION_PROMPT_DESCRIPTION_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_036",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Descripción requerida",
+        "techMessage": "Prompt description is required.",
+        "friendlyMessage": "La descripción del prompt es obligatoria."
+    },
+    "VALIDATION_PROMPT_DESCRIPTION_LENGTH": {
+        "success": false,
+        "code": "VALIDATION_037",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Descripción inválida",
+        "techMessage": "Prompt description must be between 10 and 200 characters.",
+        "friendlyMessage": "La descripción debe tener entre 10 y 200 caracteres."
+    },
+    "VALIDATION_PROMPT_CONTENT_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_038",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Contenido requerido",
+        "techMessage": "Prompt content is required.",
+        "friendlyMessage": "El contenido del prompt es obligatorio."
+    },
+    "VALIDATION_PROMPT_CONTENT_LENGTH": {
+        "success": false,
+        "code": "VALIDATION_039",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Contenido inválido",
+        "techMessage": "Prompt content must be between 10 and 8000 characters.",
+        "friendlyMessage": "El contenido debe tener entre 10 y 8000 caracteres."
+    },
+    "VALIDATION_PROMPT_CATEGORY_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_040",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Categoría requerida",
+        "techMessage": "Prompt category is required.",
+        "friendlyMessage": "Debes seleccionar una categoría."
+    },
+    "VALIDATION_PROMPT_CATEGORY_INVALID": {
+        "success": false,
+        "code": "VALIDATION_041",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Categoría inválida",
+        "techMessage": "Invalid prompt category.",
+        "friendlyMessage": "La categoría seleccionada no es válida."
+    },
+    "VALIDATION_PROMPT_DIFFICULTY_INVALID": {
+        "success": false,
+        "code": "VALIDATION_042",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Dificultad inválida",
+        "techMessage": "Invalid difficulty level.",
+        "friendlyMessage": "El nivel de dificultad no es válido."
+    },
+    "VALIDATION_PROMPT_PLATFORMS_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_043",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Plataforma requerida",
+        "techMessage": "At least one compatible platform is required.",
+        "friendlyMessage": "Debes seleccionar al menos una plataforma compatible."
+    },
+    "VALIDATION_PROMPT_PLATFORMS_INVALID": {
+        "success": false,
+        "code": "VALIDATION_044",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Plataforma inválida",
+        "techMessage": "Invalid platform selected.",
+        "friendlyMessage": "Una de las plataformas seleccionadas no es válida."
+    },
+    "VALIDATION_PROMPT_TAGS_MAX": {
+        "success": false,
+        "code": "VALIDATION_045",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Demasiados tags",
+        "techMessage": "Cannot add more than 10 tags.",
+        "friendlyMessage": "No puedes agregar más de 10 tags."
+    },
+    "VALIDATION_PROMPT_TAG_LENGTH": {
+        "success": false,
+        "code": "VALIDATION_046",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Tag inválido",
+        "techMessage": "Each tag must be between 2 and 30 characters.",
+        "friendlyMessage": "Cada tag debe tener entre 2 y 30 caracteres."
+    },
+    "VALIDATION_PROMPT_CUSTOM_GPT_URL_INVALID": {
+        "success": false,
+        "code": "VALIDATION_047",
+        "type": "warning",
+        "showAlert": true,
+        "title": "URL inválida",
+        "techMessage": "Custom GPT URL is not valid.",
+        "friendlyMessage": "La URL del GPT personalizado no es válida."
+    },
+    "VALIDATION_PROMPT_ID_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_048",
+        "type": "error",
+        "showAlert": false,
+        "title": "ID requerido",
+        "techMessage": "Prompt ID is required.",
+        "friendlyMessage": "El ID del prompt es obligatorio."
+    },
+    "VALIDATION_ASSISTANT_ID_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_049",
+        "type": "error",
+        "showAlert": false,
+        "title": "ID requerido",
+        "techMessage": "Assistant ID is required.",
+        "friendlyMessage": "El ID del asistente es obligatorio."
+    },
+    "VALIDATION_ASSISTANT_URL_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_050",
+        "type": "warning",
+        "showAlert": true,
+        "title": "URL requerida",
+        "techMessage": "Assistant URL is required.",
+        "friendlyMessage": "La URL del asistente es obligatoria."
+    },
+    "VALIDATION_ASSISTANT_URL_INVALID": {
+        "success": false,
+        "code": "VALIDATION_051",
+        "type": "warning",
+        "showAlert": true,
+        "title": "URL inválida",
+        "techMessage": "Assistant URL is not valid.",
+        "friendlyMessage": "La URL del asistente no es válida."
+    },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
         "code": "AUTH_001",
@@ -718,6 +880,168 @@
         "title": "Error al generar el nombre de usuario",
         "techMessage": "Failed to generate a unique username.",
         "friendlyMessage": "Ocurrió un error al generar el nombre de usuario. Por favor, inténtalo nuevamente o contacta al soporte."
+    },
+    "PROMPT_NOT_FOUND": {
+        "success": false,
+        "code": "PROMPT_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Prompt no encontrado",
+        "techMessage": "The requested prompt was not found or is not available.",
+        "friendlyMessage": "El prompt que buscas no existe o no está disponible."
+    },
+    "PROMPT_UNAUTHORIZED_DELETE": {
+        "success": false,
+        "code": "PROMPT_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acción no autorizada",
+        "techMessage": "User is not authorized to delete this prompt.",
+        "friendlyMessage": "No tienes permiso para eliminar este prompt."
+    },
+    "PROMPT_ALREADY_LIKED": {
+        "success": false,
+        "code": "PROMPT_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Ya valorado",
+        "techMessage": "User has already liked this prompt.",
+        "friendlyMessage": "Ya valoraste este prompt anteriormente."
+    },
+    "PROMPT_NOT_LIKED": {
+        "success": false,
+        "code": "PROMPT_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Like no encontrado",
+        "techMessage": "User has not liked this prompt.",
+        "friendlyMessage": "No has valorado este prompt."
+    },
+    "PROMPT_ALREADY_FAVORITED": {
+        "success": false,
+        "code": "PROMPT_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Ya en favoritos",
+        "techMessage": "Prompt is already in user's favorites.",
+        "friendlyMessage": "Este prompt ya está en tus favoritos."
+    },
+    "PROMPT_NOT_FAVORITED": {
+        "success": false,
+        "code": "PROMPT_006",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Favorito no encontrado",
+        "techMessage": "Prompt is not in user's favorites.",
+        "friendlyMessage": "Este prompt no está en tus favoritos."
+    },
+    "PROMPT_CREATION_FAILED": {
+        "success": false,
+        "code": "PROMPT_007",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al crear prompt",
+        "techMessage": "Failed to create new prompt.",
+        "friendlyMessage": "No se pudo crear el prompt. Inténtalo de nuevo."
+    },
+    "PROMPT_DELETE_FAILED": {
+        "success": false,
+        "code": "PROMPT_008",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al eliminar",
+        "techMessage": "Failed to delete prompt.",
+        "friendlyMessage": "No se pudo eliminar el prompt. Inténtalo de nuevo."
+    },
+    "PROMPT_LIKE_FAILED": {
+        "success": false,
+        "code": "PROMPT_009",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al valorar",
+        "techMessage": "Failed to like prompt.",
+        "friendlyMessage": "No se pudo valorar el prompt. Inténtalo de nuevo."
+    },
+    "PROMPT_FAVORITE_FAILED": {
+        "success": false,
+        "code": "PROMPT_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error con favoritos",
+        "techMessage": "Failed to manage favorites.",
+        "friendlyMessage": "No se pudo gestionar favoritos. Inténtalo de nuevo."
+    },
+    "ASSISTANT_NOT_FOUND": {
+        "success": false,
+        "code": "ASSISTANT_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Asistente no encontrado",
+        "techMessage": "The requested assistant was not found or is not available.",
+        "friendlyMessage": "El asistente que buscas no existe o no está disponible."
+    },
+    "ASSISTANT_UNAUTHORIZED_DELETE": {
+        "success": false,
+        "code": "ASSISTANT_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acción no autorizada",
+        "techMessage": "User is not authorized to delete this assistant.",
+        "friendlyMessage": "No tienes permiso para eliminar este asistente."
+    },
+    "ASSISTANT_ALREADY_LIKED": {
+        "success": false,
+        "code": "ASSISTANT_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Ya valorado",
+        "techMessage": "User has already liked this assistant.",
+        "friendlyMessage": "Ya valoraste este asistente anteriormente."
+    },
+    "ASSISTANT_NOT_LIKED": {
+        "success": false,
+        "code": "ASSISTANT_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Like no encontrado",
+        "techMessage": "User has not liked this assistant.",
+        "friendlyMessage": "No has valorado este asistente."
+    },
+    "ASSISTANT_CREATION_FAILED": {
+        "success": false,
+        "code": "ASSISTANT_005",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al crear asistente",
+        "techMessage": "Failed to create new assistant.",
+        "friendlyMessage": "No se pudo crear el asistente. Inténtalo de nuevo."
+    },
+    "ASSISTANT_DELETE_FAILED": {
+        "success": false,
+        "code": "ASSISTANT_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al eliminar",
+        "techMessage": "Failed to delete assistant.",
+        "friendlyMessage": "No se pudo eliminar el asistente. Inténtalo de nuevo."
+    },
+    "ASSISTANT_LIKE_FAILED": {
+        "success": false,
+        "code": "ASSISTANT_007",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al valorar",
+        "techMessage": "Failed to like assistant.",
+        "friendlyMessage": "No se pudo valorar el asistente. Inténtalo de nuevo."
+    },
+    "ASSISTANT_FAVORITE_FAILED": {
+        "success": false,
+        "code": "ASSISTANT_008",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error con favoritos",
+        "techMessage": "Failed to manage favorites.",
+        "friendlyMessage": "No se pudo gestionar favoritos. Inténtalo de nuevo."
     },
     "JWT_GENERATION_FAILED": {
         "success": false,

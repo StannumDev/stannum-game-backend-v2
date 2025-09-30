@@ -454,6 +454,16 @@ const userSchema = new Schema(
         default: true
       }
     },
+    favorites: {
+      prompts: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Prompt'
+      }],
+      assistants: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Assistant'
+      }]
+    },
     otp: {
       recoveryOtp: {
         type: String,
@@ -567,5 +577,83 @@ userSchema.methods.getInstructionStatus = function (programId, instructionId) {
   const instruction = this.programs?.[programId]?.instructions?.find(i => i.instructionId === instructionId);
   return instruction?.status || 'PENDING';
 };
+
+userSchema.methods.addPromptToFavorites = function(promptId) {
+  if (this.favorites.prompts.includes(promptId)) {
+    return Promise.reject(new Error('Prompt already in favorites'));
+  }
+
+  this.favorites.prompts.push(promptId);
+  return this.save();
+};
+
+userSchema.methods.removePromptFromFavorites = function(promptId) {
+  const index = this.favorites.prompts.indexOf(promptId);
+  
+  if (index === -1) {
+    return Promise.reject(new Error('Prompt not in favorites'));
+  }
+  
+  this.favorites.prompts.splice(index, 1);
+  return this.save();
+};
+
+userSchema.methods.hasPromptInFavorites = function(promptId) {
+  return this.favorites.prompts.some(id => id.toString() === promptId.toString());
+};
+
+userSchema.methods.getFavoritePrompts = function() {
+  return this.populate({
+    path: 'favorites.prompts',
+    match: { isActive: true, isPublic: true },
+    select: 'title description category difficulty tags metrics author createdAt',
+    populate: {
+      path: 'author',
+      select: 'username profile.name preferences.hasProfilePhoto'
+    }
+  }).then(user => user.favorites.prompts);
+};
+
+userSchema.methods.addAssistantToFavorites = function(assistantId) {
+  if (this.favorites.assistants.includes(assistantId)) {
+    return Promise.reject(new Error('Assistant already in favorites'));
+  }
+  this.favorites.assistants.push(assistantId);
+  return this.save();
+};
+
+userSchema.methods.removeAssistantFromFavorites = function(assistantId) {
+  const index = this.favorites.assistants.indexOf(assistantId);
+  if (index === -1) {
+    return Promise.reject(new Error('Assistant not in favorites'));
+  }
+  this.favorites.assistants.splice(index, 1);
+  return this.save();
+};
+
+userSchema.methods.hasAssistantInFavorites = function(assistantId) {
+  return this.favorites.assistants.some(id => id.toString() === assistantId.toString());
+};
+
+userSchema.methods.getFavoriteAssistants = function() {
+  return this.populate({
+    path: 'favorites.assistants',
+    match: { isActive: true, isPublic: true },
+    select: 'title description category difficulty tags metrics author createdAt',
+    populate: {
+      path: 'author',
+      select: 'username profile.name preferences.hasProfilePhoto'
+    }
+  }).then(user => user.favorites.assistants);
+};
+
+userSchema.index({ 'favorites.assistants': 1 });
+userSchema.index({ 'favorites.prompts': 1 });
+userSchema.index({ 
+  username: 'text',
+  'profile.name': 'text',
+  'enterprise.name': 'text',
+  'enterprise.jobPosition': 'text'
+});
 
 module.exports = model("User", userSchema);

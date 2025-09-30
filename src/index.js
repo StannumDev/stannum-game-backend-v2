@@ -9,6 +9,8 @@ const lessonRouter = require("./routes/lessonRoutes");
 const instructionRouter = require("./routes/instructionRoutes");
 const productKeyRouter = require("./routes/productKeyRoutes");
 const rankingRouter = require("./routes/rankingRoutes");
+const promptRouter = require("./routes/promptRoutes");
+const assistantRouter = require("./routes/assistantRoutes");
 
 const app = express();
 
@@ -41,6 +43,8 @@ app.use("/api/lesson", lessonRouter);
 app.use("/api/instruction", instructionRouter);
 app.use("/api/product-key", productKeyRouter);
 app.use("/api/ranking", rankingRouter);
+app.use("/api/prompt", promptRouter);
+app.use("/api/assistant", assistantRouter);
 
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);
