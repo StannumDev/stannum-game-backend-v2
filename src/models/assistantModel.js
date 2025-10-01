@@ -290,7 +290,7 @@ assistantSchema.statics.search = function(query, filters = {}) {
             };
     }
     
-    return this.find(searchCriteria).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
+    return this.find(searchCriteria).populate('author', 'username profile.name').sort(sortConfig);
 };
 
 assistantSchema.statics.getByAuthor = function(authorId) {
@@ -307,7 +307,7 @@ assistantSchema.statics.getTopAssistants = function(limit = 10) {
         'metrics.likesCount': -1 
         })
         .limit(limit)
-        .populate('author', 'username profile.name preferences.hasProfilePhoto');
+        .populate('author', 'username profile.name');
 };
 
 assistantSchema.methods.getFullDetails = function(userId = null) {
@@ -326,7 +326,7 @@ assistantSchema.methods.getFullDetails = function(userId = null) {
             id: this.author._id,
             username: this.author.username,
             name: this.author.profile?.name,
-            hasProfilePhoto: this.author.preferences?.hasProfilePhoto
+            profilePhotoUrl: this.author.profilePhotoUrl
         },
         createdAt: this.createdAt,
         updatedAt: this.updatedAt,
@@ -359,7 +359,7 @@ assistantSchema.methods.getPreview = function(userId = null) {
         },
         author: {
             username: this.author.username,
-            hasProfilePhoto: this.author.preferences?.hasProfilePhoto
+            profilePhotoUrl: this.author.profilePhotoUrl
         },
         createdAt: this.createdAt
     };

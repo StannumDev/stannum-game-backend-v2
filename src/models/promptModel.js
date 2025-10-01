@@ -336,7 +336,7 @@ promptSchema.statics.search = function(query, filters = {}) {
       };
   }
   
-  return this.find(searchCriteria).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
+  return this.find(searchCriteria).populate('author', 'username profile.name').sort(sortConfig);
 };
 
 promptSchema.statics.getByAuthor = function(authorId) {
@@ -354,7 +354,7 @@ promptSchema.statics.getTopPrompts = function(limit = 10) {
       'metrics.likesCount': -1 
     })
     .limit(limit)
-    .populate('author', 'username profile.name preferences.hasProfilePhoto');
+    .populate('author', 'username profile.name');
 };
 
 promptSchema.methods.getFullDetails = function(userId = null) {
@@ -374,7 +374,7 @@ promptSchema.methods.getFullDetails = function(userId = null) {
       id: this.author._id,
       username: this.author.username,
       name: this.author.profile?.name,
-      hasProfilePhoto: this.author.preferences?.hasProfilePhoto
+      profilePhotoUrl: this.author.profilePhotoUrl
     },
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
@@ -409,7 +409,7 @@ promptSchema.methods.getPreview = function(userId = null) {
     },
     author: {
       username: this.author.username,
-      hasProfilePhoto: this.author.preferences?.hasProfilePhoto
+      profilePhotoUrl: this.author.profilePhotoUrl
     },
     createdAt: this.createdAt,
     hasCustomGpt: !!this.customGptUrl
