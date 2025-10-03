@@ -7,8 +7,32 @@ const { getError } = require('../helpers/getError');
 // ==================== GET ALL ASSISTANTS ====================
 const getAllAssistants = async (req, res) => {
     try {
-        const { search, category, difficulty, tags, platforms, sortBy = 'popular', page = 1, limit = 20 } = req.query;
+        const { search, category, difficulty, tags, platforms, sortBy = 'popular', favoritesOnly, page = 1,  limit = 20 } = req.query;
         const filters = { isActive: true, isPublic: true };
+        
+        if (favoritesOnly === 'true') {
+            const user = await User.findById(req.userAuth.id).select('favorites.assistants');
+            const favoriteIds = user?.favorites?.assistants || [];
+            
+            if (favoriteIds.length === 0) {
+                return res.json({
+                    success: true,
+                    data: {
+                        assistants: [],
+                        pagination: {
+                            currentPage: parseInt(page),
+                            totalPages: 0,
+                            totalAssistants: 0,
+                            hasNextPage: false,
+                            hasPrevPage: false
+                        }
+                    }
+                });
+            }
+            
+            // Buscar solo entre los favoritos del usuario
+            filters._id = { $in: favoriteIds };
+        }
         
         if (category) filters.category = category;
         if (difficulty) filters.difficulty = difficulty;
@@ -60,12 +84,9 @@ const getAllAssistants = async (req, res) => {
         const totalAssistants = await Assistant.countDocuments(filters);
         const totalPages = Math.ceil(totalAssistants / limit);
 
-        let assistantsWithUserActions = assistants;
-        if (req.userAuth) {
-            assistantsWithUserActions = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
-        } else {
-            assistantsWithUserActions = assistants.map(assistant => assistant.getPreview());
-        }
+        const assistantsWithUserActions = assistants.map(assistant => 
+            assistant.getPreview(req.userAuth.id)
+        );
 
         return res.json({
             success: true,
@@ -101,9 +122,8 @@ const getAssistantById = async (req, res) => {
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
         await assistant.incrementViews();
-        const assistantDetails = req.userAuth 
-            ? assistant.getFullDetails(req.userAuth.id)
-            : assistant.getFullDetails();
+        const assistantDetails = assistant.getFullDetails(req.userAuth.id);
+
         
         return res.json({ success: true, data: assistantDetails });
     } catch (error) {
@@ -347,9 +367,7 @@ const getUserAssistants = async (req, res) => {
             isPublic: true
         });
 
-        const assistantsData = assistants.map(assistant => 
-            req.userAuth ? assistant.getPreview(req.userAuth.id) : assistant.getPreview()
-        );
+        const assistantsData = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
 
         return res.json({
             success: true,
@@ -485,9 +503,7 @@ const getTopAssistants = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
         const topAssistants = await Assistant.getTopAssistants(parseInt(limit));
-        const assistantsData = topAssistants.map(assistant => 
-            req.userAuth ? assistant.getPreview(req.userAuth.id) : assistant.getPreview()
-        );
+        const assistantsData = topAssistants.map(assistant => assistant.getPreview(req.userAuth.id));
 
         return res.json({
             success: true,

@@ -118,7 +118,7 @@ const assistantSchema = new Schema({
             trim: true,
             maxlength: [30, "Each tag cannot exceed 30 characters"],
             validate: {
-                validator: function(v) { return /^[a-z0-9-_]+$/.test(v); },
+                validator: function(v) { return /^[a-záéíóúüñ0-9\s\-_.]+$/.test(v) },
                 message: "Tags can only contain lowercase letters, numbers, hyphens and underscores"
             }
         }],
