@@ -1,14 +1,15 @@
-// src/controllers/assistantController.js
+const { validationResult } = require('express-validator');
 const Assistant = require('../models/assistantModel');
 const User = require('../models/userModel');
-const { validationResult } = require('express-validator');
 const { getError } = require('../helpers/getError');
 
-// ==================== GET ALL ASSISTANTS ====================
 const getAllAssistants = async (req, res) => {
     try {
-        const { search, category, difficulty, tags, platforms, sortBy = 'popular', favoritesOnly, page = 1,  limit = 20 } = req.query;
-        const filters = { isActive: true, isPublic: true };
+        const { search, category, difficulty, tags, platforms, sortBy = 'popular', favoritesOnly, stannumVerifiedOnly, page = 1, limit = 20 } = req.query;
+        const filters = { 
+            status: true,
+            visibility: 'published'
+        };
         
         if (favoritesOnly === 'true') {
             const user = await User.findById(req.userAuth.id).select('favorites.assistants');
@@ -30,18 +31,16 @@ const getAllAssistants = async (req, res) => {
                 });
             }
             
-            // Buscar solo entre los favoritos del usuario
             filters._id = { $in: favoriteIds };
         }
         
+        if (stannumVerifiedOnly === 'true') filters['stannumVerified.isVerified'] = true;
         if (category) filters.category = category;
         if (difficulty) filters.difficulty = difficulty;
-        
         if (tags) {
             const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
             filters.tags = { $in: tagArray };
         }
-        
         if (platforms) {
             const platformArray = platforms.split(',').map(p => p.trim().toLowerCase());
             filters.platforms = { $in: platformArray };
@@ -61,9 +60,13 @@ const getAllAssistants = async (req, res) => {
             case 'mostViewed':
                 sortConfig = { 'metrics.viewsCount': -1 };
                 break;
+            case 'verified':
+                sortConfig = { 'stannumVerified.isVerified': -1, 'metrics.clicksCount': -1 };
+                break;
             case 'popular':
             default:
                 sortConfig = { 
+                    'stannumVerified.isVerified': -1,
                     'metrics.clicksCount': -1, 
                     'metrics.likesCount': -1,
                     'metrics.favoritesCount': -1
@@ -71,12 +74,14 @@ const getAllAssistants = async (req, res) => {
         }
 
         if (search && search.trim().length >= 2) {
-            filters.$text = { $search: search.trim() };
+            const searchRegex = new RegExp(search.trim(), 'i');
+            filters.$or = [
+                { title: searchRegex },
+                { description: searchRegex },
+                { tags: { $in: [searchRegex] } }
+            ];
         }
-
-        const query = Assistant.find(filters)
-            .populate('author', 'username profile.name preferences.hasProfilePhoto')
-            .sort(sortConfig);
+        const query = Assistant.find(filters).populate('author', 'username profile.name').sort(sortConfig);
 
         const skip = (page - 1) * limit;
         const assistants = await query.skip(skip).limit(parseInt(limit));
@@ -84,9 +89,7 @@ const getAllAssistants = async (req, res) => {
         const totalAssistants = await Assistant.countDocuments(filters);
         const totalPages = Math.ceil(totalAssistants / limit);
 
-        const assistantsWithUserActions = assistants.map(assistant => 
-            assistant.getPreview(req.userAuth.id)
-        );
+        const assistantsWithUserActions = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
 
         return res.json({
             success: true,
@@ -107,24 +110,22 @@ const getAllAssistants = async (req, res) => {
     }
 };
 
-// ==================== GET ASSISTANT BY ID ====================
 const getAssistantById = async (req, res) => {
     try {
         const { id } = req.params;
         if (!id) return res.status(400).json(getError("VALIDATION_ASSISTANT_ID_REQUIRED"));
 
-        const assistant = await Assistant.findOne({ 
+        const assistant = await Assistant.findOne({
             _id: id,
-            isActive: true,
-            isPublic: true
-        }).populate('author', 'username profile.name preferences.hasProfilePhoto');
+            status: true,
+            visibility: 'published'
+        }).populate('author', 'username profile.name');
         
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
         await assistant.incrementViews();
         const assistantDetails = assistant.getFullDetails(req.userAuth.id);
 
-        
         return res.json({ success: true, data: assistantDetails });
     } catch (error) {
         console.error('Error getting assistant:', error);
@@ -132,7 +133,6 @@ const getAssistantById = async (req, res) => {
     }
 };
 
-// ==================== CREATE ASSISTANT ====================
 const createAssistant = async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -164,11 +164,13 @@ const createAssistant = async (req, res) => {
             tags: processedTags,
             useCases,
             author: req.userAuth.id,
-            searchKeywords: [...new Set(searchKeywords)]
+            searchKeywords: [...new Set(searchKeywords)],
+            status: true,
+            visibility: 'published'
         });
 
         await newAssistant.save();
-        await newAssistant.populate('author', 'username profile.name preferences.hasProfilePhoto');
+        await newAssistant.populate('author', 'username profile.name');
 
         return res.status(201).json({
             success: true,
@@ -181,7 +183,6 @@ const createAssistant = async (req, res) => {
     }
 };
 
-// ==================== DELETE ASSISTANT ====================
 const deleteAssistant = async (req, res) => {
     try {
         const { id } = req.params;
@@ -189,13 +190,8 @@ const deleteAssistant = async (req, res) => {
 
         const assistant = await Assistant.findById(id);
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
-        if (assistant.author.toString() !== req.userAuth.id.toString()) {
-            return res.status(403).json(getError("ASSISTANT_UNAUTHORIZED_DELETE"));
-        }
-
-        assistant.isActive = false;
-        await assistant.save();
-
+        if (assistant.author.toString() !== req.userAuth.id.toString()) return res.status(403).json(getError("ASSISTANT_UNAUTHORIZED_DELETE"));
+        await assistant.softDelete();
         return res.json({ success: true, message: 'Assistant deleted successfully' });
     } catch (error) {
         console.error('Error deleting assistant:', error);
@@ -203,7 +199,32 @@ const deleteAssistant = async (req, res) => {
     }
 };
 
-// ==================== CLICK ASSISTANT (OPEN LINK) ====================
+const toggleVisibility = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) return res.status(400).json(getError("VALIDATION_ASSISTANT_ID_REQUIRED"));
+        
+        const { visibility } = req.body;
+        if (!['published', 'hidden', 'draft'].includes(visibility)) return res.status(400).json(getError("VALIDATION_INVALID_VISIBILITY"));
+
+        const assistant = await Assistant.findById(id);
+        if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
+        if (assistant.author.toString() !== req.userAuth.id.toString()) return res.status(403).json(getError("ASSISTANT_UNAUTHORIZED_UPDATE"));
+
+        assistant.visibility = visibility;
+        await assistant.save();
+
+        return res.json({
+            success: true,
+            data: { visibility: assistant.visibility },
+            message: `Assistant visibility changed to ${visibility}`
+        });
+    } catch (error) {
+        console.error('Error toggling visibility:', error);
+        return res.status(500).json(getError("ASSISTANT_UPDATE_FAILED"));
+    }
+};
+
 const clickAssistant = async (req, res) => {
     try {
         const { id } = req.params;
@@ -211,8 +232,8 @@ const clickAssistant = async (req, res) => {
 
         const assistant = await Assistant.findOne({ 
             _id: id, 
-            isActive: true, 
-            isPublic: true 
+            status: true,
+            visibility: 'published'
         });
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
@@ -232,7 +253,6 @@ const clickAssistant = async (req, res) => {
     }
 };
 
-// ==================== LIKE ASSISTANT ====================
 const likeAssistant = async (req, res) => {
     try {
         const { id } = req.params;
@@ -240,15 +260,12 @@ const likeAssistant = async (req, res) => {
 
         const assistant = await Assistant.findOne({ 
             _id: id,
-            isActive: true,
-            isPublic: true
+            status: true,
+            visibility: 'published'
         });
 
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
-        if (assistant.hasUserLiked(req.userAuth.id)) {
-            return res.status(400).json(getError("ASSISTANT_ALREADY_LIKED"));
-        }
-        
+        if (assistant.hasUserLiked(req.userAuth.id)) return res.status(400).json(getError("ASSISTANT_ALREADY_LIKED"));
         await assistant.addLike(req.userAuth.id);
 
         return res.json({
@@ -262,7 +279,6 @@ const likeAssistant = async (req, res) => {
     }
 };
 
-// ==================== UNLIKE ASSISTANT ====================
 const unlikeAssistant = async (req, res) => {
     try {
         const { id } = req.params;
@@ -270,14 +286,12 @@ const unlikeAssistant = async (req, res) => {
 
         const assistant = await Assistant.findOne({ 
             _id: id, 
-            isActive: true, 
-            isPublic: true 
+            status: true,
+            visibility: 'published'
         });
 
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
-        if (!assistant.hasUserLiked(req.userAuth.id)) {
-            return res.status(400).json(getError("ASSISTANT_NOT_LIKED"));
-        }
+        if (!assistant.hasUserLiked(req.userAuth.id)) return res.status(400).json(getError("ASSISTANT_NOT_LIKED"));
         
         await assistant.removeLike(req.userAuth.id);
 
@@ -292,49 +306,62 @@ const unlikeAssistant = async (req, res) => {
     }
 };
 
-// ==================== TOGGLE FAVORITE ====================
 const toggleFavorite = async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) return res.status(400).json(getError("VALIDATION_ASSISTANT_ID_REQUIRED"));
+        const userId = req.userAuth.id;
 
         const assistant = await Assistant.findOne({ 
             _id: id, 
-            isActive: true, 
-            isPublic: true 
+            status: true,
+            visibility: 'published'
         });
-        if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
-
-        const user = await User.findById(req.userAuth.id);
-        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-
-        const isFavorited = user.hasAssistantInFavorites(id);
         
+        if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
+        const isFavorited = assistant.favoritedBy.includes(userId);
         if (isFavorited) {
-            await Promise.all([
-                user.removeAssistantFromFavorites(id),
-                assistant.removeFavorite(req.userAuth.id)
+            const [updatedAssistant, _] = await Promise.all([
+                Assistant.findByIdAndUpdate( id,
+                    { 
+                        $pull: { favoritedBy: userId },
+                        $inc: { 'metrics.favoritesCount': -1 }
+                    },
+                    { new: true }
+                ),
+                User.findByIdAndUpdate( userId,
+                    { $pull: { 'favorites.assistants': id } },
+                    { new: true }
+                )
             ]);
-            
+
             return res.json({
                 success: true,
                 data: {
                     isFavorited: false,
-                    favoritesCount: assistant.metrics.favoritesCount
+                    favoritesCount: updatedAssistant.metrics.favoritesCount
                 },
                 message: 'Removed from favorites'
             });
         } else {
-            await Promise.all([
-                user.addAssistantToFavorites(id),
-                assistant.addFavorite(req.userAuth.id)
+            const [updatedAssistant, _] = await Promise.all([
+                Assistant.findByIdAndUpdate( id,
+                    { 
+                        $addToSet: { favoritedBy: userId },
+                        $inc: { 'metrics.favoritesCount': 1 }
+                    },
+                    { new: true }
+                ),
+                User.findByIdAndUpdate( userId,
+                    { $addToSet: { 'favorites.assistants': id } },
+                    { new: true }
+                )
             ]);
 
             return res.json({
                 success: true,
                 data: {
                     isFavorited: true,
-                    favoritesCount: assistant.metrics.favoritesCount
+                    favoritesCount: updatedAssistant.metrics.favoritesCount
                 },
                 message: 'Added to favorites'
             });
@@ -345,7 +372,6 @@ const toggleFavorite = async (req, res) => {
     }
 };
 
-// ==================== GET USER'S ASSISTANTS ====================
 const getUserAssistants = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -353,18 +379,18 @@ const getUserAssistants = async (req, res) => {
         
         const assistants = await Assistant.find({
             author: userId,
-            isActive: true,
-            isPublic: true
+            status: true,
+            visibility: 'published'
         })
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name preferences.hasProfilePhoto');
+        .populate('author', 'username profile.name');
 
         const totalAssistants = await Assistant.countDocuments({
             author: userId,
-            isActive: true,
-            isPublic: true
+            status: true,
+            visibility: 'published'
         });
 
         const assistantsData = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
@@ -386,23 +412,22 @@ const getUserAssistants = async (req, res) => {
     }
 };
 
-// ==================== GET MY ASSISTANTS ====================
 const getMyAssistants = async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
         
         const assistants = await Assistant.find({
             author: req.userAuth.id,
-            isActive: true
+            status: true
         })
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name preferences.hasProfilePhoto');
+        .populate('author', 'username profile.name');
 
         const totalAssistants = await Assistant.countDocuments({
             author: req.userAuth.id,
-            isActive: true
+            status: true
         });
 
         const assistantsData = assistants.map(assistant => assistant.getFullDetails(req.userAuth.id));
@@ -424,7 +449,6 @@ const getMyAssistants = async (req, res) => {
     }
 };
 
-// ==================== GET MY FAVORITES ====================
 const getMyFavorites = async (req, res) => {
     try {
         const user = await User.findById(req.userAuth.id);
@@ -446,11 +470,10 @@ const getMyFavorites = async (req, res) => {
     }
 };
 
-// ==================== GET STATS ====================
-const getStats = async (req, res) => {
+const getStats = async (_, res) => {
     try {
         const stats = await Assistant.aggregate([
-            { $match: { isActive: true, isPublic: true } },
+            { $match: { status: true, visibility: 'published' } },
             {
                 $group: {
                     _id: null,
@@ -463,7 +486,7 @@ const getStats = async (req, res) => {
         ]);
 
         const categoryStats = await Assistant.aggregate([
-            { $match: { isActive: true, isPublic: true } },
+            { $match: { status: true, visibility: 'published' } },
             {
                 $group: {
                     _id: '$category',
@@ -475,8 +498,8 @@ const getStats = async (req, res) => {
         ]);
 
         const totalAuthors = await Assistant.distinct('author', { 
-            isActive: true, 
-            isPublic: true 
+            status: true,
+            visibility: 'published'
         });
 
         return res.json({
@@ -498,7 +521,6 @@ const getStats = async (req, res) => {
     }
 };
 
-// ==================== GET TOP ASSISTANTS ====================
 const getTopAssistants = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
@@ -520,6 +542,7 @@ module.exports = {
     getAssistantById,
     createAssistant,
     deleteAssistant,
+    toggleVisibility,
     clickAssistant,
     likeAssistant,
     unlikeAssistant,

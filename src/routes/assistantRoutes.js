@@ -8,11 +8,10 @@ const assistantController = require("../controllers/assistantController");
 
 const router = Router();
 
-// ✅ Agregar validateJWT
 router.get(
     "/",
     [
-        validateJWT, // ✅ AGREGAR
+        validateJWT,
         query("page").optional().isInt({ min: 1 }).withMessage("Page must be a positive integer."),
         query("limit").optional().isInt({ min: 1, max: 50 }).withMessage("Limit must be between 1 and 50."),
         query("category").optional().isIn(['sales', 'productivity', 'marketing', 'innovation', 'leadership', 'strategy', 'automation', 'content', 'analysis', 'growth']).withMessage("Invalid category."),
@@ -26,29 +25,26 @@ router.get(
     assistantController.getAllAssistants
 );
 
-// ✅ Agregar validateJWT
 router.get(
     "/stats",
-    validateJWT, // ✅ AGREGAR
+    validateJWT,
     assistantController.getStats
 );
 
-// ✅ Agregar validateJWT
 router.get(
     "/top",
     [
-        validateJWT, // ✅ AGREGAR
+        validateJWT,
         query("limit").optional().isInt({ min: 1, max: 50 }).withMessage("Limit must be between 1 and 50."),
         fieldsValidate,
     ],
     assistantController.getTopAssistants
 );
 
-// ✅ Agregar validateJWT
 router.get(
     "/user/:userId",
     [
-        validateJWT, // ✅ AGREGAR
+        validateJWT,
         check("userId", "Invalid user ID.").isMongoId().withMessage("User ID must be a valid MongoDB ObjectId."),
         query("page").optional().isInt({ min: 1 }).withMessage("Page must be a positive integer."),
         query("limit").optional().isInt({ min: 1, max: 50 }).withMessage("Limit must be between 1 and 50."),
@@ -60,7 +56,7 @@ router.get(
 router.get(
     "/me/assistants",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         query("page").optional().isInt({ min: 1 }).withMessage("Page must be a positive integer."),
         query("limit").optional().isInt({ min: 1, max: 50 }).withMessage("Limit must be between 1 and 50."),
         fieldsValidate,
@@ -70,15 +66,14 @@ router.get(
 
 router.get(
     "/me/favorites",
-    validateJWT, // ✅ Ya estaba
+    validateJWT,
     assistantController.getMyFavorites
 );
 
-// ✅ Agregar validateJWT
 router.get(
     "/:id",
     [
-        validateJWT, // ✅ AGREGAR
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],
@@ -88,7 +83,7 @@ router.get(
 router.post(
     "/",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         check("title", "Title is required.").trim().not().isEmpty().withMessage("Title cannot be empty.").isLength({ min: 5, max: 80 }).withMessage("Title must be between 5 and 80 characters."),
         check("description", "Description is required.").trim().not().isEmpty().withMessage("Description cannot be empty.").isLength({ min: 10, max: 500 }).withMessage("Description must be between 10 and 500 characters."),
         check("assistantUrl", "Assistant URL is required.").trim().not().isEmpty().withMessage("Assistant URL cannot be empty.").isURL().withMessage("Assistant URL must be a valid URL."),
@@ -106,11 +101,10 @@ router.post(
     assistantController.createAssistant
 );
 
-// ✅ Agregar validateJWT
 router.post(
     "/:id/click",
     [
-        validateJWT, // ✅ AGREGAR
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],
@@ -120,7 +114,7 @@ router.post(
 router.post(
     "/:id/like",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],
@@ -130,7 +124,7 @@ router.post(
 router.delete(
     "/:id/like",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],
@@ -140,17 +134,28 @@ router.delete(
 router.post(
     "/:id/favorite",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],
     assistantController.toggleFavorite
 );
 
+router.put(
+    "/:id/visibility",
+    [
+        validateJWT,
+        check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
+        check("visibility", "Visibility is required.").isIn(['published', 'draft', 'hidden']).withMessage("Invalid visibility value."),
+        fieldsValidate,
+    ],
+    assistantController.toggleVisibility
+);
+
 router.delete(
     "/:id",
     [
-        validateJWT, // ✅ Ya estaba
+        validateJWT,
         check("id", "Invalid assistant ID.").isMongoId().withMessage("Assistant ID must be a valid MongoDB ObjectId."),
         fieldsValidate,
     ],

@@ -39,6 +39,17 @@ const metricsSchema = new Schema({
     }
 }, { _id: false });
 
+const stannumVerificationSchema = new Schema({
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verifiedAt: {
+        type: Date,
+        default: null
+    }
+}, { _id: false });
+
 const assistantSchema = new Schema({
     title: {
         type: String,
@@ -153,21 +164,25 @@ const assistantSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User'
     }],
-    isActive: {
+    status: {
         type: Boolean,
-        default: true
+        default: true,
     },
-    isModerated: {
-        type: Boolean,
-        default: false
-    },
-    moderationNotes: {
+    visibility: {
         type: String,
-        maxlength: [500, "Moderation notes cannot exceed 500 characters"]
+        enum: {
+            values: ['published', 'draft', 'hidden'],
+            message: "Visibility must be: published, draft or hidden"
+        },
+        default: 'published',
+        required: true
     },
-    isPublic: {
-        type: Boolean,
-        default: true
+    stannumVerified: {
+        type: stannumVerificationSchema,
+        default: () => ({
+            isVerified: false,
+            verifiedAt: null,
+        })
     },
     searchKeywords: [{
         type: String,
@@ -183,21 +198,20 @@ const assistantSchema = new Schema({
 assistantSchema.index({ category: 1, difficulty: 1 });
 assistantSchema.index({ tags: 1 });
 assistantSchema.index({ author: 1, createdAt: -1 });
-assistantSchema.index({ isActive: 1, isPublic: 1 });
+assistantSchema.index({ status: 1, visibility: 1 });
 assistantSchema.index({ 'metrics.clicksCount': -1 });
 assistantSchema.index({ 'metrics.likesCount': -1 });
 assistantSchema.index({ 'metrics.viewsCount': -1 });
 assistantSchema.index({ createdAt: -1 });
+assistantSchema.index({ 'stannumVerified.isVerified': 1 });
 
-assistantSchema.index({ 
-    title: 'text', 
-    description: 'text', 
-    tags: 'text',
-    searchKeywords: 'text'
-});
-
-assistantSchema.virtual('popularityScore').get( function() {
-    return (this.metrics.clicksCount * 3) + (this.metrics.likesCount * 2) + this.metrics.favoritesCount + (this.metrics.viewsCount * 0.1);
+assistantSchema.virtual('popularityScore').get(function() {
+    const verifiedBonus = this.stannumVerified.isVerified ? 100 : 0;
+    return (this.metrics.clicksCount * 3) + 
+           (this.metrics.likesCount * 2) + 
+           this.metrics.favoritesCount + 
+           (this.metrics.viewsCount * 0.1) +
+           verifiedBonus;
 });
 
 assistantSchema.virtual('engagementRate').get(function() {
@@ -255,10 +269,48 @@ assistantSchema.methods.hasUserFavorited = function(userId) {
     return this.favoritedBy.includes(userId);
 };
 
+assistantSchema.methods.softDelete = function() {
+    this.status = false;
+    return this.save();
+};
+
+assistantSchema.methods.hide = function() {
+    if (this.visibility === 'published') {
+        this.visibility = 'hidden';
+        return this.save();
+    }
+    return Promise.reject(new Error('Assistant is not published'));
+};
+
+assistantSchema.methods.publish = function() {
+    if (this.visibility !== 'published') {
+        this.visibility = 'published';
+        return this.save();
+    }
+    return Promise.reject(new Error('Assistant is already published'));
+};
+
+assistantSchema.methods.setDraft = function() {
+    this.visibility = 'draft';
+    return this.save();
+};
+
+assistantSchema.methods.verifyByStannum = function() {
+    this.stannumVerified.isVerified = true;
+    this.stannumVerified.verifiedAt = new Date();
+    return this.save();
+};
+
+assistantSchema.methods.removeStannumVerification = function() {
+    this.stannumVerified.isVerified = false;
+    this.stannumVerified.verifiedAt = null;
+    return this.save();
+};
+
 assistantSchema.statics.search = function(query, filters = {}) {
     const searchCriteria = { 
-        isActive: true,
-        isPublic: true 
+        status: true,
+        visibility: 'published'
     };
     
     if (query) searchCriteria.$text = { $search: query };
@@ -266,6 +318,7 @@ assistantSchema.statics.search = function(query, filters = {}) {
     if (filters.difficulty) searchCriteria.difficulty = filters.difficulty;
     if (filters.tags && filters.tags.length) searchCriteria.tags = { $in: filters.tags };
     if (filters.platforms && filters.platforms.length) searchCriteria.platforms = { $in: filters.platforms };
+    if (filters.stannumVerifiedOnly) searchCriteria['stannumVerified.isVerified'] = true;
     
     let sortConfig = {};
     switch (filters.sortBy) {
@@ -281,9 +334,13 @@ assistantSchema.statics.search = function(query, filters = {}) {
         case 'mostViewed':
             sortConfig = { 'metrics.viewsCount': -1 };
             break;
+        case 'verified':
+            sortConfig = { 'stannumVerified.isVerified': -1, 'metrics.clicksCount': -1 };
+            break;
         case 'popular':
         default:
             sortConfig = { 
+                'stannumVerified.isVerified': -1,
                 'metrics.clicksCount': -1, 
                 'metrics.likesCount': -1,
                 'metrics.favoritesCount': -1
@@ -293,21 +350,28 @@ assistantSchema.statics.search = function(query, filters = {}) {
     return this.find(searchCriteria).populate('author', 'username profile.name').sort(sortConfig);
 };
 
-assistantSchema.statics.getByAuthor = function(authorId) {
-    return this.find({ 
+assistantSchema.statics.getByAuthor = function(authorId, includeHidden = false) {
+    const criteria = { 
         author: authorId,
-        isActive: true 
-    }).sort({ createdAt: -1 });
+        status: true
+    };
+    
+    if (!includeHidden) criteria.visibility = { $in: ['published', 'draft'] };
+    return this.find(criteria).sort({ createdAt: -1 });
 };
 
 assistantSchema.statics.getTopAssistants = function(limit = 10) {
-    return this.find({ isActive: true, isPublic: true })
-        .sort({ 
+    return this.find({ 
+        status: true,
+        visibility: 'published'
+    })
+    .sort({ 
+        'stannumVerified.isVerified': -1,
         'metrics.clicksCount': -1,
         'metrics.likesCount': -1 
-        })
-        .limit(limit)
-        .populate('author', 'username profile.name');
+    })
+    .limit(limit)
+    .populate('author', 'username profile.name');
 };
 
 assistantSchema.methods.getFullDetails = function(userId = null) {
@@ -328,17 +392,22 @@ assistantSchema.methods.getFullDetails = function(userId = null) {
             name: this.author.profile?.name,
             profilePhotoUrl: this.author.profilePhotoUrl
         },
+        status: this.status,
+        visibility: this.visibility,
+        stannumVerified: this.stannumVerified,
         createdAt: this.createdAt,
         updatedAt: this.updatedAt,
         popularityScore: this.popularityScore,
         engagementRate: this.engagementRate
     };
+    
     if (userId) {
         details.userActions = {
             hasLiked: this.hasUserLiked(userId),
             hasFavorited: this.hasUserFavorited(userId)
         };
     }
+    
     return details;
 };
 
@@ -361,6 +430,7 @@ assistantSchema.methods.getPreview = function(userId = null) {
             username: this.author.username,
             profilePhotoUrl: this.author.profilePhotoUrl
         },
+        stannumVerified: this.stannumVerified.isVerified,
         createdAt: this.createdAt
     };
     
