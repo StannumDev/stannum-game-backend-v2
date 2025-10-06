@@ -81,7 +81,7 @@ const getAllAssistants = async (req, res) => {
                 { tags: { $in: [searchRegex] } }
             ];
         }
-        const query = Assistant.find(filters).populate('author', 'username profile.name').sort(sortConfig);
+        const query = Assistant.find(filters).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
 
         const skip = (page - 1) * limit;
         const assistants = await query.skip(skip).limit(parseInt(limit));
@@ -90,7 +90,6 @@ const getAllAssistants = async (req, res) => {
         const totalPages = Math.ceil(totalAssistants / limit);
 
         const assistantsWithUserActions = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
-
         return res.json({
             success: true,
             data: {
@@ -119,7 +118,7 @@ const getAssistantById = async (req, res) => {
             _id: id,
             status: true,
             visibility: 'published'
-        }).populate('author', 'username profile.name');
+        }).populate('author', 'username profile.name preferences.hasProfilePhoto');
         
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
@@ -145,7 +144,7 @@ const createAssistant = async (req, res) => {
             return res.status(400).json({ ...baseError, errors: formattedErrors });
         }
 
-        const { title, description, assistantUrl, category, difficulty, platforms, tags, useCases } = req.body;
+        const { title, description, assistantUrl, category, difficulty, platforms, tags, useCases, visibility } = req.body;
         const processedTags = tags ? tags.map(tag => tag.toLowerCase().trim()) : [];
         
         const searchKeywords = [
@@ -166,11 +165,11 @@ const createAssistant = async (req, res) => {
             author: req.userAuth.id,
             searchKeywords: [...new Set(searchKeywords)],
             status: true,
-            visibility: 'published'
+            visibility: visibility || 'published'
         });
 
         await newAssistant.save();
-        await newAssistant.populate('author', 'username profile.name');
+        await newAssistant.populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         return res.status(201).json({
             success: true,
@@ -385,7 +384,7 @@ const getUserAssistants = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name');
+        .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalAssistants = await Assistant.countDocuments({
             author: userId,
@@ -423,7 +422,7 @@ const getMyAssistants = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name');
+        .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalAssistants = await Assistant.countDocuments({
             author: req.userAuth.id,

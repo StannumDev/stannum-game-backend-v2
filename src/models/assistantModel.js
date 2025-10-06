@@ -347,7 +347,7 @@ assistantSchema.statics.search = function(query, filters = {}) {
             };
     }
     
-    return this.find(searchCriteria).populate('author', 'username profile.name').sort(sortConfig);
+    return this.find(searchCriteria).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
 };
 
 assistantSchema.statics.getByAuthor = function(authorId, includeHidden = false) {
@@ -371,7 +371,7 @@ assistantSchema.statics.getTopAssistants = function(limit = 10) {
         'metrics.likesCount': -1 
     })
     .limit(limit)
-    .populate('author', 'username profile.name');
+    .populate('author', 'username profile.name preferences.hasProfilePhoto');
 };
 
 assistantSchema.methods.getFullDetails = function(userId = null) {
@@ -392,7 +392,6 @@ assistantSchema.methods.getFullDetails = function(userId = null) {
             name: this.author.profile?.name,
             profilePhotoUrl: this.author.profilePhotoUrl
         },
-        status: this.status,
         visibility: this.visibility,
         stannumVerified: this.stannumVerified,
         createdAt: this.createdAt,
@@ -421,11 +420,7 @@ assistantSchema.methods.getPreview = function(userId = null) {
         difficulty: this.difficulty,
         platforms: this.platforms,
         tags: this.tags.slice(0, 4),
-        metrics: {
-            clicks: this.metrics.clicksCount,
-            likes: this.metrics.likesCount,
-            favorites: this.metrics.favoritesCount
-        },
+        metrics: this.metrics,
         author: {
             username: this.author.username,
             profilePhotoUrl: this.author.profilePhotoUrl
