@@ -605,7 +605,10 @@ userSchema.methods.hasPromptInFavorites = function(promptId) {
 userSchema.methods.getFavoritePrompts = function() {
   return this.populate({
     path: 'favorites.prompts',
-    match: { isActive: true, isPublic: true },
+    match: { 
+      status: true,
+      visibility: 'published'
+    },
     select: 'title description category difficulty tags metrics author createdAt',
     populate: {
       path: 'author',
@@ -638,7 +641,10 @@ userSchema.methods.hasAssistantInFavorites = function(assistantId) {
 userSchema.methods.getFavoriteAssistants = function() {
   return this.populate({
     path: 'favorites.assistants',
-    match: { isActive: true, isPublic: true },
+    match: { 
+      status: true,
+      visibility: 'published'
+    },
     select: 'title description category difficulty tags metrics author createdAt',
     populate: {
       path: 'author',
