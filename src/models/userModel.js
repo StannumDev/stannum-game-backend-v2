@@ -394,6 +394,32 @@ const userSchema = new Schema(
         type: String,
         maxlength: [2600, "About me section cannot exceed 2600 characters"],
       },
+      socialLinks: {
+        type: [{
+          platform: {
+            type: String,
+            enum: ["LinkedIn", "Instagram", "Twitter", "TikTok", "Facebook", "YouTube", "GitHub", "Website", "Otra"],
+            required: true
+          },
+          url: {
+            type: String,
+            required: true,
+            validate: {
+              validator: function (value) {
+                return /^https?:\/\/.+\..+/.test(value);
+              },
+              message: "Debe ser una URL válida."
+            }
+          }
+        }],
+        default: [],
+        validate: {
+          validator: function (value) {
+            return value.length <= 5;
+          },
+          message: "No puedes agregar más de 5 redes sociales."
+        }
+      },
     },
     enterprise: enterpriseSchema,
     teams: [teamSchema],

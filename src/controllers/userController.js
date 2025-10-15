@@ -97,24 +97,35 @@ const markTutorialAsCompleted = async (req, res) => {
 
 const editUser = async (req, res) => {
     const userId = req.userAuth.id;
-    const { name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
+    const { name, birthdate, country, region, enterprise, enterpriseRole, aboutme, socialLinks } = req.body;
+    
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    
-        if(name) user.profile.name = name;
-        if(birthdate) user.profile.birthdate = birthdate;
-        if(country) user.profile.country = country;
-        if(region) user.profile.region = region;
-        if(aboutme) user.profile.aboutMe = aboutme;
-        if(enterprise) user.enterprise.name = enterprise;
-        if(enterpriseRole) user.enterprise.jobPosition = enterpriseRole;
+        if (name) user.profile.name = name;
+        if (birthdate) user.profile.birthdate = birthdate;
+        if (country) user.profile.country = country;
+        if (region) user.profile.region = region;
+        if (aboutme) user.profile.aboutMe = aboutme;
+        if (enterprise) user.enterprise.name = enterprise;
+        if (enterpriseRole) user.enterprise.jobPosition = enterpriseRole;
+        if (socialLinks !== undefined) {
+            if (!Array.isArray(socialLinks)) return res.status(400).json(getError("VALIDATION_SOCIAL_LINKS_MUST_BE_ARRAY"));
+            if (socialLinks.length > 5) return res.status(400).json(getError("VALIDATION_SOCIAL_LINKS_MAX_EXCEEDED"));
+            user.profile.socialLinks = socialLinks;
+        }
 
         let achievementsResult = { newlyUnlocked: [] };
-        if(!!name && !!birthdate && !!country && !!region && !!aboutme && !!enterprise && !!enterpriseRole) achievementsResult = await unlockAchievements(user);
-
+        const isProfileComplete = !!name && !!birthdate && !!country && !!region && !!aboutme && !!enterprise && !!enterpriseRole;
+        if (isProfileComplete) achievementsResult = await unlockAchievements(user);
         await user.save();
-        return res.status(200).json({ success: true, message: "User updated successfully.", data: user.getFullUserDetails(), achievementsUnlocked: achievementsResult.newlyUnlocked });
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: "User updated successfully.", 
+            data: user.getFullUserDetails(), 
+            achievementsUnlocked: achievementsResult.newlyUnlocked 
+        });
     } catch (error) {
         console.error("Error updating user:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
