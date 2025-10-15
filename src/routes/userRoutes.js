@@ -71,7 +71,7 @@ router.put(
         check("enterpriseRole", "Enterprise role is required.").trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Enterprise role cannot be empty.").isLength({ max: 50 }).withMessage("Enterprise role must be less than 50 characters."),
         check("aboutme", "About me is required.").trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
         check("socialLinks", "Social links must be an array.").optional().isArray().withMessage("Social links must be an array."),
-        check("socialLinks.*.platform", "Platform is required and must be valid.").optional().trim().isIn(["LinkedIn", "Instagram", "Twitter", "TikTok", "Facebook", "YouTube", "Website", "Otra"]).withMessage("Platform must be one of: LinkedIn, Instagram, Twitter, TikTok, Facebook, YouTube, Website, Otra."),
+        check("socialLinks.*.platform", "Platform is required and must be valid.").optional().trim().isIn(["LinkedIn", "Instagram", "Twitter", "TikTok", "Facebook", "YouTube", "GitHub", "Website", "Otra"]).withMessage("Platform must be one of: LinkedIn, Instagram, Twitter, TikTok, Facebook, YouTube, GitHub, Website, Otra."),
         check("socialLinks.*.url", "URL is required and must be valid.").optional().trim().isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage("URL must be a valid URL starting with http:// or https://.").isLength({ max: 500 }).withMessage("URL must be less than 500 characters."),
         fieldsValidate,
     ],

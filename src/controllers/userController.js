@@ -112,9 +112,6 @@ const editUser = async (req, res) => {
         if (socialLinks !== undefined) {
             if (!Array.isArray(socialLinks)) return res.status(400).json(getError("VALIDATION_SOCIAL_LINKS_MUST_BE_ARRAY"));
             if (socialLinks.length > 5) return res.status(400).json(getError("VALIDATION_SOCIAL_LINKS_MAX_EXCEEDED"));
-            const platforms = socialLinks.map(link => link.platform);
-            const uniquePlatforms = new Set(platforms);
-            if (platforms.length !== uniquePlatforms.size) return res.status(400).json(getError("VALIDATION_SOCIAL_LINKS_DUPLICATE_PLATFORM"));
             user.profile.socialLinks = socialLinks;
         }
 

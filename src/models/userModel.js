@@ -398,7 +398,7 @@ const userSchema = new Schema(
         type: [{
           platform: {
             type: String,
-            enum: ["LinkedIn", "Instagram", "Twitter", "TikTok", "Facebook", "YouTube", "Website", "Otra"],
+            enum: ["LinkedIn", "Instagram", "Twitter", "TikTok", "Facebook", "YouTube", "GitHub", "Website", "Otra"],
             required: true
           },
           url: {
