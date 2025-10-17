@@ -94,10 +94,10 @@ router.post(
             const validPlatforms = ['chatgpt', 'claude', 'gemini', 'poe', 'perplexity', 'other'];
             return platforms.every(p => validPlatforms.includes(p));
         }).withMessage("Invalid platform selected."),
-        check("customGptUrl").optional().trim().isURL().withMessage("Custom GPT URL must be a valid URL."),
+        check("customGptUrl").optional({ checkFalsy: true }).isURL().withMessage("Custom GPT URL must be a valid URL."),
         check("tags").optional().isArray({ max: 10 }).withMessage("Cannot add more than 10 tags."),
         check("tags.*").optional().trim().isLength({ min: 2, max: 30 }).withMessage("Each tag must be between 2 and 30 characters."),
-        check("exampleOutput").optional().isLength({ max: 2000 }).withMessage("Example output cannot exceed 2000 characters."),
+        check("exampleOutput").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("Example output cannot exceed 2000 characters."),
         check("visibility").optional().isIn(['published', 'draft']).withMessage("Invalid visibility value."),
         fieldsValidate,
     ],
@@ -118,10 +118,10 @@ router.put(
             const validPlatforms = ['chatgpt', 'claude', 'gemini', 'poe', 'perplexity', 'other'];
             return platforms.every(p => validPlatforms.includes(p));
         }).withMessage("Invalid platform selected."),
-        check("customGptUrl").optional().trim().isURL().withMessage("Custom GPT URL must be a valid URL."),
+        check("customGptUrl").optional({ checkFalsy: true }).isURL().withMessage("Custom GPT URL must be a valid URL."),
         check("tags").optional().isArray({ max: 10 }).withMessage("Cannot add more than 10 tags."),
         check("tags.*").optional().trim().isLength({ min: 2, max: 30 }).withMessage("Each tag must be between 2 and 30 characters."),
-        check("exampleOutput").optional().isLength({ max: 2000 }).withMessage("Example output cannot exceed 2000 characters."),
+        check("exampleOutput").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("Example output cannot exceed 2000 characters."),
         fieldsValidate,
     ],
     promptController.updatePrompt

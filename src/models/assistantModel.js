@@ -55,7 +55,7 @@ const assistantSchema = new Schema({
         type: String,
         required: [true, "Title is required"],
         trim: true,
-        minlength: [5, "Title must be at least 5 characters"],
+        minlength: [1, "Title must be at least 1 characters"],
         maxlength: [80, "Title cannot exceed 80 characters"]
     },
     description: {
@@ -102,25 +102,20 @@ const assistantSchema = new Schema({
         required: [true, "Difficulty level is required"],
         default: 'basic'
     },
-    platforms: {
-        type: [{
-            type: String,
-            enum: {
-                values: [
-                    'chatgpt',
-                    'claude',
-                    'gemini',
-                    'poe',
-                    'perplexity',
-                    'other'
-                ],
-                message: "Invalid platform"
-            }
-        }],
-        validate: {
-            validator: function(platforms) { return platforms.length > 0; },
-            message: "Must select at least one platform"
-        }
+    platform: {
+        type: String,
+        enum: {
+            values: [
+                'chatgpt',
+                'claude',
+                'gemini',
+                'poe',
+                'perplexity',
+                'other'
+            ],
+            message: "Invalid platform"
+        },
+        required: [true, "Platform is required"]
     },
     tags: {
         type: [{
@@ -317,7 +312,7 @@ assistantSchema.statics.search = function(query, filters = {}) {
     if (filters.category) searchCriteria.category = filters.category;
     if (filters.difficulty) searchCriteria.difficulty = filters.difficulty;
     if (filters.tags && filters.tags.length) searchCriteria.tags = { $in: filters.tags };
-    if (filters.platforms && filters.platforms.length) searchCriteria.platforms = { $in: filters.platforms };
+    if (filters.platform) searchCriteria.platform = filters.platform;
     if (filters.stannumVerifiedOnly) searchCriteria['stannumVerified.isVerified'] = true;
     
     let sortConfig = {};
@@ -382,7 +377,7 @@ assistantSchema.methods.getFullDetails = function(userId = null) {
         assistantUrl: this.assistantUrl,
         category: this.category,
         difficulty: this.difficulty,
-        platforms: this.platforms,
+        platform: this.platform,
         tags: this.tags,
         useCases: this.useCases,
         metrics: this.metrics,
@@ -418,7 +413,8 @@ assistantSchema.methods.getPreview = function(userId = null) {
         assistantUrl: this.assistantUrl,
         category: this.category,
         difficulty: this.difficulty,
-        platforms: this.platforms,
+        platform: this.platform,
+        useCases: this.useCases,
         tags: this.tags.slice(0, 4),
         metrics: this.metrics,
         author: {

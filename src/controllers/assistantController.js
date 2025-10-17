@@ -37,13 +37,13 @@ const getAllAssistants = async (req, res) => {
         if (stannumVerifiedOnly === 'true') filters['stannumVerified.isVerified'] = true;
         if (category) filters.category = category;
         if (difficulty) filters.difficulty = difficulty;
+        if (platforms) {
+            const platformArray = platforms.split(',').map(p => p.trim().toLowerCase());
+            filters.platform = { $in: platformArray };
+        }
         if (tags) {
             const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
             filters.tags = { $in: tagArray };
-        }
-        if (platforms) {
-            const platformArray = platforms.split(',').map(p => p.trim().toLowerCase());
-            filters.platforms = { $in: platformArray };
         }
 
         let sortConfig = {};
@@ -144,7 +144,7 @@ const createAssistant = async (req, res) => {
             return res.status(400).json({ ...baseError, errors: formattedErrors });
         }
 
-        const { title, description, assistantUrl, category, difficulty, platforms, tags, useCases, visibility } = req.body;
+        const { title, description, assistantUrl, category, difficulty, platform, tags, useCases, visibility } = req.body;
         const processedTags = tags ? tags.map(tag => tag.toLowerCase().trim()) : [];
         
         const searchKeywords = [
@@ -159,7 +159,7 @@ const createAssistant = async (req, res) => {
             assistantUrl,
             category,
             difficulty,
-            platforms: platforms || [],
+            platform,
             tags: processedTags,
             useCases,
             author: req.userAuth.id,
@@ -179,6 +179,70 @@ const createAssistant = async (req, res) => {
     } catch (error) {
         console.error('Error creating assistant:', error);
         return res.status(500).json(getError("ASSISTANT_CREATION_FAILED"));
+    }
+};
+
+const updateAssistant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) return res.status(400).json(getError("VALIDATION_ASSISTANT_ID_REQUIRED"));
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            const formattedErrors = errors.array().map(err => ({
+                field: err.path,
+                message: err.msg,
+            }));
+            const baseError = getError("VALIDATION_GENERIC_ERROR");
+            return res.status(400).json({ ...baseError, errors: formattedErrors });
+        }
+
+        const assistant = await Assistant.findById(id);
+        if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
+
+        if (assistant.author.toString() !== req.userAuth.id.toString()) return res.status(403).json(getError("ASSISTANT_UNAUTHORIZED_UPDATE"));
+
+        if (assistant.visibility !== 'draft') {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: "ASSISTANT_NOT_DRAFT",
+                    message: "Solo los borradores pueden ser editados"
+                }
+            });
+        }
+
+        const { title, description, assistantUrl, category, difficulty, platform, tags, useCases, visibility } = req.body;
+        const processedTags = tags ? tags.map(tag => tag.toLowerCase().trim()) : [];
+
+        const searchKeywords = [
+            ...title.toLowerCase().split(' '),
+            ...description.toLowerCase().split(' '),
+            ...processedTags
+        ].filter(keyword => keyword.length > 2);
+
+        assistant.title = title;
+        assistant.description = description;
+        assistant.assistantUrl = assistantUrl;
+        assistant.category = category;
+        assistant.difficulty = difficulty;
+        assistant.platform = platform;
+        assistant.tags = processedTags;
+        assistant.useCases = useCases || '';
+        assistant.searchKeywords = [...new Set(searchKeywords)];
+        assistant.visibility = visibility || 'draft';
+
+        await assistant.save();
+        await assistant.populate('author', 'username profile.name preferences.hasProfilePhoto');
+
+        return res.json({
+            success: true,
+            data: assistant.getFullDetails(req.userAuth.id),
+            message: visibility === 'published' ? 'Asistente publicado exitosamente' : 'Borrador actualizado exitosamente'
+        });
+    } catch (error) {
+        console.error('Error updating assistant:', error);
+        return res.status(500).json(getError("ASSISTANT_UPDATE_FAILED"));
     }
 };
 
@@ -540,6 +604,7 @@ module.exports = {
     getAllAssistants,
     getAssistantById,
     createAssistant,
+    updateAssistant,
     deleteAssistant,
     toggleVisibility,
     clickAssistant,

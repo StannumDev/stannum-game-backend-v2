@@ -76,7 +76,7 @@ const getAllPrompts = async (req, res) => {
                 { tags: { $in: [searchRegex] } }
             ];
         }
-        const query = Prompt.find(filters).populate('author', 'username profile.name').sort(sortConfig);
+        const query = Prompt.find(filters).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
         const skip = (page - 1) * limit;
         const prompts = await query.skip(skip).limit(parseInt(limit));
         const totalPrompts = await Prompt.countDocuments(filters);
@@ -110,7 +110,7 @@ const getPromptById = async (req, res) => {
             _id: id,
             status: true,
             visibility: 'published'
-        }).populate('author', 'username profile.name');
+        }).populate('author', 'username profile.name preferences.hasProfilePhoto');
         
         if (!prompt) return res.status(404).json(getError("PROMPT_NOT_FOUND"));
 
@@ -162,7 +162,7 @@ const createPrompt = async (req, res) => {
         });
 
         await newPrompt.save();
-        await newPrompt.populate('author', 'username profile.name');
+        await newPrompt.populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         return res.status(201).json({
             success: true,
@@ -179,20 +179,14 @@ const updatePrompt = async (req, res) => {
     try {
         const { id } = req.params;
         if (!id) return res.status(400).json(getError("VALIDATION_PROMPT_ID_REQUIRED"));
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            const formattedErrors = errors.array().map(err => ({
-                field: err.path,
-                message: err.msg,
-            }));
-            const baseError = getError("VALIDATION_GENERIC_ERROR");
-            return res.status(400).json({ ...baseError, errors: formattedErrors });
-        }
+        
         const prompt = await Prompt.findById(id);
         if (!prompt) return res.status(404).json(getError("PROMPT_NOT_FOUND"));
         if (prompt.author.toString() !== req.userAuth.id.toString()) return res.status(403).json(getError("PROMPT_UNAUTHORIZED_UPDATE"));
         if (prompt.visibility !== 'draft') return res.status(403).json(getError("PROMPT_CANNOT_EDIT_PUBLISHED"));
+        
         const { title, description, content, category, difficulty, platforms, customGptUrl, tags, exampleOutput } = req.body;
+        
         const processedTags = tags ? tags.map(tag => tag.toLowerCase().trim()) : [];
         const searchKeywords = [
             ...title.toLowerCase().split(' '),
@@ -206,12 +200,13 @@ const updatePrompt = async (req, res) => {
         prompt.category = category;
         prompt.difficulty = difficulty;
         prompt.platforms = platforms || [];
-        prompt.customGptUrl = customGptUrl;
+        prompt.customGptUrl = customGptUrl && customGptUrl.trim() !== '' ? customGptUrl : undefined;
         prompt.tags = processedTags;
-        prompt.exampleOutput = exampleOutput;
+        prompt.exampleOutput = exampleOutput && exampleOutput.trim() !== '' ? exampleOutput : undefined;
         prompt.searchKeywords = [...new Set(searchKeywords)];
+        
         await prompt.save();
-        await prompt.populate('author', 'username profile.name');
+        await prompt.populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         return res.json({
             success: true,
@@ -427,7 +422,7 @@ const getUserPrompts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name');
+        .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalPrompts = await Prompt.countDocuments({
             author: userId,
@@ -465,7 +460,7 @@ const getMyPrompts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .populate('author', 'username profile.name');
+        .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalPrompts = await Prompt.countDocuments({
             author: req.userAuth.id,
