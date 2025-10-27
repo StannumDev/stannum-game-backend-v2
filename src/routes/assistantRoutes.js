@@ -20,6 +20,7 @@ router.get(
         query("search").optional().trim().isLength({ min: 2 }).withMessage("Search query must be at least 2 characters."),
         query("platform").optional().isIn(['chatgpt', 'claude', 'gemini', 'poe', 'perplexity', 'other']).withMessage("Invalid platform."),
         query("favoritesOnly").optional().isBoolean().withMessage("favoritesOnly must be a boolean."),
+        query("stannumVerifiedOnly").optional().isBoolean().withMessage("stannumVerifiedOnly must be a boolean."),
         fieldsValidate,
     ],
     searchRateLimiter,

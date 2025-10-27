@@ -421,7 +421,7 @@ assistantSchema.methods.getPreview = function(userId = null) {
             username: this.author.username,
             profilePhotoUrl: this.author.profilePhotoUrl
         },
-        stannumVerified: this.stannumVerified.isVerified,
+        stannumVerified: this.stannumVerified,
         createdAt: this.createdAt
     };
     

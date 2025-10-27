@@ -122,7 +122,7 @@ const getAssistantById = async (req, res) => {
         
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
-        await assistant.incrementViews();
+        if(assistant.author.toString() !== req.userAuth.id.toString()) await assistant.incrementViews();
         const assistantDetails = assistant.getFullDetails(req.userAuth.id);
 
         return res.json({ success: true, data: assistantDetails });
@@ -300,7 +300,7 @@ const clickAssistant = async (req, res) => {
         });
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
-        await assistant.incrementClicks();
+        if(assistant.author.toString() !== req.userAuth.id.toString()) await assistant.incrementClicks();
         
         return res.json({
             success: true,
