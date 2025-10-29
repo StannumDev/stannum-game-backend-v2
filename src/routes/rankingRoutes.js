@@ -11,7 +11,7 @@ router.get(
     "/individual",
     [
         validateJWT,
-        query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("El límite debe ser un número entre 1 y 100."),
+        query("limit").optional().isInt({ min: 1, max: 1000 }).withMessage("El límite debe ser un número entre 1 y 100."),
         fieldsValidate,
     ],
     rankingController.getIndividualRanking
