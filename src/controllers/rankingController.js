@@ -4,7 +4,7 @@ const { getError } = require("../helpers/getError");
 const getIndividualRanking = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 10;
-    if (isNaN(limit) || limit <= 0 || limit > 100) return res.status(400).json(getError("VALIDATION_LIMIT_INVALID"));
+    if (isNaN(limit) || limit <= 0 || limit > 1000) return res.status(400).json(getError("VALIDATION_LIMIT_INVALID"));
 
     const users = await User.find({
       $or: [
