@@ -107,9 +107,7 @@ const generateAndSendProductKey = async (req, res) => {
         let decodedMessage;
         try {
             decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
-            console.log("✅ Mensaje decodificado correctamente");
         } catch (error) {
-            console.error("❌ Error decodificando Base64:", error.message);
             return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
         }
 
