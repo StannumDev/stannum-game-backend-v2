@@ -104,6 +104,15 @@ const generateAndSendProductKey = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
 
+        let decodedMessage;
+        try {
+            decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
+            console.log("✅ Mensaje decodificado correctamente");
+        } catch (error) {
+            console.error("❌ Error decodificando Base64:", error.message);
+            return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
+        }
+
         const code = generateProductCode();
         const existingKey = await ProductKey.findOne({ code });
         if (existingKey) return generateAndSendProductKey(req, res);
@@ -143,7 +152,7 @@ const generateAndSendProductKey = async (req, res) => {
                     </div>
                     <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
                         <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
-                        <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0; white-space: pre-line;">${message}</p>
+                        <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0; white-space: pre-line;">${decodedMessage}</p>
                     </div>
                     <div style="text-align: center; margin: 40px 0;">
                         <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Acceso</h2>
