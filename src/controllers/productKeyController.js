@@ -104,6 +104,13 @@ const generateAndSendProductKey = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
 
+        let decodedFullName;
+        try {
+            decodedFullName = Buffer.from(fullName, 'base64').toString('utf-8');
+        } catch (error) {
+            return res.status(400).json(getError("VALIDATION_FULLNAME_INVALID_ENCODING"));
+        }
+
         let decodedMessage;
         try {
             decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
@@ -145,7 +152,7 @@ const generateAndSendProductKey = async (req, res) => {
             html: `
                 <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al juego, <span style="color: #ffffff;">${fullName}</span>!</h1>
+                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al juego, <span style="color: #ffffff;">${decodedFullName}</span>!</h1>
                     </div>
                     <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
                         <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
