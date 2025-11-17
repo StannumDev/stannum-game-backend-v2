@@ -24,12 +24,11 @@ const createProductKey = async () => {
     try {
         const existing = await ProductKey.findOne({ code: newKeyData.code });
         if (existing) {
-            console.log("⚠️ Código duplicado generado. Intentando de nuevo...");
             return await createProductKey();
         }
     
         const key = await ProductKey.create(newKeyData);
-        console.log("✅ Clave de producto creada:", key);
+        console.log(key.code);
     } catch (err) {
         console.error("❌ Error creando clave:", err);
     }
@@ -94,7 +93,7 @@ const activateProductKey = async (req, res) => {
     }
 };
 
-const generateAndSendProductKey = async (req, res) => {
+const generateAndSendProductKeyMake = async (req, res) => {
     const { email, fullName, message, product = "tia", team = "no_team" } = req.body;
     try {
         if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
@@ -120,7 +119,7 @@ const generateAndSendProductKey = async (req, res) => {
 
         const code = generateProductCode();
         const existingKey = await ProductKey.findOne({ code });
-        if (existingKey) return generateAndSendProductKey(req, res);
+        if (existingKey) return generateAndSendProductKeyMake(req, res);
 
         await ProductKey.create({
             code,
@@ -202,4 +201,120 @@ const generateAndSendProductKey = async (req, res) => {
     }
 };
 
-module.exports = { verifyProductKey, activateProductKey, generateAndSendProductKey };
+const generateAndSendProductKey = async (req, res) => {
+    const { email, product = "tia", team = "feedback_users" } = req.body;
+    console.log("🔹 [generateAndSendProductKey] Iniciando proceso...");
+    console.log("🔹 Email recibido:", email);
+    console.log("🔹 Producto:", product);
+    console.log("🔹 Equipo:", team);
+    try {
+        if (!email) {
+            console.log("❌ Email no proporcionado");
+            return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.log("❌ Email inválido:", email);
+            return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
+        }
+
+        console.log("🔹 Generando código de producto...");
+        const code = generateProductCode();
+        console.log("🔹 Código generado:", code);
+
+        console.log("🔹 Verificando si el código ya existe...");
+        const existingKey = await ProductKey.findOne({ code });
+        if (existingKey) {
+            console.log("⚠️  Código duplicado, reintentando...");
+            return generateAndSendProductKey(req, res);
+        }
+
+        console.log("🔹 Creando ProductKey en la base de datos...");
+        await ProductKey.create({
+            code,
+            email: email.toLowerCase().trim(),
+            product,
+            team,
+        });
+        console.log("✅ ProductKey creado exitosamente");
+
+        console.log("🔹 Configurando transporter de email...");
+        let transporter;
+        try {
+            transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com",
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.SMTP_EMAIL,
+                    pass: process.env.SMTP_PASSWORD,
+                },
+            });
+            console.log("✅ Transporter configurado");
+        } catch (error) {
+            console.error("❌ Error configurando transporter:", error);
+            return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
+        }
+
+        console.log("🔹 Preparando contenido del email...");
+        const mailOptions = {
+            from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
+            to: email,
+            subject: "¡Bienvenido a STANNUM Game! - Tu Clave de Acceso",
+            html: `
+                <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido a STANNUM Game!</h1>
+                    </div>
+                    
+                    <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
+                        <h2 style="color: #00FFCC; font-size: 20px; margin: 0 0 15px 0; font-weight: 600;">Tu acceso está listo</h2>
+                        <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0;">
+                            Estamos felices de tenerte en STANNUM Game. Tu plataforma de entrenamiento digital de alto rendimiento ya está disponible.
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin: 40px 0;">
+                        <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Acceso</h2>
+                        <p style="font-size: 16px; color: #ccc; margin-bottom: 20px;">Activá esta clave para acceder a todo el contenido:</p>
+                        <div style="background: linear-gradient(135deg, #00FFCC 0%, #00A896 100%); padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">
+                            <h3 style="color: #1f1f1f; font-size: 36px; letter-spacing: 4px; font-weight: 900; margin: 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">${code}</h3>
+                        </div>
+                        <a href="https://stannumgame.com" style="display: inline-block; background-color: #00FFCC; color: #1f1f1f; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px; transition: transform 0.2s;">Activar Clave Ahora</a>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+
+                    <div style="text-align: center;">
+                        <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste esta clave? Ignorá este correo.</p>
+                        <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
+                        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; 2025 STANNUM Game. Todos los derechos reservados.</footer>
+                    </div>
+                </div>
+            `,
+        };
+
+        console.log("🔹 Enviando email a:", email);
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("✅ Email enviado exitosamente");
+        } catch (error) {
+            console.error("❌ Error enviando email:", error);
+            return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
+        }
+        
+        console.log("✅ Proceso completado exitosamente");
+        return res.status(201).json({ 
+            success: true,
+            code, 
+            email: email.toLowerCase().trim() 
+        });
+    } catch (error) {
+        console.error("❌ Error general en generateAndSendProductKey:", error.message);
+        console.error("❌ Stack:", error.stack);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { verifyProductKey, activateProductKey, generateAndSendProductKeyMake, generateAndSendProductKey };
