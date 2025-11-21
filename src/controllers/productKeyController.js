@@ -202,44 +202,24 @@ const generateAndSendProductKeyMake = async (req, res) => {
 };
 
 const generateAndSendProductKey = async (req, res) => {
-    const { email, product = "tia", team = "feedback_users" } = req.body;
-    console.log("🔹 [generateAndSendProductKey] Iniciando proceso...");
-    console.log("🔹 Email recibido:", email);
-    console.log("🔹 Producto:", product);
-    console.log("🔹 Equipo:", team);
+    const { email, product = "tia", team = "no_team" } = req.body;
     try {
-        if (!email) {
-            console.log("❌ Email no proporcionado");
-            return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
-        }
-
+        if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            console.log("❌ Email inválido:", email);
-            return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
-        }
+        if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
 
-        console.log("🔹 Generando código de producto...");
         const code = generateProductCode();
-        console.log("🔹 Código generado:", code);
-
-        console.log("🔹 Verificando si el código ya existe...");
         const existingKey = await ProductKey.findOne({ code });
-        if (existingKey) {
-            console.log("⚠️  Código duplicado, reintentando...");
-            return generateAndSendProductKey(req, res);
-        }
+        
+        if (existingKey) return generateAndSendProductKey(req, res);
 
-        console.log("🔹 Creando ProductKey en la base de datos...");
         await ProductKey.create({
             code,
             email: email.toLowerCase().trim(),
             product,
             team,
         });
-        console.log("✅ ProductKey creado exitosamente");
 
-        console.log("🔹 Configurando transporter de email...");
         let transporter;
         try {
             transporter = nodemailer.createTransport({
@@ -251,13 +231,10 @@ const generateAndSendProductKey = async (req, res) => {
                     pass: process.env.SMTP_PASSWORD,
                 },
             });
-            console.log("✅ Transporter configurado");
         } catch (error) {
-            console.error("❌ Error configurando transporter:", error);
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
 
-        console.log("🔹 Preparando contenido del email...");
         const mailOptions = {
             from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
             to: email,
@@ -295,24 +272,15 @@ const generateAndSendProductKey = async (req, res) => {
             `,
         };
 
-        console.log("🔹 Enviando email a:", email);
         try {
             await transporter.sendMail(mailOptions);
-            console.log("✅ Email enviado exitosamente");
         } catch (error) {
-            console.error("❌ Error enviando email:", error);
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
         
-        console.log("✅ Proceso completado exitosamente");
-        return res.status(201).json({ 
-            success: true,
-            code, 
-            email: email.toLowerCase().trim() 
-        });
+        return res.status(201).json({ code, email: email.toLowerCase().trim() });
     } catch (error) {
-        console.error("❌ Error general en generateAndSendProductKey:", error.message);
-        console.error("❌ Stack:", error.stack);
+        console.error("❌ Error en generateAndSendProductKey:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
 };
