@@ -22,7 +22,12 @@ const blackList = [
     "culiau", "qliao", "quliado", "quliao", "culiazo", "culiá", "culiás", "culiando", "culiao", "culiada"
 ];
 
+const whiteList = [
+    "cum"
+];
+
 profanity.addWords(blackList);
+profanity.removeWords(whiteList);
 
 const censor = (text) => {
     if (!text || typeof text !== 'string') return text;
