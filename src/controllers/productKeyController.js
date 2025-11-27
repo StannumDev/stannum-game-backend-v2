@@ -23,9 +23,7 @@ const createProductKey = async () => {
   
     try {
         const existing = await ProductKey.findOne({ code: newKeyData.code });
-        if (existing) {
-            return await createProductKey();
-        }
+        if (existing) return await createProductKey();
     
         const key = await ProductKey.create(newKeyData);
         console.log(key.code);
@@ -41,6 +39,7 @@ const verifyProductKey = async (req, res) => {
         
         const key = await ProductKey.findOne({ code: code.toUpperCase() });
         if (!key) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
+        if (key.used) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_ALREADY_USED"));
         
         return res.status(200).json({ success: true, data: key.getInfo() });
     } catch (error) {
