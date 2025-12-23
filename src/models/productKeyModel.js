@@ -46,7 +46,7 @@ const productKeySchema = new Schema(
     product: {
       type: String,
       enum: {
-        values: ["tmd", "tia"],
+        values: ["tmd", "tia", "tia_summer"],
         message: "Producto inválido",
       },
       required: [true, "Producto requerido"],

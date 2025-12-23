@@ -9,7 +9,8 @@ const getIndividualRanking = async (req, res) => {
     const users = await User.find({
       $or: [
         { "programs.tmd.isPurchased": true },
-        { "programs.tia.isPurchased": true }
+        { "programs.tia.isPurchased": true },
+        { "programs.tia_summer.isPurchased": true }
       ],
       status: true
     });

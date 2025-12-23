@@ -429,6 +429,18 @@ const userSchema = new Schema(
     achievements: [achievementSchema],
     unlockedCovers: [unlockedCoverSchema],
     programs: {
+      tia_summer: {
+        type: programSchema,
+        default: () => ({
+          isPurchased: false,
+          acquiredAt: null,
+          instructions: [],
+          lessonsCompleted: [],
+          lastWatchedLesson: null,
+          tests: [],
+          productKey: null,
+        }),
+      },
       tia: {
         type: programSchema,
         default: () => ({
