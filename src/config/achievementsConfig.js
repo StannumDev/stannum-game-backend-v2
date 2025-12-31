@@ -170,5 +170,47 @@ module.exports = [
                 )
             )
         }
-    }
+    },
+    {
+        id: "trenno_ia_summer_joined",
+        description: "Participaste del programa exclusivo TRENNO IA SUMMER 2026",
+        xpReward: 100,
+        condition: (user) => !!user.programs?.tia_summer?.isPurchased
+    },
+    {
+        id: "trenno_ia_summer_halfway",
+        description: "Llegá a la mitad del programa SUMMER",
+        xpReward: 150,
+        condition: (user) => {
+            const tiaSummer = user.programs?.tia_summer;
+            if (!tiaSummer) return false;
+            return (tiaSummer.lessonsCompleted || []).length >= 10;
+        }
+    },
+    {
+        id: "trenno_ia_summer_graduate",
+        description: "Completá el 100% del programa TRENNO IA SUMMER 2026",
+        xpReward: 500,
+        condition: (user) => {
+            const tiaSummerCfg = programs.find(p => p.id === "tia_summer");
+            if (!tiaSummerCfg) return false;
+            const tiaSummer = user.programs?.tia_summer;
+            if (!tiaSummer) return false;
+            const allLessonsDone = (tiaSummerCfg.sections || []).every(section =>
+                (section.modules || []).every(module =>
+                    module.lessons.every(lesson =>
+                        (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
+                    )
+                )
+            );
+            const allInstructionsDone = (tiaSummerCfg.sections || []).every(section =>
+                (section.modules || []).every(module =>
+                    (module.instructions || []).every(inst =>
+                        (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                    )
+                )
+            );
+            return allLessonsDone && allInstructionsDone;
+        }
+    },
 ];
