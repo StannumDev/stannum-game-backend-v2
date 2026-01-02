@@ -54,4 +54,18 @@ router.post(
   productKeyController.generateAndSendProductKeyMake
 );
 
+router.post(
+  "/generate-and-send-make-summer",
+  [
+    validateMakeAPIKey,
+    check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
+    check("fullName", "El nombre completo es obligatorio.").notEmpty().withMessage("El nombre no puede estar vacío.").isBase64().withMessage("El nombre debe estar codificado en Base64."),
+    check("message", "El diagnóstico es obligatorio.").trim().notEmpty().withMessage("El diagnóstico no puede estar vacío.").isBase64().withMessage("El diagnóstico debe estar codificado en Base64."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA o TRENNO IA SUMMER."),
+    check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
+    fieldsValidate,
+  ],
+  productKeyController.generateAndSendProductKeyMakeSummer
+);
+
 module.exports = router;
