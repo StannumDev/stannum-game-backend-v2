@@ -282,8 +282,8 @@ const generateAndSendProductKeyMakeSummer = async (req, res) => {
                             <a href="https://claude.ai/public/artifacts/6a4aced5-e3b6-48c3-8026-e982827808fe" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
                         </div>
                         <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
-                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad TRENNO IA XTREME</h3>
-                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia TRENNO IA XTREME Buenos Aires. Conectá, compartí y entrená con otros emprendedores de alto rendimiento.</p>
+                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad TRENNO IA SUMMER</h3>
+                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia TRENNO IA SUMMER. Conectá, compartí y entrená con otros líderes y emprendedores de alto rendimiento.</p>
                             <a href="https://chat.whatsapp.com/Hu5Es7YweRZKvxLjFPw2YM" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
                         </div>
                     </div>
