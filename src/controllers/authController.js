@@ -11,6 +11,7 @@ const { generateUsername } = require("../helpers/generateUsername");
 const { isOffensive } = require('../helpers/profanityChecker');
 const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
 const { unlockAchievements } = require("../services/achievementsService");
+const { getProfileStatus } = require("../helpers/getProfileStatus");
 
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
@@ -392,8 +393,8 @@ const updateUsername = async (req = request, res = response) => {
 
     user.username = normalizedUsername;
     await user.save();
-
-    return res.status(200).json({ success: true, message: "Username updated successfully" });
+    const profileStatus = getProfileStatus(user);
+    return res.status(200).json({ success: true, message: "Username updated successfully", profileStatus });
   } catch (error) {
     console.error("Error updating username:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -406,8 +407,8 @@ const authUser = async (req = request, res = response) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
     const { newlyUnlocked } = await unlockAchievements(user, true);
-
-    return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked });
+    const profileStatus = getProfileStatus(user);
+    return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked, profileStatus });
   } catch (error) {
     console.error("Error fetching user:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
