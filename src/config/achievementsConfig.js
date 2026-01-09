@@ -196,21 +196,7 @@ module.exports = [
             if (!tiaSummerCfg) return false;
             const tiaSummer = user.programs?.tia_summer;
             if (!tiaSummer) return false;
-            const allLessonsDone = (tiaSummerCfg.sections || []).every(section =>
-                (section.modules || []).every(module =>
-                    module.lessons.every(lesson =>
-                        (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
-                    )
-                )
-            );
-            const allInstructionsDone = (tiaSummerCfg.sections || []).every(section =>
-                (section.modules || []).every(module =>
-                    (module.instructions || []).every(inst =>
-                        (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
-                    )
-                )
-            );
-            return allLessonsDone && allInstructionsDone;
+            return tiaSummerCfg.modules.every(module => module.lessons.every(lesson => (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
         }
     },
 ];
