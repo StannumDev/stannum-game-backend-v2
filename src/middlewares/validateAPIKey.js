@@ -1,6 +1,6 @@
 const { getError } = require("../helpers/getError");
 
-const validateMakeAPIKey = (req, res, next) => {
+const validateAPIKey = (req, res, next) => {
   try {
     const apiKey = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
     if (!apiKey) return res.status(401).json(getError("AUTH_API_KEY_MISSING"));
@@ -11,4 +11,4 @@ const validateMakeAPIKey = (req, res, next) => {
   }
 };
 
-module.exports = { validateMakeAPIKey };
+module.exports = { validateAPIKey };

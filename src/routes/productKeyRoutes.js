@@ -3,7 +3,7 @@ const { check } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { validateMakeAPIKey } = require("../middlewares/validateMakeAPIKey");
+const { validateAPIKey } = require("../middlewares/validateAPIKey");
 const productKeyController = require("../controllers/productKeyController");
 
 const router = Router();
@@ -31,7 +31,7 @@ router.post(
 router.post(
   "/generate-and-send",
   [
-    validateMakeAPIKey,
+    validateAPIKey,
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
     check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, o TRENNO IA SUMMER."),
     check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
@@ -43,7 +43,7 @@ router.post(
 router.post(
   "/generate-and-send-make",
   [
-    validateMakeAPIKey,
+    validateAPIKey,
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
     check("fullName", "El nombre completo es obligatorio.").notEmpty().withMessage("El nombre no puede estar vacío.").isBase64().withMessage("El nombre debe estar codificado en Base64."),
     check("message", "El diagnóstico es obligatorio.").trim().notEmpty().withMessage("El diagnóstico no puede estar vacío.").isBase64().withMessage("El diagnóstico debe estar codificado en Base64."),
@@ -57,7 +57,7 @@ router.post(
 router.post(
   "/generate-and-send-make-summer",
   [
-    validateMakeAPIKey,
+    validateAPIKey,
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
     check("fullName", "El nombre completo es obligatorio.").notEmpty().withMessage("El nombre no puede estar vacío.").isBase64().withMessage("El nombre debe estar codificado en Base64."),
     check("message", "El diagnóstico es obligatorio.").trim().notEmpty().withMessage("El diagnóstico no puede estar vacío.").isBase64().withMessage("El diagnóstico debe estar codificado en Base64."),
@@ -66,6 +66,18 @@ router.post(
     fieldsValidate,
   ],
   productKeyController.generateAndSendProductKeyMakeSummer
+);
+
+router.post(
+  "/generate",
+  [
+    validateAPIKey,
+    check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, o TRENNO IA SUMMER."),
+    check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
+    fieldsValidate,
+  ],
+  productKeyController.generateProductKey
 );
 
 module.exports = router;

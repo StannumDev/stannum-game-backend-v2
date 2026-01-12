@@ -393,4 +393,41 @@ const generateAndSendProductKey = async (req, res) => {
     }
 };
 
-module.exports = { verifyProductKey, activateProductKey, generateAndSendProductKeyMake, generateAndSendProductKey, generateAndSendProductKeyMakeSummer };
+const generateProductKey = async (req, res) => {
+    const { email, product = "tia", team = "no_team" } = req.body;
+    try {
+        if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
+
+        const code = generateProductCode();
+        const existingKey = await ProductKey.findOne({ code });
+
+        if (existingKey) return generateProductKey(req, res);
+
+        await ProductKey.create({
+            code,
+            email: email.toLowerCase().trim(),
+            product,
+            team,
+        });
+
+        return res.status(201).json({
+            success: true,
+            code,
+            email: email.toLowerCase().trim()
+        });
+    } catch (error) {
+        console.error("❌ Error en generateProductKey:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = {
+    verifyProductKey,
+    activateProductKey,
+    generateAndSendProductKeyMake,
+    generateAndSendProductKey,
+    generateAndSendProductKeyMakeSummer,
+    generateProductKey
+};
