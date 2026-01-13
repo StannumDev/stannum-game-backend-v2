@@ -80,4 +80,14 @@ router.post(
   productKeyController.generateProductKey
 );
 
+router.get(
+  "/check/:code",
+  [
+    validateAPIKey,
+    check("code", "El código de producto es obligatorio.").trim().notEmpty().withMessage("El código no puede estar vacío."),
+    fieldsValidate,
+  ],
+  productKeyController.checkProductKeyStatus
+);
+
 module.exports = router;

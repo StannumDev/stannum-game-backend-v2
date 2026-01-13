@@ -423,11 +423,46 @@ const generateProductKey = async (req, res) => {
     }
 };
 
+const checkProductKeyStatus = async (req, res) => {
+    const { code } = req.params;
+    try {
+        const productKey = await ProductKey.findOne({ code: code.toUpperCase() })
+            .populate("user", "name email");
+
+        if (!productKey) {
+            return res.status(404).json({
+                success: false,
+                code: "PRODUCT_KEY_NOT_FOUND",
+                message: "Código no encontrado"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                code: productKey.code,
+                email: productKey.email,
+                product: productKey.product,
+                isActivated: !!productKey.user,
+                activatedAt: productKey.user ? productKey.createdAt : null,
+                user: productKey.user ? {
+                    name: productKey.user.name,
+                    email: productKey.user.email
+                } : null
+            }
+        });
+    } catch (error) {
+        console.error("❌ Error en checkProductKeyStatus:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
 module.exports = {
     verifyProductKey,
     activateProductKey,
     generateAndSendProductKeyMake,
     generateAndSendProductKey,
     generateAndSendProductKeyMakeSummer,
-    generateProductKey
+    generateProductKey,
+    checkProductKeyStatus
 };
