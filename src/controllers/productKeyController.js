@@ -26,7 +26,6 @@ const createProductKey = async () => {
         if (existing) return await createProductKey();
     
         const key = await ProductKey.create(newKeyData);
-        console.log(key.code);
     } catch (err) {
         console.error("❌ Error creando clave:", err);
     }
