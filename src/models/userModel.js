@@ -1,4 +1,5 @@
 const { censor } = require('../helpers/profanityChecker');
+const { localTodayString, isSameLocalDay, isConsecutiveLocalDay } = require('../helpers/experienceHelper');
 const { Schema, model } = require("mongoose");
 
 const tutorialSchema = new Schema({
@@ -560,6 +561,13 @@ userSchema.methods.getRankingUserDetails = function () {
 };
 
 userSchema.methods.getFullUserDetails = function () {
+  const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
+  const today = localTodayString(tz);
+  const last = this.dailyStreak?.lastActivityLocalDate;
+
+  const isStreakAlive = last && (isSameLocalDay(last, today) || isConsecutiveLocalDay(last, today));
+  const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
+
   return {
     id: this._id,
     username: this.username,
@@ -577,7 +585,11 @@ userSchema.methods.getFullUserDetails = function () {
     level: this.level,
     achievements: this.achievements,
     programs: this.programs,
-    dailyStreak: this.dailyStreak,
+    dailyStreak: {
+      count: effectiveCount,
+      lastActivityLocalDate: this.dailyStreak?.lastActivityLocalDate,
+      timezone: tz,
+    },
     xpHistory: this.xpHistory,
     unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
