@@ -92,7 +92,7 @@ const activateProductKey = async (req, res) => {
 };
 
 const generateAndSendProductKeyMake = async (req, res) => {
-    const { email, fullName, message, product = "tia", team = "no_team" } = req.body;
+    const { email, fullName, message, product = "tia", team = "no_team", guideLink, whatsappLink } = req.body;
     try {
         if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
         if (!fullName) return res.status(400).json(getError("VALIDATION_FULLNAME_REQUIRED"));
@@ -142,6 +142,28 @@ const generateAndSendProductKeyMake = async (req, res) => {
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
 
+        const guideSection = guideLink ? `
+                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Guía del Participante</h3>
+                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Descargá tu guía completa para prepararte antes del entrenamiento. Incluye todo lo que necesitás saber para aprovechar al máximo la experiencia.</p>
+                            <a href="${guideLink}" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
+                        </div>` : '';
+
+        const whatsappSection = whatsappLink ? `
+                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad del Entrenamiento</h3>
+                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia. Conectá, compartí y entrená con otros líderes y emprendedores de alto rendimiento.</p>
+                            <a href="${whatsappLink}" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
+                        </div>` : '';
+
+        const preparationSection = (guideLink || whatsappLink) ? `
+                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+                    <div style="margin: 30px 0;">
+                        <h2 style="color: #00FFCC; font-size: 24px; margin-bottom: 20px; font-weight: 600; text-align: center;">Preparate para el Entrenamiento</h2>
+                        ${guideSection}
+                        ${whatsappSection}
+                    </div>` : '';
+
         const mailOptions = {
             from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
             to: email,
@@ -149,7 +171,7 @@ const generateAndSendProductKeyMake = async (req, res) => {
             html: `
                 <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al juego, <span style="color: #ffffff;">${decodedFullName}</span>!</h1>
+                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡BIENVENIDO AL ENTRENAMIENTO, <span style="color: #ffffff;">${decodedFullName}</span>!</h1>
                     </div>
                     <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
                         <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
@@ -163,129 +185,7 @@ const generateAndSendProductKeyMake = async (req, res) => {
                         </div>
                         <a href="https://stannumgame.com" style="display: inline-block; background-color: #00FFCC; color: #1f1f1f; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px; transition: transform 0.2s;">Activar Clave Ahora</a>
                     </div>
-                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
-                    <div style="margin: 30px 0;">
-                        <h2 style="color: #00FFCC; font-size: 24px; margin-bottom: 20px; font-weight: 600; text-align: center;">Preparate para el Entrenamiento</h2>
-                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
-                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Guía del Participante</h3>
-                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Descargá tu guía completa para prepararte antes del entrenamiento. Incluye todo lo que necesitás saber para aprovechar al máximo la experiencia.</p>
-                            <a href="https://claude.ai/public/artifacts/aa1f03fa-47c5-4262-b922-dc155e0e9f86" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
-                        </div>
-                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
-                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad TRENNO IA XTREME</h3>
-                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia TRENNO IA XTREME Buenos Aires. Conectá, compartí y entrená con otros emprendedores de alto rendimiento.</p>
-                            <a href="https://chat.whatsapp.com/K6IAVIxEG4aI9Fl7wuteDn" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
-                        </div>
-                    </div>
-                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
-                    <div style="text-align: center;">
-                        <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste esta clave? Ignorá este correo.</p>
-                        <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
-                        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; 2025 STANNUM Game. Todos los derechos reservados.</footer>
-                    </div>
-                </div>
-            `,
-        };
-        try {
-            await transporter.sendMail(mailOptions);
-        } catch (error) {
-            return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
-        }
-        
-        return res.status(201).json({ code, email });
-    } catch (error) {
-        console.error("❌ Error generando clave de producto con Make:", error.message);
-        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-    }
-};
-
-
-const generateAndSendProductKeyMakeSummer = async (req, res) => {
-    const { email, fullName, message, product = "tia_summer", team = "no_team" } = req.body;
-    try {
-        if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
-        if (!fullName) return res.status(400).json(getError("VALIDATION_FULLNAME_REQUIRED"));
-        if (!message) return res.status(400).json(getError("VALIDATION_DIAGNOSIS_REQUIRED"));
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
-
-        let decodedFullName;
-        try {
-            decodedFullName = Buffer.from(fullName, 'base64').toString('utf-8');
-        } catch (error) {
-            return res.status(400).json(getError("VALIDATION_FULLNAME_INVALID_ENCODING"));
-        }
-
-        let decodedMessage;
-        try {
-            decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
-        } catch (error) {
-            return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
-        }
-
-        const code = generateProductCode();
-        const existingKey = await ProductKey.findOne({ code });
-        if (existingKey) return generateAndSendProductKeyMake(req, res);
-
-        await ProductKey.create({
-            code,
-            email: email.toLowerCase().trim(),
-            product,
-            team,
-        });
-
-        let transporter;
-        try {
-            transporter = nodemailer.createTransport({
-                host: "smtp.gmail.com",
-                port: 465,
-                secure: true,
-                auth: {
-                user: process.env.SMTP_EMAIL,
-                pass: process.env.SMTP_PASSWORD,
-                },
-            }
-        );
-        } catch (error) {
-            return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
-        }
-
-        const mailOptions = {
-            from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
-            to: email,
-            subject: "Tu Diagnóstico IA + Acceso a STANNUM Game",
-            html: `
-                <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al juego, <span style="color: #ffffff;">${decodedFullName}</span>!</h1>
-                    </div>
-                    <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
-                        <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
-                        <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0; white-space: pre-line;">${decodedMessage}</p>
-                    </div>
-                    <div style="text-align: center; margin: 40px 0;">
-                        <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Acceso</h2>
-                        <p style="font-size: 16px; color: #ccc; margin-bottom: 20px;">Activá esta clave en <b style="color: #00FFCC;">STANNUM Game</b> para comenzar tu entrenamiento:</p>
-                        <div style="background-color: #00FFCC; padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">
-                            <h3 style="color: #000000; font-size: 36px; letter-spacing: 4px; font-weight: 900; margin: 0;">${code}</h3>
-                        </div>
-                        <a href="https://stannumgame.com" style="display: inline-block; background-color: #00FFCC; color: #1f1f1f; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px; transition: transform 0.2s;">Activar Clave Ahora</a>
-                    </div>
-                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
-                    <div style="margin: 30px 0;">
-                        <h2 style="color: #00FFCC; font-size: 24px; margin-bottom: 20px; font-weight: 600; text-align: center;">Preparate para el Entrenamiento</h2>
-                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
-                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Guía del Participante</h3>
-                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Descargá tu guía completa para prepararte antes del entrenamiento. Incluye todo lo que necesitás saber para aprovechar al máximo la experiencia.</p>
-                            <a href="https://claude.ai/public/artifacts/6a4aced5-e3b6-48c3-8026-e982827808fe" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
-                        </div>
-                        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
-                            <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad TRENNO IA SUMMER</h3>
-                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia TRENNO IA SUMMER. Conectá, compartí y entrená con otros líderes y emprendedores de alto rendimiento.</p>
-                            <a href="https://chat.whatsapp.com/Hu5Es7YweRZKvxLjFPw2YM" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
-                        </div>
-                    </div>
+                    ${preparationSection}
                     <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
                     <div style="text-align: center;">
                         <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste esta clave? Ignorá este correo.</p>
@@ -300,7 +200,7 @@ const generateAndSendProductKeyMakeSummer = async (req, res) => {
         } catch (error) {
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
-        
+
         return res.status(201).json({ code, email });
     } catch (error) {
         console.error("❌ Error generando clave de producto con Make:", error.message);
@@ -461,7 +361,6 @@ module.exports = {
     activateProductKey,
     generateAndSendProductKeyMake,
     generateAndSendProductKey,
-    generateAndSendProductKeyMakeSummer,
     generateProductKey,
     checkProductKeyStatus
 };
