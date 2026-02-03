@@ -78,7 +78,7 @@ const markTutorialAsCompleted = async (req, res) => {
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const tutorial = user.preferences.tutorials.find(t => t.name === tutorialName);
-        if (!tutorial) return res.status(404).json(getError("TUTORIAL_NOT_FOUND"));
+        if (!tutorial) return res.status(404).json(getError("VALIDATION_TUTORIAL_NOT_FOUND"));
 
         if (tutorial.isCompleted) {
             return res.status(400).json(getError("TUTORIAL_ALREADY_COMPLETED"));

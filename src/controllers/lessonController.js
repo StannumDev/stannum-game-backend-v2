@@ -1,6 +1,7 @@
 const User = require("../models/userModel");
 const { addExperience } = require("../services/experienceService");
 const { getError } = require("../helpers/getError");
+const { programs } = require("../config/programs");
 
 const markLessonAsCompleted = async (req, res) => {
     try {
@@ -19,6 +20,28 @@ const markLessonAsCompleted = async (req, res) => {
 
         const isAlreadyCompleted = userProgram.lessonsCompleted.some(l => l.lessonId === lessonId);
         if (isAlreadyCompleted) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
+
+        const programConfig = programs.find(p => p.id === programName);
+        if (programConfig) {
+            for (const mod of (programConfig.modules || [])) {
+                const lessonIndex = mod.lessons.findIndex(l => l.id === lessonId);
+                if (lessonIndex === -1) continue;
+
+                for (const instr of (mod.instructions || [])) {
+                    const afterIndex = mod.lessons.findIndex(l => l.id === instr.afterLessonId);
+                    if (afterIndex === -1) continue;
+
+                    if (lessonIndex > afterIndex) {
+                        const userInstr = userProgram.instructions.find(i => i.instructionId === instr.id);
+                        const isSubmitted = userInstr && ["SUBMITTED", "GRADED"].includes(userInstr.status);
+                        if (!isSubmitted) {
+                            return res.status(403).json(getError("LESSON_BLOCKED_BY_INSTRUCTION"));
+                        }
+                    }
+                }
+                break;
+            }
+        }
 
         userProgram.lessonsCompleted.push({ lessonId, viewedAt: new Date() });
 

@@ -14,7 +14,9 @@ module.exports = {
                         { id: "TIAM01L06", durationSec: 434 },
                         { id: "TIAM01L07", durationSec: 582 },
                     ],
-                    instructions: []
+                    instructions: [
+                        { id: "TIAM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TIAM01L05", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 },
+                    ]
                 },
                 {
                     id: "TIAM02",
@@ -52,7 +54,9 @@ module.exports = {
                         { id: "TIASM01L06", durationSec: 434 },
                         { id: "TIASM01L07", durationSec: 582 },
                     ],
-                    instructions: []
+                    instructions: [
+                        { id: "TIASM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TIASM01L05", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 },
+                    ]
                 },
                 {
                     id: "TIASM02",
@@ -87,7 +91,7 @@ module.exports = {
                         { id: "TMDM01L03", durationSec: 360 },
                         { id: "TMDM01L04", durationSec: 360 },
                     ],
-                    instructions: [ { id: "TMDM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW" } ]
+                    instructions: [ { id: "TMDM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TMDM01L04", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 } ]
                 },
             ]
         }

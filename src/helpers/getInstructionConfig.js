@@ -1,21 +1,12 @@
-const { TMD_PROGRAM, TIA_PROGRAM } = require('../config/programs');
+const { programs } = require('../config/programs');
 
 const getInstructionConfig = (programName, instructionId) => {
-  let program;
-  switch (programName) {
-    case "tmd":
-      program = TMD_PROGRAM;
-      break;
-    case "tia":
-      program = TIA_PROGRAM;
-      break;
-    default:
-      return null;
-  }
+  const program = programs.find(p => p.id === programName);
+  if (!program) return null;
 
-  for (const module of program.modules) {
-    const instruction = module.instructions?.find(inst => inst.id === instructionId);
-    if (instruction) return instruction;
+  for (const mod of (program.modules || [])) {
+    const instruction = mod.instructions?.find(inst => inst.id === instructionId);
+    if (instruction) return { ...instruction, moduleId: mod.id };
   }
 
   return null;
