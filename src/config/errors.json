@@ -17,15 +17,6 @@
         "techMessage": "The password field is required.",
         "friendlyMessage": "La contraseña es obligatoria."
     },
-    "VALIDATION_PASSWORD_TOO_SHORTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT": {
-        "success": false,
-        "code": "VALIDATION_003",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Error de validación",
-        "techMessage": "The password must be at least 8 characters long.",
-        "friendlyMessage": "La contraseña debe tener al menos 8 caracteres."
-    },
     "VALIDATION_EMAIL_REQUIRED": {
         "success": false,
         "code": "VALIDATION_004",
@@ -98,24 +89,6 @@
         "techMessage": "The username field is required.",
         "friendlyMessage": "El nombre de usuario es obligatorio."
     },
-    "VALIDATION_USERNAME_TOO_SHORTTTTTTTTTTTTTTTTTTT": {
-        "success": false,
-        "code": "VALIDATION_012",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Error de validación",
-        "techMessage": "The username must be at least 6 characters long.",
-        "friendlyMessage": "El nombre de usuario debe tener al menos 6 caracteres."
-    },
-    "VALIDATION_USERNAME_TOO_LONGGGGGGGGGGGGGGGGGGGGG": {
-        "success": false,
-        "code": "VALIDATION_013",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Error de validación",
-        "techMessage": "The username must be less than 25 characters.",
-        "friendlyMessage": "El nombre de usuario debe tener menos de 25 caracteres."
-    },
     "VALIDATION_USERNAME_INVALID": {
         "success": false,
         "code": "VALIDATION_014",
@@ -151,15 +124,6 @@
         "title": "Tutorial no encontrado",
         "techMessage": "The specified tutorial was not found.",
         "friendlyMessage": "El tutorial especificado no existe."
-    },
-    "VALIDATION_TUTORIAL_ALREADY_COMPLETEDDDDDDDDDDDDDDDD": {
-        "success": false,
-        "code": "VALIDATION_018",
-        "type": "error",
-        "showAlert": false,
-        "title": "Tutorial ya completado",
-        "techMessage": "The tutorial is already marked as completed.",
-        "friendlyMessage": "El tutorial ya fue completado."
     },
     "VALIDATION_OTP_REQUIRED": {
         "success": false,
@@ -215,15 +179,6 @@
         "techMessage": "The specified program does not exist.",
         "friendlyMessage": "Hubo un error encontrando esta lección."
     },
-    "VALIDATION_LESSON_NOT_FOUNDDDDDDDDDDDD": {
-        "success": false,
-        "code": "VALIDATION_025",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error inesperado",
-        "techMessage": "The specified lesson ID does not exist in the system.",
-        "friendlyMessage": "Hubo un error encontrando esta lección."
-    },
     "VALIDATION_LESSON_ALREADY_COMPLETED": {
         "success": false,
         "code": "VALIDATION_026",
@@ -233,33 +188,6 @@
         "techMessage": "The lesson is already marked as completed.",
         "friendlyMessage": "Esta lección ya ha sido completada."
     },
-    "VALIDATION_LESSON_INVALID_PROGRAMMMMMMM": {
-        "success": false,
-        "code": "VALIDATION_027",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al actualizar la lección",
-        "techMessage": "The lesson ID does not belong to the specified program.",
-        "friendlyMessage": "Hubo un error encontrando esta lección."
-    },
-    "VALIDATION_LESSON_CANNOT_BE_MARKEDDDDDDDDDDDDDDDDDD": {
-        "success": false,
-        "code": "VALIDATION_028",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al actualizar la lección",
-        "techMessage": "The lesson cannot be marked as completed due to missing requirements.",
-        "friendlyMessage": "Hubo un error completando esta lección."
-    },
-    "VALIDATION_LESSON_UNAUTHORIZEDDDDDDDD": {
-        "success": false,
-        "code": "VALIDATION_029",
-        "type": "error",
-        "showAlert": true,
-        "title": "Acceso no autorizado",
-        "techMessage": "The user is not authorized to complete this lesson.",
-        "friendlyMessage": "Hubo un error completando esta lección."
-    },
     "VALIDATION_LESSON_NOT_PURCHASED": {
         "success": false,
         "code": "VALIDATION_030",
@@ -267,15 +195,6 @@
         "showAlert": true,
         "title": "Acceso no autorizado",
         "techMessage": "The lesson cannot be completed because the program has not been purchased.",
-        "friendlyMessage": "Hubo un error completando esta lección."
-    },
-    "VALIDATION_LESSON_UPDATE_FAILEDDDDDDDDDD": {
-        "success": false,
-        "code": "VALIDATION_031",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al actualizar la lección",
-        "techMessage": "Failed to update lesson completion status in the database.",
         "friendlyMessage": "Hubo un error completando esta lección."
     },
     "VALIDATION_USERNAME_LENGTH": {
@@ -458,6 +377,33 @@
         "techMessage": "Assistant URL is not valid.",
         "friendlyMessage": "La URL del asistente no es válida."
     },
+    "VALIDATION_OBSERVATIONS_TOO_LONG": {
+        "success": false,
+        "code": "VALIDATION_052",
+        "type": "error",
+        "showAlert": false,
+        "title": "Observaciones demasiado largas",
+        "techMessage": "Observations cannot exceed 500 characters.",
+        "friendlyMessage": "Las observaciones no pueden superar los 500 caracteres."
+    },
+    "VALIDATION_LIMIT_INVALID": {
+        "success": false,
+        "code": "RANKING_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error inesperado",
+        "techMessage": "The limit must be a positive integer.",
+        "friendlyMessage": "Hubo un error al obtener el ranking. Por favor, inténtalo nuevamente o contacta al soporte."
+    },
+    "RANKING_NO_USERS_FOUND": {
+        "success": false,
+        "code": "RANKING_003",
+        "type": "error",
+        "showAlert": false,
+        "title": "Error inesperado",
+        "techMessage": "No users found with the specified program purchased.",
+        "friendlyMessage": "Hubo un error al obtener el ranking. Por favor, inténtalo nuevamente o contacta al soporte."
+    },
     "AUTH_INVALID_CREDENTIALS": {
         "success": false,
         "code": "AUTH_001",
@@ -494,15 +440,6 @@
         "techMessage": "Too many failed login attempts.",
         "friendlyMessage": "Has realizado demasiados intentos. Por favor, intenta más tarde."
     },
-    "AUTH_PASSWORD_EXPIREDDDDDDDDDDD": {
-        "success": false,
-        "code": "AUTH_005",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Contraseña expirada",
-        "techMessage": "The user's password has expired.",
-        "friendlyMessage": "Tu contraseña ha expirado. Por favor, restablece tu contraseña."
-    },
     "AUTH_EMAIL_ALREADY_EXISTS": {
         "success": false,
         "code": "AUTH_006",
@@ -520,15 +457,6 @@
         "title": "Nombre de usuario en uso",
         "techMessage": "The username is already taken.",
         "friendlyMessage": "El nombre de usuario ya está en uso. Por favor, elige otro."
-    },
-    "ACCESS_FORBIDDENNNNNNNNNNNNNNNN": {
-        "success": false,
-        "code": "AUTH_008",
-        "type": "error",
-        "showAlert": true,
-        "title": "Acceso no autorizado",
-        "techMessage": "User does not have sufficient permissions to access this resource.",
-        "friendlyMessage": "No tienes permiso para realizar esta acción."
     },
     "AUTH_INVALID_OTP": {
         "success": false,
@@ -593,14 +521,14 @@
         "techMessage": "Password login is disabled for this user.",
         "friendlyMessage": "Tu cuenta está configurada para iniciar sesión únicamente con Google. Si deseas usar una contraseña, habilita esta opción recuperando tu contraseña."
     },
-    "AUTH_GOOGLE_ACCOUNT_PASSWORD_SET_REQUIREDDDDDDDDD": {
+    "PROGRAM_NOT_PURCHASED": {
         "success": false,
-        "code": "AUTH_016",
+        "code": "PROGRAM_001",
         "type": "error",
         "showAlert": true,
-        "title": "Metodo de inicio de sesión deshabilitado",
-        "techMessage": "Google-authenticated user attempted password login without setting one.",
-        "friendlyMessage": "Tu cuenta está configurada para iniciar sesión únicamente con Google. Si deseas usar una contraseña, habilita esta opción recuperando tu contraseña."
+        "title": "Acceso no autorizado",
+        "techMessage": "The user has not purchased the required program.",
+        "friendlyMessage": "No tienes acceso a este programa."
     },
     "INSTRUCTION_NOT_FOUND": {
         "success": false,
@@ -620,7 +548,7 @@
         "techMessage": "This instruction has already been submitted.",
         "friendlyMessage": "Ya entregaste esta instrucción."
     },
-    "INSTRUCTION_FILE_REQUIREDDDDDDDDDDD": {
+    "INSTRUCTION_FILE_REQUIRED": {
         "success": false,
         "code": "INSTRUCTION_003",
         "type": "warning",
@@ -629,7 +557,7 @@
         "techMessage": "No file was provided with the instruction submission.",
         "friendlyMessage": "Debes subir el archivo solicitado para entregar la instrucción."
     },
-    "INSTRUCTION_INVALID_FORMATTTTTTTTTTTT": {
+    "INSTRUCTION_INVALID_FORMAT": {
         "success": false,
         "code": "INSTRUCTION_004",
         "type": "error",
@@ -638,7 +566,7 @@
         "techMessage": "The uploaded file format is not allowed for this instruction.",
         "friendlyMessage": "El formato del archivo no está permitido. Revisa los requisitos de la instrucción."
     },
-    "INSTRUCTION_FILE_TOO_LARGEEEEEEEEEE": {
+    "INSTRUCTION_FILE_TOO_LARGE": {
         "success": false,
         "code": "INSTRUCTION_005",
         "type": "error",
@@ -647,18 +575,9 @@
         "techMessage": "The uploaded file exceeds the maximum allowed size for this instruction.",
         "friendlyMessage": "El archivo que intentas subir excede el tamaño permitido. Intenta comprimirlo."
     },
-    "INSTRUCTION_NOT_PURCHASEDDDDDDDDDDDDDD": {
-        "success": false,
-        "code": "INSTRUCTION_006",
-        "type": "error",
-        "showAlert": true,
-        "title": "Acceso no autorizado",
-        "techMessage": "The user has not purchased the program required for this instruction.",
-        "friendlyMessage": "Hubo un error completando esta instrucción."
-    },
     "INSTRUCTION_ALREADY_GRADED": {
         "success": false,
-        "code": "INSTRUCTION_007",
+        "code": "INSTRUCTION_006",
         "type": "error",
         "showAlert": false,
         "title": "Instrucción ya calificada",
@@ -667,39 +586,75 @@
     },
     "INSTRUCTION_INVALID_SCORE": {
         "success": false,
-        "code": "INSTRUCTION_008",
+        "code": "INSTRUCTION_007",
         "type": "error",
         "showAlert": false,
         "title": "Puntaje inválido",
         "techMessage": "The score must be between 0 and 100.",
         "friendlyMessage": "El puntaje debe estar entre 0 y 100."
     },
-    "VALIDATION_LIMIT_INVALID": {
+    "INSTRUCTION_NOT_IN_REVIEW": {
         "success": false,
-        "code": "RANKING_001",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error inesperado",
-        "techMessage": "The limit must be a positive integer.",
-        "friendlyMessage": "Hubo un error al obtener el ranking. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "VALIDATION_PROGRAM_INVALIDDDDDDDDDDDDDD": {
-        "success": false,
-        "code": "RANKING_002",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error inesperado",
-        "techMessage": "The specified program is not valid.",
-        "friendlyMessage": "Hubo un error al obtener el ranking. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "RANKING_NO_USERS_FOUND": {
-        "success": false,
-        "code": "RANKING_003",
+        "code": "INSTRUCTION_008",
         "type": "error",
         "showAlert": false,
-        "title": "Error inesperado",
-        "techMessage": "No users found with the specified program purchased.",
-        "friendlyMessage": "Hubo un error al obtener el ranking. Por favor, inténtalo nuevamente o contacta al soporte."
+        "title": "Instrucción no entregada",
+        "techMessage": "The instruction must be in SUBMITTED status to be graded.",
+        "friendlyMessage": "La instrucción debe estar entregada para ser calificada."
+    },
+    "INSTRUCTION_ALREADY_STARTED": {
+        "success": false,
+        "code": "INSTRUCTION_009",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Instrucción ya iniciada",
+        "techMessage": "This instruction has already been started.",
+        "friendlyMessage": "Ya comenzaste esta instrucción."
+    },
+    "INSTRUCTION_NOT_AVAILABLE": {
+        "success": false,
+        "code": "INSTRUCTION_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "Instrucción no disponible",
+        "techMessage": "The prerequisite lesson has not been completed.",
+        "friendlyMessage": "Debes completar la lección anterior antes de iniciar esta instrucción."
+    },
+    "INSTRUCTION_TEXT_REQUIRED": {
+        "success": false,
+        "code": "INSTRUCTION_011",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Texto requerido",
+        "techMessage": "No text was provided with the instruction submission.",
+        "friendlyMessage": "Debes escribir tu respuesta para entregar la instrucción."
+    },
+    "INSTRUCTION_TEXT_TOO_LONG": {
+        "success": false,
+        "code": "INSTRUCTION_012",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Texto demasiado largo",
+        "techMessage": "The submitted text exceeds the maximum of 5000 characters.",
+        "friendlyMessage": "El texto no puede superar los 5000 caracteres."
+    },
+    "INSTRUCTION_UPLOAD_FAILED": {
+        "success": false,
+        "code": "INSTRUCTION_013",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al subir el archivo",
+        "techMessage": "Failed to upload instruction file to S3.",
+        "friendlyMessage": "Hubo un error al subir tu archivo. Por favor, inténtalo nuevamente."
+    },
+    "LESSON_BLOCKED_BY_INSTRUCTION": {
+        "success": false,
+        "code": "LESSON_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Lección bloqueada",
+        "techMessage": "This lesson is blocked until the required instruction is submitted.",
+        "friendlyMessage": "Debes completar la instrucción requerida antes de acceder a esta lección."
     },
     "VALIDATION_PRODUCT_KEY_NOT_FOUND": {
         "success": false,
@@ -735,7 +690,7 @@
         "showAlert": true,
         "title": "Clave de producto requerida",
         "techMessage": "product key required.",
-        "friendlyMessage": "Deves ingresar una clave de producto."
+        "friendlyMessage": "Debes ingresar una clave de producto."
     },
     "PHOTO_FILE_TOO_LARGE": {
         "success": false,
@@ -773,15 +728,6 @@
         "techMessage": "Failed to upload the photo to the server.",
         "friendlyMessage": "Hubo un error al subir tu foto. Por favor, inténtalo nuevamente o contacta al soporte."
     },
-    "PHOTO_NOT_FOUNDDDDDDDDDDD": {
-        "success": false,
-        "code": "PHOTO_005",
-        "type": "error",
-        "showAlert": false,
-        "title": "Error al cargar foto",
-        "techMessage": "No profile photo exists for the specified user.",
-        "friendlyMessage": "No se encontró una foto de perfil para este usuario."
-    },
     "PHOTO_REQUIRED": {
         "success": false,
         "code": "PHOTO_006",
@@ -790,15 +736,6 @@
         "title": "Foto requerida",
         "techMessage": "Photo file is required.",
         "friendlyMessage": "Debes seleccionar una foto para subir."
-    },
-    "PHOTO_UPLOAD_PARTIALLLLLLLLLLLL": {
-        "success": false,
-        "code": "PHOTO_007",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al subir tu foto",
-        "techMessage": "The photo upload was not completed successfully.",
-        "friendlyMessage": "La subida de la foto se interrumpió. Por favor, inténtalo nuevamente o contacta al soporte."
     },
     "PHOTO_URL_GENERATION_FAILED": {
         "success": false,
@@ -811,30 +748,12 @@
     },
     "PHOTO_DELETION_FAILED": {
         "success": false,
-        "code": "PHOTO_09",
+        "code": "PHOTO_009",
         "type": "error",
         "showAlert": true,
         "title": "Error al eliminar la foto",
         "techMessage": "Failed to delete the profile photo.",
         "friendlyMessage": "No se pudo eliminar la foto. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "PHOTO_INVALID_CONTENTTTTTTTTTTTT": {
-        "success": false,
-        "code": "PHOTO_010",
-        "type": "error",
-        "showAlert": true,
-        "title": "Contenido inválido",
-        "techMessage": "The photo file appears to be corrupt or unreadable.",
-        "friendlyMessage": "Esta foto está dañada o no se puede leer. Por favor, selecciona otra."
-    },
-    "PHOTO_UNAUTHORIZED_ACCESSSSSSSSSSSSS": {
-        "success": false,
-        "code": "PHOTO_011",
-        "type": "error",
-        "showAlert": true,
-        "title": "Acceso no autorizado",
-        "techMessage": "User is not authorized to perform this action.",
-        "friendlyMessage": "No tienes permisos para realizar esta acción."
     },
     "PHOTO_DOWNLOAD_FAILED": {
         "success": false,
@@ -853,24 +772,6 @@
         "title": "Error al subir la foto de Google",
         "techMessage": "Failed to upload the Google profile photo to S3.",
         "friendlyMessage": "Hubo un problema al subir la foto de perfil. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "EMAIL_TRANSPORT_CONFIG_ERRORRRRRRRRRRRRRRRR": {
-        "success": false,
-        "code": "EMAIL_001",
-        "type": "error",
-        "showAlert": false,
-        "title": "Error al configurar el correo",
-        "techMessage": "Failed to configure the email transport service.",
-        "friendlyMessage": "Hubo un problema al configurar el servicio de correo. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "EMAIL_SEND_ERRORRRRRRRRRRRRRR": {
-        "success": false,
-        "code": "EMAIL_002",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al enviar el correo",
-        "techMessage": "Failed to send the recovery email.",
-        "friendlyMessage": "No se pudo enviar el correo de recuperación. Por favor, inténtalo nuevamente o contacta al soporte."
     },
     "USERNAME_GENERATION_FAILED": {
         "success": false,
@@ -1105,6 +1006,168 @@
         "title": "Error de conexión",
         "techMessage": "Unable to connect to the server.",
         "friendlyMessage": "No se pudo conectar con el servidor. Verifica tu conexión a internet o contacta al soporte."
+    },
+    "TUTORIAL_ALREADY_COMPLETED": {
+        "success": false,
+        "code": "VALIDATION_053",
+        "type": "error",
+        "showAlert": false,
+        "title": "Tutorial ya completado",
+        "techMessage": "The tutorial is already marked as completed.",
+        "friendlyMessage": "El tutorial ya fue completado."
+    },
+    "VALIDATION_SOCIAL_LINKS_MUST_BE_ARRAY": {
+        "success": false,
+        "code": "VALIDATION_054",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "Social links must be an array.",
+        "friendlyMessage": "El formato de los enlaces sociales no es válido."
+    },
+    "VALIDATION_SOCIAL_LINKS_MAX_EXCEEDED": {
+        "success": false,
+        "code": "VALIDATION_055",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Demasiados enlaces",
+        "techMessage": "Social links exceed maximum allowed count.",
+        "friendlyMessage": "Superaste la cantidad máxima de enlaces sociales permitidos."
+    },
+    "AUTH_API_KEY_MISSING": {
+        "success": false,
+        "code": "AUTH_017",
+        "type": "error",
+        "showAlert": false,
+        "title": "API Key requerida",
+        "techMessage": "API key is missing from the request.",
+        "friendlyMessage": "Falta la clave de autenticación de la API."
+    },
+    "AUTH_API_KEY_INVALID": {
+        "success": false,
+        "code": "AUTH_018",
+        "type": "error",
+        "showAlert": false,
+        "title": "API Key inválida",
+        "techMessage": "The provided API key is not valid.",
+        "friendlyMessage": "La clave de autenticación de la API no es válida."
+    },
+    "ASSISTANT_UNAUTHORIZED_UPDATE": {
+        "success": false,
+        "code": "ASSISTANT_009",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acción no autorizada",
+        "techMessage": "User is not authorized to update this assistant.",
+        "friendlyMessage": "No tienes permiso para editar este asistente."
+    },
+    "ASSISTANT_UPDATE_FAILED": {
+        "success": false,
+        "code": "ASSISTANT_010",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al editar",
+        "techMessage": "Failed to update assistant.",
+        "friendlyMessage": "No se pudo editar el asistente. Inténtalo de nuevo."
+    },
+    "VALIDATION_INVALID_VISIBILITY": {
+        "success": false,
+        "code": "VALIDATION_056",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Visibilidad inválida",
+        "techMessage": "Invalid visibility value.",
+        "friendlyMessage": "El valor de visibilidad seleccionado no es válido."
+    },
+    "VALIDATION_FULLNAME_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_057",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Nombre requerido",
+        "techMessage": "Full name is required.",
+        "friendlyMessage": "El nombre completo es obligatorio."
+    },
+    "VALIDATION_DIAGNOSIS_REQUIRED": {
+        "success": false,
+        "code": "VALIDATION_058",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Diagnóstico requerido",
+        "techMessage": "Diagnosis is required.",
+        "friendlyMessage": "El diagnóstico es obligatorio."
+    },
+    "VALIDATION_FULLNAME_INVALID_ENCODING": {
+        "success": false,
+        "code": "VALIDATION_059",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Nombre inválido",
+        "techMessage": "Full name contains invalid characters.",
+        "friendlyMessage": "El nombre contiene caracteres no válidos."
+    },
+    "VALIDATION_MESSAGE_INVALID_ENCODING": {
+        "success": false,
+        "code": "VALIDATION_060",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Mensaje inválido",
+        "techMessage": "Message contains invalid characters.",
+        "friendlyMessage": "El mensaje contiene caracteres no válidos."
+    },
+    "PROMPT_UNAUTHORIZED_UPDATE": {
+        "success": false,
+        "code": "PROMPT_011",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acción no autorizada",
+        "techMessage": "User is not authorized to update this prompt.",
+        "friendlyMessage": "No tienes permiso para editar este prompt."
+    },
+    "PROMPT_CANNOT_EDIT_PUBLISHED": {
+        "success": false,
+        "code": "PROMPT_012",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No se puede editar",
+        "techMessage": "Cannot edit a published prompt.",
+        "friendlyMessage": "No puedes editar un prompt que ya fue publicado."
+    },
+    "PROMPT_UPDATE_FAILED": {
+        "success": false,
+        "code": "PROMPT_013",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error al editar",
+        "techMessage": "Failed to update prompt.",
+        "friendlyMessage": "No se pudo editar el prompt. Inténtalo de nuevo."
+    },
+    "VALIDATION_USERNAME_FORMAT": {
+        "success": false,
+        "code": "VALIDATION_061",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Formato inválido",
+        "techMessage": "Username format is invalid.",
+        "friendlyMessage": "El formato del nombre de usuario no es válido."
+    },
+    "RANKING_NO_TEAMS_FOUND": {
+        "success": false,
+        "code": "RANKING_004",
+        "type": "error",
+        "showAlert": false,
+        "title": "Sin equipos",
+        "techMessage": "No teams found for the specified program.",
+        "friendlyMessage": "No se encontraron equipos para este programa."
+    },
+    "AUTH_EMAIL_REQUIRED": {
+        "success": false,
+        "code": "AUTH_019",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "Email is required for Google auth.",
+        "friendlyMessage": "El correo electrónico es obligatorio."
     },
     "SERVER_INTERNAL_ERROR": {
         "success": false,

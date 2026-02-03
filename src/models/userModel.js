@@ -165,7 +165,7 @@ const instructionSchema = new Schema({
     type: Date,
     default: null,
     validate: {
-      validator: (value) => !value || value >= this.startDate,
+      validator: function(value) { return !value || value >= this.startDate; },
       message: "Submitted date must be after start date",
     },
   },
@@ -173,8 +173,8 @@ const instructionSchema = new Schema({
     type: Date,
     default: null,
     validate: {
-      validator: (value) => !value || value <= this.submittedAt,
-      message: "Reviewed date cannot be in the future",
+      validator: function(value) { return !value || value >= this.submittedAt; },
+      message: "Reviewed date cannot be before submitted date",
     },
   },
   score: {
@@ -190,6 +190,15 @@ const instructionSchema = new Schema({
   observations: {
     type: String,
     maxlength: 500,
+  },
+  fileUrl: {
+    type: String,
+    default: null,
+  },
+  submittedText: {
+    type: String,
+    maxlength: 5000,
+    default: null,
   },
   status: {
     type: String,
