@@ -1,4 +1,5 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const sharp = require("sharp");
 const { getError } = require("../helpers/getError");
 const { adjustGooglePictureUrl, downloadImage } = require("../helpers/googlePictureUrl");
@@ -12,51 +13,35 @@ const s3Client = new S3Client({
     },
 });
 
-const uploadProfilePhoto = async (req, res) => {
+const getPresignedPhotoUrl = async (req, res) => {
     const userId = req.userAuth.id;
-    const file = req.file;
 
     try {
-        if (!file) return res.status(400).json(getError("PHOTO_REQUIRED"));
+        const s3Key = `${process.env.AWS_S3_FOLDER_NAME}/${userId}`;
 
-        const fileSizeInMB = file.size / (1024 * 1024);
-        if (fileSizeInMB > 20) return res.status(400).json(getError("PHOTO_FILE_TOO_LARGE"));
-
-        let optimizedImage;
-        try {
-            optimizedImage = await sharp(file.buffer)
-                .resize(1000, 1000, { fit: "inside", withoutEnlargement: true })
-                .jpeg({ quality: 80 })
-                .toBuffer();
-        } catch (error) {
-            console.error("Error processing photo:", error);
-            return res.status(500).json(getError("PHOTO_PROCESSING_FAILED"));
-        }
-
-        const params = {
+        const command = new PutObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
-            Key: `${process.env.AWS_S3_FOLDER_NAME}/${userId}`,
-            Body: optimizedImage,
-            ContentType: file.mimetype,
-            Metadata: {
-                userId: userId.toString(),
-                username: req.userAuth.username,
-            },
-        };
+            Key: s3Key,
+            ContentType: "image/jpeg",
+        });
 
-        try {
-            const command = new PutObjectCommand(params);
-            await s3Client.send(command);
-        } catch (error) {
-            console.error("Error uploading photo:", error);
-            return res.status(500).json(getError("PHOTO_UPLOAD_FAILED"));
-        }
+        const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
 
+        return res.status(200).json({ success: true, presignedUrl, s3Key });
+    } catch (error) {
+        console.error("Error generating presigned URL for photo:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+const confirmPhotoUpload = async (req, res) => {
+    const userId = req.userAuth.id;
+
+    try {
         await User.findByIdAndUpdate(userId, { "preferences.hasProfilePhoto": true });
-
         return res.status(200).json({ success: true, message: "Profile photo uploaded successfully." });
     } catch (error) {
-        console.error("Error uploading profile photo:", error);
+        console.error("Error confirming photo upload:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
 };
@@ -65,7 +50,7 @@ const getPhoto = async (req, res) => {
     const userId = req.userAuth.id;
 
     try {
-        const profilePhotoUrl = `${process.env.S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${userId}`;
+        const profilePhotoUrl = `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${userId}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });
     } catch (error) {
         console.error("Error fetching photo:", error);
@@ -80,7 +65,7 @@ const getPhotoByUsername = async (req, res) => {
         const user = await User.findOne({ username: username.toLowerCase() });
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const profilePhotoUrl = `${process.env.S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${user.id}`;
+        const profilePhotoUrl = `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${user.id}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });
     } catch (error) {
         console.error("Error fetching photo by username:", error);
@@ -135,4 +120,4 @@ const uploadGoogleProfilePhoto = async (googlePictureUrl, userId) => {
     }
 };
 
-module.exports = { uploadProfilePhoto, getPhoto, getPhotoByUsername, deletePhoto, uploadGoogleProfilePhoto };
+module.exports = { getPresignedPhotoUrl, confirmPhotoUpload, getPhoto, getPhotoByUsername, deletePhoto, uploadGoogleProfilePhoto };

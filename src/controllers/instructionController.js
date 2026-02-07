@@ -1,11 +1,13 @@
 const path = require("path");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 const { addExperience } = require("../services/experienceService");
 const { resolveInstructionInfo } = require("../helpers/resolveInstructionInfo");
 const { programs } = require("../config/programs");
+const { gradeWithAI } = require("../services/aiGradingService");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -52,6 +54,52 @@ const startInstruction = async (req, res) => {
   }
 };
 
+const getPresignedUrl = async (req, res) => {
+  try {
+    const { programName, instructionId } = req.params;
+    const userId = req.userAuth.id;
+    const { fileName, contentType } = req.body;
+
+    if (!fileName || !contentType) return res.status(400).json(getError("VALIDATION_MISSING_FIELDS"));
+
+    const config = getInstructionConfig(programName, instructionId);
+    if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
+    if (config.deliverableType !== "file") return res.status(400).json(getError("INSTRUCTION_TEXT_REQUIRED"));
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    const program = user.programs?.[programName];
+    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+
+    const instruction = program.instructions.find(i => i.instructionId === instructionId);
+    if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
+    if (["SUBMITTED", "GRADED"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_ALREADY_SUBMITTED"));
+
+    const ext = path.extname(fileName).toLowerCase();
+    if (config.acceptedFormats && !config.acceptedFormats.includes(ext)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
+
+    const mimeToExt = { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "application/pdf": [".pdf"] };
+    const expectedMimes = Object.entries(mimeToExt).filter(([, exts]) => config.acceptedFormats?.some(f => exts.includes(f))).map(([mime]) => mime);
+    if (expectedMimes.length > 0 && !expectedMimes.includes(contentType)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
+
+    const s3Key = `instructions/${userId}/${instructionId}/${Date.now()}${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      ContentType: contentType,
+    });
+
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+
+    return res.status(200).json({ success: true, presignedUrl, s3Key });
+  } catch (error) {
+    console.error("Error generando presigned URL:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
 const submitInstruction = async (req, res) => {
   try {
     const { programName, instructionId } = req.params;
@@ -73,38 +121,13 @@ const submitInstruction = async (req, res) => {
     if (["SUBMITTED", "GRADED"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_ALREADY_SUBMITTED"));
 
     if (config.deliverableType === "file") {
-      if (!req.file) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
+      if (!req.body.s3Key) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
     } else if (config.deliverableType === "text") {
       if (!req.body.submittedText || !req.body.submittedText.trim()) return res.status(400).json(getError("INSTRUCTION_TEXT_REQUIRED"));
     }
 
-    if (req.file) {
-      const ext = path.extname(req.file.originalname).toLowerCase();
-
-      if (config.acceptedFormats && !config.acceptedFormats.includes(ext)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
-
-      const mimeToExt = { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "application/pdf": [".pdf"] };
-      const expectedMimes = Object.entries(mimeToExt).filter(([, exts]) => config.acceptedFormats?.some(f => exts.includes(f))).map(([mime]) => mime);
-
-      if (expectedMimes.length > 0 && !expectedMimes.includes(req.file.mimetype)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
-
-      const maxSize = (config.maxFileSizeMB || 15) * 1024 * 1024;
-      if (req.file.size > maxSize) return res.status(400).json(getError("INSTRUCTION_FILE_TOO_LARGE"));
-
-      const s3Key = `instructions/${userId}/${instructionId}/${Date.now()}${ext}`;
-      try {
-        const command = new PutObjectCommand({
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: s3Key,
-          Body: req.file.buffer,
-          ContentType: req.file.mimetype,
-        });
-        await s3Client.send(command);
-      } catch (uploadError) {
-        console.error("Error uploading instruction file to S3:", uploadError);
-        return res.status(500).json(getError("INSTRUCTION_UPLOAD_FAILED"));
-      }
-      instruction.fileUrl = `${process.env.S3_BASE_URL}/${s3Key}`;
+    if (req.body.s3Key) {
+      instruction.fileUrl = `${process.env.AWS_S3_BASE_URL}/${req.body.s3Key}`;
     }
 
     if (req.body.submittedText) {
@@ -117,6 +140,11 @@ const submitInstruction = async (req, res) => {
     instruction.status = "SUBMITTED";
 
     await user.save();
+
+    gradeWithAI(userId, programName, instructionId).catch(err => {
+      console.error(`[AI Grading] Error en background para ${instructionId}:`, err.message);
+    });
+
     return res.status(200).json({ success: true, message: "Instrucción entregada correctamente." });
   } catch (error) {
     console.error("Error al entregar la instrucción:", error);
@@ -237,4 +265,4 @@ const gradeTest = async (req, res) => {
   }
 };
 
-module.exports = { startInstruction, submitInstruction, gradeInstruction, gradeTest };
+module.exports = { startInstruction, getPresignedUrl, submitInstruction, gradeInstruction, gradeTest };
