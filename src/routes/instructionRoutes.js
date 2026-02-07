@@ -1,16 +1,10 @@
 const { Router } = require("express");
 const { check } = require("express-validator");
 
-const multer = require("multer");
 const { validateJWT } = require("../middlewares/validateJWT");
 const { isAdmin } = require("../middlewares/isAdmin");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const instructionController = require("../controllers/instructionController");
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
-});
 
 const router = Router();
 
@@ -26,10 +20,20 @@ router.post(
 );
 
 router.post(
+  "/presign/:programName/:instructionId",
+  [
+    validateJWT,
+    check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty().withMessage("El nombre del programa no puede estar vacío."),
+    check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty().withMessage("El ID de la instrucción no puede estar vacío."),
+    fieldsValidate,
+  ],
+  instructionController.getPresignedUrl
+);
+
+router.post(
   "/submit/:programName/:instructionId",
   [
     validateJWT,
-    upload.single("file"),
     check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty().withMessage("El nombre del programa no puede estar vacío."),
     check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty().withMessage("El ID de la instrucción no puede estar vacío."),
     fieldsValidate,

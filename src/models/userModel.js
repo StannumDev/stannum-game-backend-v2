@@ -191,6 +191,10 @@ const instructionSchema = new Schema({
     type: String,
     maxlength: 500,
   },
+  referencedLessons: {
+    type: [String],
+    default: [],
+  },
   fileUrl: {
     type: String,
     default: null,

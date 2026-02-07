@@ -15,7 +15,28 @@ module.exports = {
                         { id: "TIAM01L07", durationSec: 582 },
                     ],
                     instructions: [
-                        { id: "TIAM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TIAM01L05", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 },
+                        {
+                            id: "TIAM01I01",
+                            title: "Organiza tu carpeta principal",
+                            description: "En esta instrucción vas a organizar la carpeta principal de tu negocio en Google Drive siguiendo las mejores prácticas que aprendiste en las lecciones anteriores.",
+                            deliverableHint: "Sube una imagen clara que muestre tu estructura de carpetas en Drive.",
+                            tools: ["Google Drive", "ChatGPT"],
+                            steps: [
+                                "Crear una cuenta en Google Drive, en caso de no tenerla.",
+                                "Descargar Google Drive en su computadora.",
+                                "Crear la carpeta principal de tu negocio con las áreas principales como subcarpetas.",
+                                "Descargar la aplicación de Google Drive en tu celular y acceder a tu cuenta.",
+                                "Dar acceso a los miembros de tu equipo a las carpetas correspondientes.",
+                            ],
+                            relatedLessonIds: ["TIAM01L03", "TIAM01L05"],
+                            rewardXP: 200,
+                            estimatedTimeSec: 900,
+                            difficulty: "LOW",
+                            afterLessonId: "TIAM01L05",
+                            deliverableType: "file",
+                            acceptedFormats: [".jpg", ".jpeg", ".png"],
+                            maxFileSizeMB: 15,
+                        },
                     ]
                 },
                 {
@@ -55,7 +76,28 @@ module.exports = {
                         { id: "TIASM01L07", durationSec: 582 },
                     ],
                     instructions: [
-                        { id: "TIASM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TIASM01L05", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 },
+                        {
+                            id: "TIASM01I01",
+                            title: "Organiza tu carpeta principal",
+                            description: "En esta instrucción vas a organizar la carpeta principal de tu negocio en Google Drive siguiendo las mejores prácticas que aprendiste en las lecciones anteriores.",
+                            deliverableHint: "Sube una imagen clara que muestre tu estructura de carpetas en Drive.",
+                            tools: ["Google Drive", "ChatGPT"],
+                            steps: [
+                                "Crear una cuenta en Google Drive, en caso de no tenerla.",
+                                "Descargar Google Drive en su computadora.",
+                                "Crear la carpeta principal de tu negocio con las áreas principales como subcarpetas.",
+                                "Descargar la aplicación de Google Drive en tu celular y acceder a tu cuenta.",
+                                "Dar acceso a los miembros de tu equipo a las carpetas correspondientes.",
+                            ],
+                            relatedLessonIds: ["TIASM01L03", "TIASM01L05"],
+                            rewardXP: 200,
+                            estimatedTimeSec: 900,
+                            difficulty: "LOW",
+                            afterLessonId: "TIASM01L05",
+                            deliverableType: "file",
+                            acceptedFormats: [".jpg", ".jpeg", ".png"],
+                            maxFileSizeMB: 15,
+                        },
                     ]
                 },
                 {
@@ -91,7 +133,30 @@ module.exports = {
                         { id: "TMDM01L03", durationSec: 360 },
                         { id: "TMDM01L04", durationSec: 360 },
                     ],
-                    instructions: [ { id: "TMDM01I01", rewardXP: 200, estimatedTimeSec: 900, difficulty: "LOW", afterLessonId: "TMDM01L04", deliverableType: "file", acceptedFormats: [".jpg", ".jpeg", ".png"], maxFileSizeMB: 15 } ]
+                    instructions: [
+                        {
+                            id: "TMDM01I01",
+                            title: "Organiza tu carpeta principal",
+                            description: "En esta instrucción vas a organizar la carpeta principal de tu negocio en Google Drive siguiendo las mejores prácticas que aprendiste en las lecciones anteriores.",
+                            deliverableHint: "Sube una imagen clara que muestre tu estructura de carpetas en Drive.",
+                            tools: ["Google Drive", "ChatGPT"],
+                            steps: [
+                                "Crear una cuenta en Google Drive, en caso de no tenerla.",
+                                "Descargar Google Drive en su computadora.",
+                                "Crear la carpeta principal de tu negocio con las áreas principales como subcarpetas.",
+                                "Descargar la aplicación de Google Drive en tu celular y acceder a tu cuenta.",
+                                "Dar acceso a los miembros de tu equipo a las carpetas correspondientes.",
+                            ],
+                            relatedLessonIds: ["TMDM01L03", "TMDM01L04"],
+                            rewardXP: 200,
+                            estimatedTimeSec: 900,
+                            difficulty: "LOW",
+                            afterLessonId: "TMDM01L04",
+                            deliverableType: "file",
+                            acceptedFormats: [".jpg", ".jpeg", ".png"],
+                            maxFileSizeMB: 15,
+                        }
+                    ]
                 },
             ]
         }
