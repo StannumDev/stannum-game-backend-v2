@@ -55,7 +55,4 @@ router.post(
   instructionController.gradeInstruction
 );
 
-// TODO: BORRAR ruta temporal para testear grading
-router.get("/grade-test", instructionController.gradeTest);
-
 module.exports = router;
