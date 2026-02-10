@@ -49,7 +49,6 @@ const addExperience = async (user, type, payload) => {
         if (streakBonus > 0) user.xpHistory.push({ type: 'DAILY_STREAK_BONUS', xp: streakBonus, meta: { day: newCount } });
     }
 
-    const initialLevel = user.level.currentLevel;
     let totalGain = gained + streakBonus;
     user.level.experienceTotal += totalGain;
     while (user.level.experienceTotal >= user.level.experienceNextLevel) {
@@ -59,10 +58,9 @@ const addExperience = async (user, type, payload) => {
     }
     user.level.progress = computeLevelProgress(user.level);
 
-    if(initialLevel < user.level.currentLevel || user.dailyStreak.count >= 3) await unlockAchievements(user)
     if (gained > 0) user.xpHistory.push({ type, xp: gained, meta: payload });
     if (user.xpHistory.length > XP_HISTORY_MAX) user.xpHistory = user.xpHistory.slice(-XP_HISTORY_MAX);
-    
+
     const { newlyUnlocked } = await unlockAchievements(user);
 
     return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked };

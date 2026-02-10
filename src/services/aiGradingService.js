@@ -81,11 +81,14 @@ ESCALA DE PUNTAJE
 - 0-39: No cumple o no corresponde a la consigna.
 
 FEEDBACK (OBSERVATIONS)
-- Siempre empezar destacando algo positivo si existe.
-- Ser específico: decir exactamente qué falta o qué mejorar.
-- Tono profesional, cercano y motivador.
-- Tutear al alumno.
-- 2 a 4 oraciones, un solo párrafo.
+- Estructura obligatoria del feedback (en este orden):
+  1. Una oración breve reconociendo lo que hizo bien (motivando sin exagerar ni adular).
+  2. Justificación clara del puntaje: explicar específicamente por qué no obtuvo 100. Qué estuvo bien, qué faltó, qué podría mejorar o qué no cumplió del todo.
+  3. Si corresponde, una recomendación concreta para mejorar.
+- El alumno NECESITA saber exactamente qué le faltó para llegar a 100. Esto es lo más importante del feedback.
+- Tono profesional, cercano y directo. Tutear al alumno.
+- 2 a 4 oraciones, un solo párrafo. No exagerar con felicitaciones.
+- Si el puntaje es 100, solo felicitar brevemente y confirmar que cumplió todo.
 - Si el alumno debe repasar algo, mencionar el concepto y referenciar la lección correspondiente.
 
 REFERENCED LESSONS
@@ -196,8 +199,8 @@ const gradeWithAI = async (userId, programName, instructionId) => {
 
     console.log(`[AI Grading] Respuesta recibida. Output items: ${response.output?.length}`);
 
-    const responseText = response.output[0].content[0].text;
-    if (!responseText) throw new Error("No se recibió texto en la respuesta");
+    const responseText = response.output?.[0]?.content?.[0]?.text;
+    if (!responseText) throw new Error("No se recibió texto en la respuesta de OpenAI");
 
     console.log(`[AI Grading] Respuesta del assistant:\n${responseText}`);
 

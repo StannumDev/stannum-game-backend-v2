@@ -21,7 +21,7 @@ module.exports = {
         MAX_XP: 3000
     },
     STREAK: {
-        DAILY_BONUS_PER_DAY: [25, 50, 100, 200, 400, 800, 1500],
+        DAILY_BONUS_PER_DAY: [25, 38, 57, 86, 129, 194, 291],
         CAP_DAY: 7,
     }
 };
