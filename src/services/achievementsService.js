@@ -6,14 +6,18 @@ const checkAndAddAchievements = async (user) => {
     if (!user) throw new Error("USER_NOT_FOUND");
 
     const newlyUnlocked = [];
-    const unlockedIds = new Set(user.achievements.map(a => a.achievementId));
+    const unlockedIds = new Set((user.achievements || []).map(a => a.achievementId));
     const lockedAchievements = achievementsConfig.filter(a => !unlockedIds.has(a.id));
 
     for (const achievement of lockedAchievements) {
-        if (achievement.condition(user)) {
-            const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0 };
-            user.achievements.push(newAchievement);
-            newlyUnlocked.push(newAchievement);
+        try {
+            if (achievement.condition(user)) {
+                const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0 };
+                user.achievements.push(newAchievement);
+                newlyUnlocked.push(newAchievement);
+            }
+        } catch (err) {
+            console.error(`[Achievements] Error checking condition for ${achievement.id}:`, err.message);
         }
     }
 
@@ -24,9 +28,10 @@ const unlockAchievements = async (user, save = false) => {
     if (!user) throw new Error('USER_NOT_FOUND');
 
     let newlyUnlocked = [];
-    let pending = true;
+    let iterations = 0;
 
-    while (pending) {
+    while (iterations < 10) {
+        iterations++;
         const unlocked = await checkAndAddAchievements(user);
         if (!unlocked.length) break;
 
@@ -39,7 +44,7 @@ const unlockAchievements = async (user, save = false) => {
             }
         }
 
-        while (user.level.experienceTotal >= user.level.experienceNextLevel) {
+        while (user.level.experienceTotal >= user.level.experienceNextLevel && user.level.currentLevel < xpCfg.LEVELS.MAX_LEVEL) {
             user.level.currentLevel += 1;
             user.level.experienceCurrentLevel = user.level.experienceNextLevel;
             user.level.experienceNextLevel = nextLevelTarget(user.level.currentLevel, user.level.experienceCurrentLevel, xpCfg);

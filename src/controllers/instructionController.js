@@ -36,6 +36,12 @@ const startInstruction = async (req, res) => {
       if (!afterLessonCompleted) return res.status(403).json(getError("INSTRUCTION_NOT_AVAILABLE"));
     }
 
+    if (config.requiredActivityId) {
+      const requiredInstr = program.instructions.find(i => i.instructionId === config.requiredActivityId);
+      const isCompleted = requiredInstr && ["SUBMITTED", "GRADED"].includes(requiredInstr.status);
+      if (!isCompleted) return res.status(403).json(getError("INSTRUCTION_NOT_AVAILABLE"));
+    }
+
     const exists = program.instructions.find(i => i.instructionId === instructionId);
     if (exists) return res.status(400).json(getError("INSTRUCTION_ALREADY_STARTED"));
 
@@ -172,7 +178,7 @@ const gradeInstruction = async (req, res) => {
 
     if (instruction.status === "GRADED") return res.status(400).json(getError("INSTRUCTION_ALREADY_GRADED"));
 
-    if (instruction.status !== "SUBMITTED") return res.status(400).json(getError("INSTRUCTION_NOT_IN_REVIEW"));
+    if (!["SUBMITTED", "ERROR"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_NOT_IN_REVIEW"));
 
     instruction.score = Math.round(score);
     instruction.observations = observations || "";

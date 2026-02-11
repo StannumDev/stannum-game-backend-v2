@@ -51,7 +51,7 @@ const addExperience = async (user, type, payload) => {
 
     let totalGain = gained + streakBonus;
     user.level.experienceTotal += totalGain;
-    while (user.level.experienceTotal >= user.level.experienceNextLevel) {
+    while (user.level.experienceTotal >= user.level.experienceNextLevel && user.level.currentLevel < xpCfg.LEVELS.MAX_LEVEL) {
         user.level.currentLevel += 1;
         user.level.experienceCurrentLevel = user.level.experienceNextLevel;
         user.level.experienceNextLevel = nextLevelTarget(user.level.currentLevel, user.level.experienceCurrentLevel, xpCfg);
