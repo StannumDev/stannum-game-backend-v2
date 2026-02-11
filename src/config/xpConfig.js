@@ -1,7 +1,11 @@
 module.exports = {
     LEVELS: {
-        base: 250,
-        growth: 1.2
+        base: 150,
+        tiers: [
+            { upToLevel: 10, increment: 50 },
+            { upToLevel: 20, increment: 100 },
+            { upToLevel: 30, increment: 200 },
+        ]
     },
     LESSON: {
         BASE_BY_MODULE_INDEX: [100, 140, 180, 230, 280],

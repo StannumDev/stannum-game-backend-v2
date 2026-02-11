@@ -2,9 +2,14 @@ const xpCfg = require('../config/xpConfig');
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-const nextLevelTarget = (prevNext, cfg) => {
-    const { base, growth } = cfg.LEVELS;
-    return prevNext ? Math.ceil(prevNext * growth) : base;
+const nextLevelTarget = (currentLevel, experienceCurrentLevel, cfg) => {
+    const { base, tiers } = cfg.LEVELS;
+    let cost = base;
+    for (let lvl = 3; lvl <= currentLevel + 1; lvl++) {
+        const tier = tiers.find(t => lvl <= t.upToLevel) || tiers[tiers.length - 1];
+        cost += tier.increment;
+    }
+    return experienceCurrentLevel + cost;
 };
 
 const localTodayString = (tz = 'UTC', d = new Date()) => {

@@ -21,16 +21,20 @@ module.exports = [
     },
     {
         id: "first_module_completed",
-        description: "Completa todas las lecciones de un módulo",
+        description: "Completa todas las lecciones e instrucciones de un módulo",
         xpReward: 100,
         condition: (user) => {
             return programs.some(programCfg => {
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
                 return programCfg.modules.some(module => {
-                    return module.lessons.every(lesson =>
-                        userProgram.lessonsCompleted.some(l => l.lessonId === lesson.id)
+                    const allLessonsDone = module.lessons.every(lesson =>
+                        (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
+                    const allInstructionsDone = (module.instructions || []).every(inst =>
+                        (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                    );
+                    return allLessonsDone && allInstructionsDone;
                 });
             });
         }
@@ -63,7 +67,8 @@ module.exports = [
                 if (!userProgram) return false;
                 
                 return programCfg.modules.some(module => {
-                    return (module.instructions > 0 && module.instructions.every(inst => (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")));
+                    const moduleInstructions = module.instructions || [];
+                    return (moduleInstructions.length > 0 && moduleInstructions.every(inst => (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")));
                 });
             });
         }
@@ -81,7 +86,7 @@ module.exports = [
                     const allLessonsDone = module.lessons.every(lesson =>
                         (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
-                    const allInstructionsDone = module.instructions.every(inst =>
+                    const allInstructionsDone = (module.instructions || []).every(inst =>
                         (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
                     );
                     return allLessonsDone && allInstructionsDone;
@@ -145,7 +150,9 @@ module.exports = [
             const userTia = user.programs?.tia;
             if (!userTia) return false;
 
-            return firstModule.lessons.every(lesson => (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id));
+            const allLessonsDone = firstModule.lessons.every(lesson => (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id));
+            const allInstructionsDone = (firstModule.instructions || []).every(inst => (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"));
+            return allLessonsDone && allInstructionsDone;
         }
     },
     {
