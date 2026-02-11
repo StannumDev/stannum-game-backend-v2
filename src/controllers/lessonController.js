@@ -72,6 +72,7 @@ const updateLastWatched = async (req, res) => {
 
         if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
         if (!lessonId) return res.status(400).json(getError("VALIDATION_LESSON_ID_REQUIRED"));
+        if (typeof currentTime !== 'number' || currentTime < 0) return res.status(400).json(getError("VALIDATION_MISSING_FIELDS"));
 
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));

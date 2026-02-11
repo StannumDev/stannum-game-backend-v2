@@ -1,5 +1,5 @@
 const path = require("path");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
@@ -133,6 +133,13 @@ const submitInstruction = async (req, res) => {
     }
 
     if (req.body.s3Key) {
+      const maxBytes = (config.maxFileSizeMB || 15) * 1024 * 1024;
+      try {
+        const head = await s3Client.send(new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: req.body.s3Key }));
+        if (head.ContentLength > maxBytes) return res.status(400).json(getError("INSTRUCTION_FILE_TOO_LARGE"));
+      } catch (s3Err) {
+        return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
+      }
       instruction.fileUrl = `${process.env.AWS_S3_BASE_URL}/${req.body.s3Key}`;
     }
 
