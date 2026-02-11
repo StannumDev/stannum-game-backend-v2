@@ -42,7 +42,7 @@ const unlockAchievements = async (user, save = false) => {
         while (user.level.experienceTotal >= user.level.experienceNextLevel) {
             user.level.currentLevel += 1;
             user.level.experienceCurrentLevel = user.level.experienceNextLevel;
-            user.level.experienceNextLevel = nextLevelTarget(user.level.experienceNextLevel, xpCfg);
+            user.level.experienceNextLevel = nextLevelTarget(user.level.currentLevel, user.level.experienceCurrentLevel, xpCfg);
         }
         user.level.progress = computeLevelProgress(user.level);
     }
