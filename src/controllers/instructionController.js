@@ -124,7 +124,7 @@ const submitInstruction = async (req, res) => {
     if (instructionIndex === -1) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
     const instruction = program.instructions[instructionIndex];
-    if (["SUBMITTED", "GRADED"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_ALREADY_SUBMITTED"));
+    if (instruction.status !== "IN_PROCESS") return res.status(400).json(getError("INSTRUCTION_ALREADY_SUBMITTED"));
 
     if (config.deliverableType === "file") {
       if (!req.body.s3Key) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
