@@ -46,6 +46,21 @@ app.use("/api/ranking", rankingRouter);
 app.use("/api/prompt", promptRouter);
 app.use("/api/assistant", assistantRouter);
 
+app.use((err, req, res, next) => {
+  if (err.type === "entity.parse.failed") {
+    console.error(`JSON parse error from ${req.ip} on ${req.method} ${req.originalUrl}`);
+    return res.status(400).json({
+      success: false,
+      msg: "JSON inválido en el body del request.",
+    });
+  }
+  console.error(err);
+  return res.status(500).json({
+    success: false,
+    msg: "Error interno del servidor.",
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);
 });
