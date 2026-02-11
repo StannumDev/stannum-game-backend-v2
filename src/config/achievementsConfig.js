@@ -6,7 +6,7 @@ module.exports = [
         description: "Compra tu primer programa en la plataforma",
         xpReward: 50,
         condition: (user) => {
-            return Object.values(user.programs).some(p => p.isPurchased);
+            return Object.values(user.programs || {}).some(p => p.isPurchased);
         }
     },
     {
@@ -14,8 +14,8 @@ module.exports = [
         description: "Completa todos los campos esenciales de tu perfil",
         xpReward: 50,
         condition: (user) => {
-            const { name, birthdate, country, region, aboutMe } = user.profile;
-            const { name: enterpriseName, jobPosition } = user.enterprise;
+            const { name, birthdate, country, region, aboutMe } = user.profile || {};
+            const { name: enterpriseName, jobPosition } = user.enterprise || {};
             return !!name && !!birthdate && !!country && !!region && !!aboutMe && !!enterpriseName && !!jobPosition;
         }
     },
@@ -28,7 +28,7 @@ module.exports = [
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
                 return programCfg.modules.some(module => {
-                    const allLessonsDone = module.lessons.every(lesson =>
+                    const allLessonsDone = (module.lessons || []).every(lesson =>
                         (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
                     const allInstructionsDone = (module.instructions || []).every(inst =>
@@ -44,7 +44,7 @@ module.exports = [
         description: "Ve y marca como completada tu primera lección",
         xpReward: 50,
         condition: (user) => {
-            return Object.values(user.programs).some(p => (p.lessonsCompleted || []).length >= 1);
+            return Object.values(user.programs || {}).some(p => (p.lessonsCompleted || []).length >= 1);
         }
     },
     {
@@ -52,7 +52,7 @@ module.exports = [
         description: "Envía tu primera instrucción calificada",
         xpReward: 50,
         condition: (user) => {
-            return Object.values(user.programs).some(p =>
+            return Object.values(user.programs || {}).some(p =>
                 (p.instructions || []).some(i => i.status === "GRADED")
             );
         }
@@ -83,7 +83,7 @@ module.exports = [
                 if (!userProgram) return false;
 
                 return programCfg.modules.every(module => {
-                    const allLessonsDone = module.lessons.every(lesson =>
+                    const allLessonsDone = (module.lessons || []).every(lesson =>
                         (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
                     const allInstructionsDone = (module.instructions || []).every(inst =>
@@ -98,37 +98,37 @@ module.exports = [
         id: "level_5",
         description: "Alcanza el nivel 5 acumulando XP",
         xpReward: 50,
-        condition: (user) => user.level.currentLevel >= 5
+        condition: (user) => (user.level?.currentLevel || 0) >= 5
     },
     {
         id: "level_10",
         description: "Alcanza el nivel 10 acumulando XP",
         xpReward: 100,
-        condition: (user) => user.level.currentLevel >= 10
+        condition: (user) => (user.level?.currentLevel || 0) >= 10
     },
     {
         id: "level_20",
         description: "Alcanza el nivel 20 acumulando XP",
         xpReward: 200,
-        condition: (user) => user.level.currentLevel >= 20
+        condition: (user) => (user.level?.currentLevel || 0) >= 20
     },
     {
         id: "streak_3_days",
         description: "Mantén tu streak 3 días consecutivos",
         xpReward: 50,
-        condition: (user) => user.dailyStreak.count >= 3
+        condition: (user) => (user.dailyStreak?.count || 0) >= 3
     },
     {
         id: "streak_7_days",
         description: "Mantén tu streak 7 días consecutivos",
         xpReward: 100,
-        condition: (user) => user.dailyStreak.count >= 7
+        condition: (user) => (user.dailyStreak?.count || 0) >= 7
     },
     {
         id: "streak_15_days",
         description: "Mantén tu streak 15 días consecutivos",
         xpReward: 200,
-        condition: (user) => user.dailyStreak.count >= 15
+        condition: (user) => (user.dailyStreak?.count || 0) >= 15
     },
     {
         id: "trenno_ia_joined",
@@ -150,7 +150,7 @@ module.exports = [
             const userTia = user.programs?.tia;
             if (!userTia) return false;
 
-            const allLessonsDone = firstModule.lessons.every(lesson => (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id));
+            const allLessonsDone = (firstModule.lessons || []).every(lesson => (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id));
             const allInstructionsDone = (firstModule.instructions || []).every(inst => (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"));
             return allLessonsDone && allInstructionsDone;
         }
@@ -166,8 +166,8 @@ module.exports = [
             const userTia = user.programs?.tia;
             if (!userTia) return false;
 
-            return tiaProgramCfg.modules.every(module => 
-                module.lessons.every(lesson =>
+            return tiaProgramCfg.modules.every(module =>
+                (module.lessons || []).every(lesson =>
                     (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
                 ) && (
                     (module.instructions || []).length === 0 ||
@@ -203,7 +203,7 @@ module.exports = [
             if (!tiaSummerCfg) return false;
             const tiaSummer = user.programs?.tia_summer;
             if (!tiaSummer) return false;
-            return tiaSummerCfg.modules.every(module => module.lessons.every(lesson => (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
+            return tiaSummerCfg.modules.every(module => (module.lessons || []).every(lesson => (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
         }
     },
 ];

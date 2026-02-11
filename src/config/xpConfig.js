@@ -1,5 +1,6 @@
 module.exports = {
     LEVELS: {
+        MAX_LEVEL: 30,
         base: 150,
         tiers: [
             { upToLevel: 10, increment: 50 },

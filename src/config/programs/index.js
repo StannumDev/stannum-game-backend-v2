@@ -92,6 +92,7 @@ module.exports = {
                             estimatedTimeSec: 600,
                             difficulty: "MEDIUM",
                             afterLessonId: "TIAM02L05",
+                            requiredActivityId: "TIAM02I01",
                             deliverableType: "file",
                             acceptedFormats: [".jpg", ".jpeg", ".png"],
                             maxFileSizeMB: 15,

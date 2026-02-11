@@ -207,35 +207,61 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     const grading = parseGradingResponse(responseText);
     console.log(`[AI Grading] Grading parseado: score=${grading.score}, observations="${grading.observations.substring(0, 80)}...", lessons=${JSON.stringify(grading.referencedLessons)}`);
 
-    instruction.score = grading.score;
-    instruction.observations = grading.observations;
-    instruction.referencedLessons = grading.referencedLessons;
-    instruction.reviewedAt = new Date();
-    instruction.status = "GRADED";
+    // Re-fetch user to avoid overwriting admin manual grade
+    const freshUser = await User.findById(userId);
+    const freshProgram = freshUser?.programs?.[programName];
+    const freshInstruction = freshProgram?.instructions?.find(i => i.instructionId === instructionId);
+    if (!freshInstruction || freshInstruction.status === "GRADED") {
+      console.log(`[AI Grading] Instrucción ${instructionId} ya fue calificada por otro proceso. Abortando.`);
+      return grading;
+    }
+
+    freshInstruction.score = grading.score;
+    freshInstruction.observations = grading.observations;
+    freshInstruction.referencedLessons = grading.referencedLessons;
+    freshInstruction.reviewedAt = new Date();
+    freshInstruction.status = "GRADED";
 
     const info = resolveInstructionInfo(programs, programName, instructionId);
-    const timeTakenSec = instruction.submittedAt && instruction.startDate
-      ? Math.round((new Date(instruction.submittedAt) - new Date(instruction.startDate)) / 1000)
+    const timeTakenSec = freshInstruction.submittedAt && freshInstruction.startDate
+      ? Math.round((new Date(freshInstruction.submittedAt) - new Date(freshInstruction.startDate)) / 1000)
       : 0;
 
     console.log(`[AI Grading] Aplicando XP. rewardXP=${info.rewardXP}, timeTaken=${timeTakenSec}s`);
 
-    await addExperience(user, "INSTRUCTION_GRADED", {
+    await addExperience(freshUser, "INSTRUCTION_GRADED", {
       programId: programName,
       instructionId,
       rewardXP: info.rewardXP,
       estimatedTimeSec: info.estimatedTimeSec,
-      score: instruction.score,
+      score: freshInstruction.score,
       timeTakenSec,
     });
 
-    await user.save();
+    await freshUser.save();
 
     console.log(`[AI Grading] === COMPLETADO === ${instructionId} calificada: ${grading.score}/100`);
     return grading;
   } catch (error) {
     console.error(`[AI Grading] === ERROR === ${instructionId} para ${userId}:`, error.message);
     console.error(`[AI Grading] Stack:`, error.stack);
+
+    try {
+      const user = await User.findById(userId);
+      if (user) {
+        const program = user.programs?.[programName];
+        const instruction = program?.instructions?.find(i => i.instructionId === instructionId);
+        if (instruction && instruction.status === "SUBMITTED") {
+          instruction.status = "ERROR";
+          instruction.observations = `Error en la corrección automática: ${error.message}`;
+          await user.save();
+          console.log(`[AI Grading] Instrucción ${instructionId} marcada como ERROR`);
+        }
+      }
+    } catch (saveErr) {
+      console.error(`[AI Grading] Error al marcar instrucción como ERROR:`, saveErr.message);
+    }
+
     throw error;
   }
 };
