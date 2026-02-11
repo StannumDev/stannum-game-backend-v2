@@ -43,6 +43,7 @@ const addExperience = async (user, type, payload) => {
         const capped = Math.min(newCount, xpCfg.STREAK.CAP_DAY);
         streakBonus = xpCfg.STREAK.DAILY_BONUS_PER_DAY[capped - 1] || 0;
 
+        if (!user.dailyStreak) user.dailyStreak = {};
         user.dailyStreak.count = newCount;
         user.dailyStreak.lastActivityLocalDate = today;
 
