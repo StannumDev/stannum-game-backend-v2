@@ -179,6 +179,24 @@
         "techMessage": "The specified program does not exist.",
         "friendlyMessage": "Hubo un error encontrando esta lección."
     },
+    "VALIDATION_MISSING_FIELDS": {
+        "success": false,
+        "code": "VALIDATION_025",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Campos incompletos",
+        "techMessage": "One or more required fields are missing or invalid.",
+        "friendlyMessage": "Faltan campos obligatorios o contienen valores inválidos."
+    },
+    "VALIDATION_LESSON_NOT_FOUND": {
+        "success": false,
+        "code": "VALIDATION_027",
+        "type": "error",
+        "showAlert": true,
+        "title": "Lección no encontrada",
+        "techMessage": "The specified lesson does not exist in this program.",
+        "friendlyMessage": "No se encontró la lección solicitada."
+    },
     "VALIDATION_LESSON_ALREADY_COMPLETED": {
         "success": false,
         "code": "VALIDATION_026",
@@ -215,132 +233,6 @@
         "techMessage": "username is offensive",
         "friendlyMessage": "Por favor elige un nombre de usuario apropiado sin palabras ofensivas."
     },
-    "VALIDATION_PROMPT_TITLE_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_034",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Título requerido",
-        "techMessage": "Prompt title is required.",
-        "friendlyMessage": "El título del prompt es obligatorio."
-    },
-    "VALIDATION_PROMPT_TITLE_LENGTH": {
-        "success": false,
-        "code": "VALIDATION_035",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Título inválido",
-        "techMessage": "Prompt title must be between 5 and 80 characters.",
-        "friendlyMessage": "El título debe tener entre 5 y 80 caracteres."
-    },
-    "VALIDATION_PROMPT_DESCRIPTION_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_036",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Descripción requerida",
-        "techMessage": "Prompt description is required.",
-        "friendlyMessage": "La descripción del prompt es obligatoria."
-    },
-    "VALIDATION_PROMPT_DESCRIPTION_LENGTH": {
-        "success": false,
-        "code": "VALIDATION_037",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Descripción inválida",
-        "techMessage": "Prompt description must be between 10 and 200 characters.",
-        "friendlyMessage": "La descripción debe tener entre 10 y 200 caracteres."
-    },
-    "VALIDATION_PROMPT_CONTENT_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_038",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Contenido requerido",
-        "techMessage": "Prompt content is required.",
-        "friendlyMessage": "El contenido del prompt es obligatorio."
-    },
-    "VALIDATION_PROMPT_CONTENT_LENGTH": {
-        "success": false,
-        "code": "VALIDATION_039",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Contenido inválido",
-        "techMessage": "Prompt content must be between 10 and 8000 characters.",
-        "friendlyMessage": "El contenido debe tener entre 10 y 8000 caracteres."
-    },
-    "VALIDATION_PROMPT_CATEGORY_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_040",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Categoría requerida",
-        "techMessage": "Prompt category is required.",
-        "friendlyMessage": "Debes seleccionar una categoría."
-    },
-    "VALIDATION_PROMPT_CATEGORY_INVALID": {
-        "success": false,
-        "code": "VALIDATION_041",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Categoría inválida",
-        "techMessage": "Invalid prompt category.",
-        "friendlyMessage": "La categoría seleccionada no es válida."
-    },
-    "VALIDATION_PROMPT_DIFFICULTY_INVALID": {
-        "success": false,
-        "code": "VALIDATION_042",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Dificultad inválida",
-        "techMessage": "Invalid difficulty level.",
-        "friendlyMessage": "El nivel de dificultad no es válido."
-    },
-    "VALIDATION_PROMPT_PLATFORMS_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_043",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Plataforma requerida",
-        "techMessage": "At least one compatible platform is required.",
-        "friendlyMessage": "Debes seleccionar al menos una plataforma compatible."
-    },
-    "VALIDATION_PROMPT_PLATFORMS_INVALID": {
-        "success": false,
-        "code": "VALIDATION_044",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Plataforma inválida",
-        "techMessage": "Invalid platform selected.",
-        "friendlyMessage": "Una de las plataformas seleccionadas no es válida."
-    },
-    "VALIDATION_PROMPT_TAGS_MAX": {
-        "success": false,
-        "code": "VALIDATION_045",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Demasiados tags",
-        "techMessage": "Cannot add more than 10 tags.",
-        "friendlyMessage": "No puedes agregar más de 10 tags."
-    },
-    "VALIDATION_PROMPT_TAG_LENGTH": {
-        "success": false,
-        "code": "VALIDATION_046",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Tag inválido",
-        "techMessage": "Each tag must be between 2 and 30 characters.",
-        "friendlyMessage": "Cada tag debe tener entre 2 y 30 caracteres."
-    },
-    "VALIDATION_PROMPT_CUSTOM_GPT_URL_INVALID": {
-        "success": false,
-        "code": "VALIDATION_047",
-        "type": "warning",
-        "showAlert": true,
-        "title": "URL inválida",
-        "techMessage": "Custom GPT URL is not valid.",
-        "friendlyMessage": "La URL del GPT personalizado no es válida."
-    },
     "VALIDATION_PROMPT_ID_REQUIRED": {
         "success": false,
         "code": "VALIDATION_048",
@@ -358,24 +250,6 @@
         "title": "ID requerido",
         "techMessage": "Assistant ID is required.",
         "friendlyMessage": "El ID del asistente es obligatorio."
-    },
-    "VALIDATION_ASSISTANT_URL_REQUIRED": {
-        "success": false,
-        "code": "VALIDATION_050",
-        "type": "warning",
-        "showAlert": true,
-        "title": "URL requerida",
-        "techMessage": "Assistant URL is required.",
-        "friendlyMessage": "La URL del asistente es obligatoria."
-    },
-    "VALIDATION_ASSISTANT_URL_INVALID": {
-        "success": false,
-        "code": "VALIDATION_051",
-        "type": "warning",
-        "showAlert": true,
-        "title": "URL inválida",
-        "techMessage": "Assistant URL is not valid.",
-        "friendlyMessage": "La URL del asistente no es válida."
     },
     "VALIDATION_OBSERVATIONS_TOO_LONG": {
         "success": false,
@@ -503,15 +377,6 @@
         "techMessage": "Invalid or expired Google access token.",
         "friendlyMessage": "Hubo un error iniciando sesión Google. Por favor, intenta de nuevo."
     },
-    "AUTH_NO_USERS_FOUND": {
-        "success": false,
-        "code": "AUTH_014",
-        "type": "warning",
-        "showAlert": false,
-        "title": "No hubo resultados",
-        "techMessage": "No users match the search criteria.",
-        "friendlyMessage": "No se encontraron usuarios con los criterios de búsqueda ingresados."
-    },
     "AUTH_PASSWORD_LOGIN_DISABLED": {
         "success": false,
         "code": "AUTH_015",
@@ -638,14 +503,14 @@
         "techMessage": "The submitted text exceeds the maximum of 5000 characters.",
         "friendlyMessage": "El texto no puede superar los 5000 caracteres."
     },
-    "INSTRUCTION_UPLOAD_FAILED": {
+    "INSTRUCTION_NOT_IN_ERROR": {
         "success": false,
-        "code": "INSTRUCTION_013",
+        "code": "INSTRUCTION_014",
         "type": "error",
         "showAlert": true,
-        "title": "Error al subir el archivo",
-        "techMessage": "Failed to upload instruction file to S3.",
-        "friendlyMessage": "Hubo un error al subir tu archivo. Por favor, inténtalo nuevamente."
+        "title": "No se puede reintentar",
+        "techMessage": "The instruction must be in ERROR status to retry grading.",
+        "friendlyMessage": "Solo podés reintentar la corrección si hubo un error previo."
     },
     "LESSON_BLOCKED_BY_INSTRUCTION": {
         "success": false,
@@ -692,33 +557,6 @@
         "techMessage": "product key required.",
         "friendlyMessage": "Debes ingresar una clave de producto."
     },
-    "PHOTO_FILE_TOO_LARGE": {
-        "success": false,
-        "code": "PHOTO_001",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Foto demasiado grande",
-        "techMessage": "The uploaded photo exceeds the maximum allowed size of 20MB.",
-        "friendlyMessage": "Tu foto de perfil no puede superar los 20MB."
-    },
-    "PHOTO_INVALID_FORMAT": {
-        "success": false,
-        "code": "PHOTO_002",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Formato de archivo inválido",
-        "techMessage": "The uploaded photo format is not supported. Only JPEG and PNG are allowed.",
-        "friendlyMessage": "El formato del archivo no es válido. Solo se permiten imágenes."
-    },
-    "PHOTO_PROCESSING_FAILED": {
-        "success": false,
-        "code": "PHOTO_003",
-        "type": "error",
-        "showAlert": true,
-        "title": "Error al subir tu foto",
-        "techMessage": "An error occurred while processing the photo. Ensure the image is valid and try again.",
-        "friendlyMessage": "Hubo un error al subir tu foto. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
     "PHOTO_UPLOAD_FAILED": {
         "success": false,
         "code": "PHOTO_004",
@@ -727,15 +565,6 @@
         "title": "Error al subir tu foto",
         "techMessage": "Failed to upload the photo to the server.",
         "friendlyMessage": "Hubo un error al subir tu foto. Por favor, inténtalo nuevamente o contacta al soporte."
-    },
-    "PHOTO_REQUIRED": {
-        "success": false,
-        "code": "PHOTO_006",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Foto requerida",
-        "techMessage": "Photo file is required.",
-        "friendlyMessage": "Debes seleccionar una foto para subir."
     },
     "PHOTO_URL_GENERATION_FAILED": {
         "success": false,
@@ -817,24 +646,6 @@
         "title": "Like no encontrado",
         "techMessage": "User has not liked this prompt.",
         "friendlyMessage": "No has valorado este prompt."
-    },
-    "PROMPT_ALREADY_FAVORITED": {
-        "success": false,
-        "code": "PROMPT_005",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Ya en favoritos",
-        "techMessage": "Prompt is already in user's favorites.",
-        "friendlyMessage": "Este prompt ya está en tus favoritos."
-    },
-    "PROMPT_NOT_FAVORITED": {
-        "success": false,
-        "code": "PROMPT_006",
-        "type": "warning",
-        "showAlert": true,
-        "title": "Favorito no encontrado",
-        "techMessage": "Prompt is not in user's favorites.",
-        "friendlyMessage": "Este prompt no está en tus favoritos."
     },
     "PROMPT_CREATION_FAILED": {
         "success": false,

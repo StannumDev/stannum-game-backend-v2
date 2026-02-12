@@ -27,15 +27,4 @@ router.get(
     rankingController.getTeamRanking
 );
 
-// router.get(
-//     "/individual/:programName",
-//     [
-//         validateJWT,
-//         check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty().withMessage("El nombre del programa no puede estar vacío."),
-//         query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("El límite debe ser un número entre 1 y 100."),
-//         fieldsValidate,
-//     ],
-//     rankingController.getIndividualRanking
-// );
-
 module.exports = router;

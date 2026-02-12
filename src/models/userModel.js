@@ -206,7 +206,7 @@ const instructionSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["IN_PROCESS", "SUBMITTED", "GRADED"],
+    enum: ["IN_PROCESS", "SUBMITTED", "GRADED", "ERROR"],
     default: "IN_PROCESS",
   },
 });
@@ -532,12 +532,6 @@ const userSchema = new Schema(
       otpExpiresAt: {
         type: Date,
         default: null,
-        // validate: {
-        //   validator: function (value) {
-        //     return !value || value > Date.now();
-        //   },
-        //   message: "La fecha de expiración debe ser en el futuro.",
-        // },
       },
     },
   },
