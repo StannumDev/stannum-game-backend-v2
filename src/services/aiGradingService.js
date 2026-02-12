@@ -207,7 +207,6 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     const grading = parseGradingResponse(responseText);
     console.log(`[AI Grading] Grading parseado: score=${grading.score}, observations="${grading.observations.substring(0, 80)}...", lessons=${JSON.stringify(grading.referencedLessons)}`);
 
-    // Re-fetch user to avoid overwriting admin manual grade
     const freshUser = await User.findById(userId);
     const freshProgram = freshUser?.programs?.[programName];
     const freshInstruction = freshProgram?.instructions?.find(i => i.instructionId === instructionId);
@@ -253,7 +252,6 @@ const gradeWithAI = async (userId, programName, instructionId) => {
         const instruction = program?.instructions?.find(i => i.instructionId === instructionId);
         if (instruction && instruction.status === "SUBMITTED") {
           instruction.status = "ERROR";
-          instruction.observations = `Error en la corrección automática: ${error.message}`;
           await user.save();
           console.log(`[AI Grading] Instrucción ${instructionId} marcada como ERROR`);
         }
@@ -299,7 +297,6 @@ const buildGradingMessage = (config, instruction) => {
 
 const parseGradingResponse = (responseText) => {
   try {
-    // Try to extract JSON from the response (may be wrapped in markdown code block)
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No se encontró JSON en la respuesta");
 

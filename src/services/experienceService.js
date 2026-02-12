@@ -33,7 +33,7 @@ const addExperience = async (user, type, payload) => {
         gained = computeInstructionXP(payload);
     }
 
-    const tz = user.dailyStreak?.timezone || 'UTC';
+    const tz = user.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
     const today = localTodayString(tz);
     const last = user.dailyStreak?.lastActivityLocalDate;
     let streakBonus = 0;

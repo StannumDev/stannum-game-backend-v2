@@ -55,4 +55,15 @@ router.post(
   instructionController.gradeInstruction
 );
 
+router.post(
+  "/retry/:programName/:instructionId",
+  [
+    validateJWT,
+    check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty(),
+    check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty(),
+    fieldsValidate,
+  ],
+  instructionController.retryGrading
+);
+
 module.exports = router;

@@ -37,7 +37,6 @@ const login = async (req = request, res = response) => {
 
     return res.status(200).json({ success: true, token, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
-    // console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };

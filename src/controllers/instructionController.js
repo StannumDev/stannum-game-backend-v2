@@ -221,4 +221,34 @@ const gradeInstruction = async (req, res) => {
   }
 };
 
-module.exports = { startInstruction, getPresignedUrl, submitInstruction, gradeInstruction };
+const retryGrading = async (req, res) => {
+  try {
+    const { programName, instructionId } = req.params;
+    const userId = req.userAuth.id;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+    const program = user.programs?.[programName];
+    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+
+    const instruction = program.instructions.find(i => i.instructionId === instructionId);
+    if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
+
+    if (instruction.status !== "ERROR") return res.status(400).json(getError("INSTRUCTION_NOT_IN_ERROR"));
+
+    instruction.status = "SUBMITTED";
+    await user.save();
+
+    gradeWithAI(userId, programName, instructionId).catch(err => {
+      console.error(`[AI Grading] Error en retry para ${instructionId}:`, err.message);
+    });
+
+    return res.status(200).json({ success: true, message: "Reintentando corrección automática." });
+  } catch (error) {
+    console.error("Error al reintentar calificación:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { startInstruction, getPresignedUrl, submitInstruction, gradeInstruction, retryGrading };
