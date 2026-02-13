@@ -5,7 +5,7 @@ const { getError } = require('../helpers/getError');
 
 const getAllAssistants = async (req, res) => {
     try {
-        const { search, category, difficulty, tags, platforms, sortBy = 'popular', favoritesOnly, stannumVerifiedOnly, page = 1, limit = 20 } = req.query;
+        const { search, category, difficulty, tags, platform, sortBy = 'popular', favoritesOnly, stannumVerifiedOnly, page = 1, limit = 20 } = req.query;
         const filters = { 
             status: true,
             visibility: 'published'
@@ -37,10 +37,7 @@ const getAllAssistants = async (req, res) => {
         if (stannumVerifiedOnly === 'true') filters['stannumVerified.isVerified'] = true;
         if (category) filters.category = category;
         if (difficulty) filters.difficulty = difficulty;
-        if (platforms) {
-            const platformArray = platforms.split(',').map(p => p.trim().toLowerCase());
-            filters.platform = { $in: platformArray };
-        }
+        if (platform) filters.platform = platform;
         if (tags) {
             const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
             filters.tags = { $in: tagArray };
@@ -74,7 +71,8 @@ const getAllAssistants = async (req, res) => {
         }
 
         if (search && search.trim().length >= 2) {
-            const searchRegex = new RegExp(search.trim(), 'i');
+            const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const searchRegex = new RegExp(escaped, 'i');
             filters.$or = [
                 { title: searchRegex },
                 { description: searchRegex },
@@ -300,13 +298,14 @@ const clickAssistant = async (req, res) => {
         });
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
-        if(assistant.author.toString() !== req.userAuth.id.toString()) await assistant.incrementClicks();
-        
+        const isOwnAssistant = assistant.author.toString() === req.userAuth.id.toString();
+        if (!isOwnAssistant) await assistant.incrementClicks();
+
         return res.json({
             success: true,
             data: {
                 assistantUrl: assistant.assistantUrl,
-                clicksCount: assistant.metrics.clicksCount
+                clicksCount: isOwnAssistant ? assistant.metrics.clicksCount : assistant.metrics.clicksCount + 1
             },
             message: 'Click registered successfully'
         });
@@ -333,7 +332,7 @@ const likeAssistant = async (req, res) => {
 
         return res.json({
             success: true,
-            data: { likesCount: assistant.metrics.likesCount },
+            data: { likesCount: assistant.metrics.likesCount + 1 },
             message: 'Assistant liked successfully'
         });
     } catch (error) {
@@ -355,12 +354,12 @@ const unlikeAssistant = async (req, res) => {
 
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
         if (!assistant.hasUserLiked(req.userAuth.id)) return res.status(400).json(getError("ASSISTANT_NOT_LIKED"));
-        
+
         await assistant.removeLike(req.userAuth.id);
 
         return res.json({
             success: true,
-            data: { likesCount: assistant.metrics.likesCount },
+            data: { likesCount: Math.max(0, assistant.metrics.likesCount - 1) },
             message: 'Like removed successfully'
         });
     } catch (error) {
@@ -439,15 +438,17 @@ const getUserAssistants = async (req, res) => {
     try {
         const { userId } = req.params;
         const { page = 1, limit = 20 } = req.query;
-        
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+
         const assistants = await Assistant.find({
             author: userId,
             status: true,
             visibility: 'published'
         })
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalAssistants = await Assistant.countDocuments({
@@ -455,6 +456,7 @@ const getUserAssistants = async (req, res) => {
             status: true,
             visibility: 'published'
         });
+        const totalPages = Math.ceil(totalAssistants / limitNum);
 
         const assistantsData = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
 
@@ -463,9 +465,11 @@ const getUserAssistants = async (req, res) => {
             data: {
                 assistants: assistantsData,
                 pagination: {
-                    currentPage: parseInt(page),
-                    totalPages: Math.ceil(totalAssistants / limit),
-                    totalAssistants
+                    currentPage: pageNum,
+                    totalPages,
+                    totalAssistants,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
@@ -478,31 +482,36 @@ const getUserAssistants = async (req, res) => {
 const getMyAssistants = async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
-        
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+
         const assistants = await Assistant.find({
             author: req.userAuth.id,
             status: true
         })
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalAssistants = await Assistant.countDocuments({
             author: req.userAuth.id,
             status: true
         });
+        const totalPages = Math.ceil(totalAssistants / limitNum);
 
         const assistantsData = assistants.map(assistant => assistant.getFullDetails(req.userAuth.id));
-        
+
         return res.json({
             success: true,
             data: {
                 assistants: assistantsData,
                 pagination: {
-                    currentPage: parseInt(page),
-                    totalPages: Math.ceil(totalAssistants / limit),
-                    totalAssistants
+                    currentPage: pageNum,
+                    totalPages,
+                    totalAssistants,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
@@ -517,7 +526,7 @@ const getMyFavorites = async (req, res) => {
         const user = await User.findById(req.userAuth.id);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const favoriteAssistants = await user.getFavoriteAssistants();
+        const favoriteAssistants = (await user.getFavoriteAssistants()).filter(Boolean);
         const assistantsData = favoriteAssistants.map(assistant => assistant.getPreview(req.userAuth.id));
 
         return res.json({

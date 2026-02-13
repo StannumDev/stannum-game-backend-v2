@@ -13,11 +13,14 @@ const getIndividualRanking = async (req, res) => {
         { "programs.tia_summer.isPurchased": true }
       ],
       status: true
-    });
+    })
+    .sort({ 'level.experienceTotal': -1 })
+    .limit(limit)
+    .select('level profile username enterprise profilePhotoUrl');
 
-    if (!users) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
+    if (!users || users.length === 0) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));
 
-    const rankedUsers = users.map(user => user.getRankingUserDetails()).sort((a, b) => b.points - a.points).slice(0, limit).map((user, index) => ({ ...user, position: index + 1 }));
+    const rankedUsers = users.map((user, index) => ({ ...user.getRankingUserDetails(), position: index + 1 }));
     return res.status(200).json({ success: true, data: rankedUsers });
   } catch (error) {
     console.error("Error fetching individual ranking:", error);
@@ -29,6 +32,9 @@ const getTeamRanking = async (req, res) => {
   try {
     const { programName } = req.params;
     if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
+
+    const validPrograms = ['tia', 'tia_summer', 'tmd'];
+    if (!validPrograms.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
     const users = await User.find({ [`programs.${programName}.isPurchased`]: true });
     if (!users.length) return res.status(404).json(getError("RANKING_NO_USERS_FOUND"));

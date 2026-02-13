@@ -36,6 +36,8 @@ router.post(
     validateJWT,
     check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty().withMessage("El nombre del programa no puede estar vacío."),
     check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty().withMessage("El ID de la instrucción no puede estar vacío."),
+    check("s3Key").optional().trim().isLength({ max: 500 }).withMessage("La clave S3 no puede exceder 500 caracteres."),
+    check("submittedText").optional().trim().isLength({ max: 10000 }).withMessage("El texto enviado no puede exceder 10000 caracteres."),
     fieldsValidate,
   ],
   instructionController.submitInstruction
@@ -50,6 +52,7 @@ router.post(
     check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty(),
     check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty(),
     check("score", "El puntaje es obligatorio.").isNumeric(),
+    check("observations").optional().trim().isLength({ max: 500 }).withMessage("Las observaciones no pueden exceder 500 caracteres."),
     fieldsValidate,
   ],
   instructionController.gradeInstruction

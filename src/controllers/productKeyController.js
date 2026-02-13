@@ -5,6 +5,8 @@ const User = require("../models/userModel");
 const { unlockAchievements } = require("../services/achievementsService");
 const { getError } = require("../helpers/getError");
 
+const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 const generateProductCode = () => {
     const segment = () =>
     Array.from({ length: 4 }, () =>
@@ -13,22 +15,22 @@ const generateProductCode = () => {
     return `${segment()}-${segment()}-${segment()}-${segment()}`;
 };
 
+const MAX_KEY_RETRIES = 5;
+
 const createProductKey = async () => {
-    const newKeyData = {
-        code: generateProductCode(),
-        email: "stannum@stannum.com.ar",
-        product: "tia_summer",
-        team: "no_team",
-    };
-  
-    try {
-        const existing = await ProductKey.findOne({ code: newKeyData.code });
-        if (existing) return await createProductKey();
-    
-        const key = await ProductKey.create(newKeyData);
-    } catch (err) {
-        console.error("❌ Error creando clave:", err);
+    for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+        const code = generateProductCode();
+        try {
+            const existing = await ProductKey.findOne({ code });
+            if (existing) continue;
+            await ProductKey.create({ code, email: "stannum@stannum.com.ar", product: "tia_summer", team: "no_team" });
+            return;
+        } catch (err) {
+            console.error("❌ Error creando clave:", err);
+            return;
+        }
     }
+    console.error("❌ No se pudo generar un código único después de", MAX_KEY_RETRIES, "intentos");
 };
 
 const verifyProductKey = async (req, res) => {
@@ -53,36 +55,51 @@ const activateProductKey = async (req, res) => {
         const { code } = req.body;
 
         if (!code) return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_REQUIRED"));
-        
-        const key = await ProductKey.findOne({ code: code.toUpperCase() });
-        if (!key) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
-        if (key.used) return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_ALREADY_USED"));
-    
+
+        const key = await ProductKey.findOneAndUpdate(
+            { code: code.toUpperCase(), used: false },
+            { used: true, usedAt: new Date(), usedBy: userId },
+            { new: true }
+        );
+
+        if (!key) {
+            const exists = await ProductKey.findOne({ code: code.toUpperCase() });
+            if (!exists) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
+            return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_ALREADY_USED"));
+        }
+
         const user = await User.findById(userId);
-        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-        
+        if (!user) {
+            await ProductKey.findOneAndUpdate(
+                { code: code.toUpperCase() },
+                { used: false, usedAt: null, usedBy: null }
+            );
+            return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+        }
+
         const alreadyHasProduct = user.programs?.[key.product]?.isPurchased;
-        if (alreadyHasProduct) return res.status(400).json(getError("VALIDATION_PRODUCT_ALREADY_OWNED"));
-        
+        if (alreadyHasProduct) {
+            await ProductKey.findOneAndUpdate(
+                { code: code.toUpperCase() },
+                { used: false, usedAt: null, usedBy: null }
+            );
+            return res.status(400).json(getError("VALIDATION_PRODUCT_ALREADY_OWNED"));
+        }
+
         user.programs[key.product].isPurchased = true;
         user.programs[key.product].acquiredAt = new Date();
-        
+
         const alreadyInTeam = user.teams.some(t => t.programName === key.product);
-        if (!alreadyInTeam && key.team?.teamName && key.team?.role) {
+        if (!alreadyInTeam && key.team && key.team !== 'no_team') {
             user.teams.push({
                 programName: key.product,
-                teamName: key.team.teamName,
-                role: key.team.role,
+                teamName: key.team,
+                role: 'member',
             });
         }
-    
+
         const { newlyUnlocked } = await unlockAchievements(user);
         await user.save();
-        await ProductKey.findByIdAndUpdate(key._id, {
-            used: true,
-            usedAt: new Date(),
-            usedBy: userId,
-        });
 
         return res.status(200).json({ success: true, message: "Programa activado correctamente.", achievementsUnlocked: newlyUnlocked });
     } catch (error) {
@@ -103,21 +120,25 @@ const generateAndSendProductKeyMake = async (req, res) => {
 
         let decodedFullName;
         try {
-            decodedFullName = Buffer.from(fullName, 'base64').toString('utf-8');
+            decodedFullName = escapeHtml(Buffer.from(fullName, 'base64').toString('utf-8'));
         } catch (error) {
             return res.status(400).json(getError("VALIDATION_FULLNAME_INVALID_ENCODING"));
         }
 
         let decodedMessage;
         try {
-            decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
+            decodedMessage = escapeHtml(Buffer.from(message, 'base64').toString('utf-8'));
         } catch (error) {
             return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
         }
 
-        const code = generateProductCode();
-        const existingKey = await ProductKey.findOne({ code });
-        if (existingKey) return generateAndSendProductKeyMake(req, res);
+        let code;
+        for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+            const candidate = generateProductCode();
+            const existingKey = await ProductKey.findOne({ code: candidate });
+            if (!existingKey) { code = candidate; break; }
+        }
+        if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
 
         await ProductKey.create({
             code,
@@ -215,10 +236,13 @@ const generateAndSendProductKey = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
 
-        const code = generateProductCode();
-        const existingKey = await ProductKey.findOne({ code });
-        
-        if (existingKey) return generateAndSendProductKey(req, res);
+        let code;
+        for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+            const candidate = generateProductCode();
+            const existingKey = await ProductKey.findOne({ code: candidate });
+            if (!existingKey) { code = candidate; break; }
+        }
+        if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
 
         await ProductKey.create({
             code,
@@ -299,10 +323,13 @@ const generateProductKey = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
 
-        const code = generateProductCode();
-        const existingKey = await ProductKey.findOne({ code });
-
-        if (existingKey) return generateProductKey(req, res);
+        let code;
+        for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+            const candidate = generateProductCode();
+            const existingKey = await ProductKey.findOne({ code: candidate });
+            if (!existingKey) { code = candidate; break; }
+        }
+        if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
 
         await ProductKey.create({
             code,
@@ -326,7 +353,7 @@ const checkProductKeyStatus = async (req, res) => {
     const { code } = req.params;
     try {
         const productKey = await ProductKey.findOne({ code: code.toUpperCase() })
-            .populate("user", "name email");
+            .populate("usedBy", "profile.name email");
 
         if (!productKey) {
             return res.status(404).json({
@@ -342,11 +369,11 @@ const checkProductKeyStatus = async (req, res) => {
                 code: productKey.code,
                 email: productKey.email,
                 product: productKey.product,
-                isActivated: !!productKey.user,
-                activatedAt: productKey.user ? productKey.createdAt : null,
-                user: productKey.user ? {
-                    name: productKey.user.name,
-                    email: productKey.user.email
+                isActivated: !!productKey.usedBy,
+                activatedAt: productKey.usedBy ? productKey.usedAt : null,
+                user: productKey.usedBy ? {
+                    name: productKey.usedBy.profile?.name,
+                    email: productKey.usedBy.email
                 } : null
             }
         });

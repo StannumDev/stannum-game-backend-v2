@@ -5,6 +5,8 @@ const { programs } = require("../config/programs");
 const { resolveInstructionInfo } = require("../helpers/resolveInstructionInfo");
 const { addExperience } = require("./experienceService");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
+const { getMultipleLessonsContent } = require("../helpers/getLessonContent");
+const { getPreviousLessons } = require("../helpers/getPreviousLessons");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -121,7 +123,31 @@ REGLAS ESTRICTAS
 - Nunca usar listas o bullets en observations.
 - Nunca inventar información.
 - No explicar el proceso interno de evaluación.
-- No mencionar criterios explícitos en el feedback.`;
+- No mencionar criterios explícitos en el feedback.
+
+EJEMPLO DE EVALUACIÓN
+A continuación, un ejemplo de cómo debe ser una evaluación completa y correcta:
+
+**Instrucción**: "Organiza tu carpeta principal" (Dificultad: LOW)
+- Pasos: Crear cuenta en Drive, descargar app en PC/celular, crear carpeta principal del negocio con subcarpetas por área, dar acceso al equipo.
+- Pista de entrega: "Sube una imagen clara que muestre tu estructura de carpetas en Drive."
+
+**Entrega del alumno**: Captura mostrando Drive con carpeta principal "Mi Empresa". Subcarpetas: Marketing, Ventas, Administración, Recursos Humanos, Operaciones. Carpetas con íconos de compartido. No se ve app instalada en PC ni celular.
+
+**Evaluación correcta**:
+{
+  "score": 80,
+  "observations": "Muy buen trabajo con la estructura de carpetas. Tenés las áreas principales bien definidas y ya compartiste el acceso con tu equipo. Solo te faltaron dos pasos: descargar la aplicación de Drive en tu computadora y en tu celular, que es importante para tener los archivos sincronizados y accesibles en todo momento.",
+  "referencedLessons": []
+}
+
+**Por qué este ejemplo es correcto**:
+- Reconoce lo que hizo bien (estructura, áreas, compartido).
+- Explica claramente qué faltó para llegar a 100 (apps de PC/celular).
+- Da una razón concreta de por qué es importante (sincronización y acceso).
+- Tono directo, profesional y motivador sin exagerar.
+- Un solo párrafo, 2-4 oraciones.
+- Puntaje 80: cumplió la mayoría pero faltaron pasos menores.`;
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -132,12 +158,9 @@ const s3Client = new S3Client({
 });
 
 const gradeWithAI = async (userId, programName, instructionId) => {
-  console.log(`[AI Grading] === INICIO === userId=${userId}, program=${programName}, instruction=${instructionId}`);
-
   try {
     const user = await User.findById(userId);
     if (!user) throw new Error("Usuario no encontrado");
-    console.log(`[AI Grading] Usuario encontrado: ${user.username}`);
 
     const program = user.programs?.[programName];
     if (!program) throw new Error("Programa no encontrado");
@@ -145,20 +168,16 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     const instruction = program.instructions.find(i => i.instructionId === instructionId);
     if (!instruction) throw new Error("Instrucción no encontrada");
     if (instruction.status !== "SUBMITTED") throw new Error(`Estado inválido: ${instruction.status}`);
-    console.log(`[AI Grading] Instrucción encontrada. Status: ${instruction.status}, fileUrl: ${instruction.fileUrl || "N/A"}, submittedText: ${instruction.submittedText ? "Sí" : "No"}`);
 
     const config = getInstructionConfig(programName, instructionId);
     if (!config) throw new Error("Config de instrucción no encontrada");
-    console.log(`[AI Grading] Config: "${config.title}", dificultad: ${config.difficulty}, tipo: ${config.deliverableType}`);
 
-    const message = buildGradingMessage(config, instruction);
-    console.log(`[AI Grading] Mensaje construido (${message.length} chars)`);
+    const message = buildGradingMessage(config, instruction, programName, instructionId);
 
     const contentArray = [];
 
     if (instruction.fileUrl) {
       const s3Key = instruction.fileUrl.replace(`${process.env.AWS_S3_BASE_URL}/`, "");
-      console.log(`[AI Grading] Descargando archivo de S3: ${s3Key}`);
 
       const s3Response = await s3Client.send(new GetObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME,
@@ -174,8 +193,6 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       const base64 = fileBuffer.toString("base64");
       const dataUrl = `data:${contentType};base64,${base64}`;
 
-      console.log(`[AI Grading] Archivo descargado de S3 (${fileBuffer.length} bytes, ${contentType}), convertido a base64`);
-
       contentArray.push({
         type: "input_image",
         image_url: dataUrl,
@@ -183,8 +200,6 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     }
 
     contentArray.push({ type: "input_text", text: message });
-
-    console.log(`[AI Grading] Llamando Responses API con gpt-4o (${contentArray.length} partes: ${contentArray.map(c => c.type).join(", ")})...`);
 
     const response = await openai.responses.create({
       model: "gpt-4o",
@@ -197,21 +212,15 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       ],
     });
 
-    console.log(`[AI Grading] Respuesta recibida. Output items: ${response.output?.length}`);
-
     const responseText = response.output?.[0]?.content?.[0]?.text;
     if (!responseText) throw new Error("No se recibió texto en la respuesta de OpenAI");
 
-    console.log(`[AI Grading] Respuesta del assistant:\n${responseText}`);
-
     const grading = parseGradingResponse(responseText);
-    console.log(`[AI Grading] Grading parseado: score=${grading.score}, observations="${grading.observations.substring(0, 80)}...", lessons=${JSON.stringify(grading.referencedLessons)}`);
 
     const freshUser = await User.findById(userId);
     const freshProgram = freshUser?.programs?.[programName];
     const freshInstruction = freshProgram?.instructions?.find(i => i.instructionId === instructionId);
     if (!freshInstruction || freshInstruction.status === "GRADED") {
-      console.log(`[AI Grading] Instrucción ${instructionId} ya fue calificada por otro proceso. Abortando.`);
       return grading;
     }
 
@@ -226,9 +235,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       ? Math.round((new Date(freshInstruction.submittedAt) - new Date(freshInstruction.startDate)) / 1000)
       : 0;
 
-    console.log(`[AI Grading] Aplicando XP. rewardXP=${info.rewardXP}, timeTaken=${timeTakenSec}s`);
-
-    await addExperience(freshUser, "INSTRUCTION_GRADED", {
+    const xpResult = await addExperience(freshUser, "INSTRUCTION_GRADED", {
       programId: programName,
       instructionId,
       rewardXP: info.rewardXP,
@@ -237,13 +244,13 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       timeTakenSec,
     });
 
+    freshInstruction.xpGained = xpResult.gained;
+
     await freshUser.save();
 
-    console.log(`[AI Grading] === COMPLETADO === ${instructionId} calificada: ${grading.score}/100`);
     return grading;
   } catch (error) {
-    console.error(`[AI Grading] === ERROR === ${instructionId} para ${userId}:`, error.message);
-    console.error(`[AI Grading] Stack:`, error.stack);
+    console.error(`[AI Grading] Error grading ${instructionId} for ${userId}:`, error.message);
 
     try {
       const user = await User.findById(userId);
@@ -253,18 +260,17 @@ const gradeWithAI = async (userId, programName, instructionId) => {
         if (instruction && instruction.status === "SUBMITTED") {
           instruction.status = "ERROR";
           await user.save();
-          console.log(`[AI Grading] Instrucción ${instructionId} marcada como ERROR`);
         }
       }
     } catch (saveErr) {
-      console.error(`[AI Grading] Error al marcar instrucción como ERROR:`, saveErr.message);
+      console.error(`[AI Grading] Error setting ERROR status for ${instructionId}:`, saveErr.message);
     }
 
     throw error;
   }
 };
 
-const buildGradingMessage = (config, instruction) => {
+const buildGradingMessage = (config, instruction, programName, instructionId) => {
   let message = `Corrige la siguiente entrega de un alumno.\n\n`;
   message += `## Instrucción\n`;
   message += `- **Título**: ${config.title}\n`;
@@ -278,11 +284,28 @@ const buildGradingMessage = (config, instruction) => {
     message += `  ${i + 1}. ${step}\n`;
   });
 
-  if (config.relatedLessonIds?.length > 0) {
-    message += `\n- **Lecciones relacionadas**: ${config.relatedLessonIds.join(", ")}\n`;
+  // Incluir TODAS las lecciones anteriores a esta instrucción
+  const previousLessonIds = getPreviousLessons(programName, instructionId);
+
+  if (previousLessonIds.length > 0) {
+    const lessons = getMultipleLessonsContent(programName, previousLessonIds);
+
+    if (lessons.length > 0) {
+      message += `\n## Lecciones que el alumno vio antes de esta instrucción\n`;
+      message += `El alumno completó las siguientes ${lessons.length} lecciones antes de realizar esta instrucción. Evaluá si aplicó los conceptos enseñados. Si identificás que el alumno falla en algún concepto específico, recomendále que repase la lección correspondiente incluyendo su ID en el array "referencedLessons".\n\n`;
+
+      lessons.forEach((lesson) => {
+        message += `### ${lesson.id}: ${lesson.title}\n`;
+        message += `**Temas cubiertos**:\n`;
+        lesson.topics.forEach(topic => {
+          message += `- ${topic}\n`;
+        });
+        message += `\n`;
+      });
+    }
   }
 
-  message += `\n## Entrega del alumno\n`;
+  message += `## Entrega del alumno\n`;
   if (instruction.submittedText) {
     message += `**Tipo**: Texto\n**Contenido**:\n${instruction.submittedText}\n`;
   } else if (instruction.fileUrl) {
@@ -308,7 +331,7 @@ const parseGradingResponse = (responseText) => {
 
     return { score, observations, referencedLessons };
   } catch (error) {
-    console.error("[AI Grading] Error parseando respuesta:", responseText);
+    console.error("[AI Grading] Error parsing response:", responseText);
     throw new Error("No se pudo parsear la respuesta del assistant");
   }
 };

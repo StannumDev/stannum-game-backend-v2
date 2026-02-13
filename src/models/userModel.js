@@ -77,10 +77,10 @@ const levelSchema = new Schema({
       ) {
         return 0;
       }
+      const denominator = this.experienceNextLevel - this.experienceCurrentLevel;
+      if (denominator === 0) return 100;
       return (
-        ((this.experienceTotal - this.experienceCurrentLevel) /
-          (this.experienceNextLevel - this.experienceCurrentLevel)) *
-        100
+        ((this.experienceTotal - this.experienceCurrentLevel) / denominator) * 100
       );
     },
     validate: {
@@ -185,6 +185,11 @@ const instructionSchema = new Schema({
   },
   xpGrantedAt: {
     type: Date,
+    default: null,
+  },
+  xpGained: {
+    type: Number,
+    min: [0],
     default: null,
   },
   observations: {
@@ -561,7 +566,7 @@ userSchema.methods.getRankingUserDetails = function () {
     name: censor(this.profile.name),
     username: this.username,
     photo: this.profilePhotoUrl,
-    enterprise: censor(this.enterprise.name) || "",
+    enterprise: censor(this.enterprise?.name) || "",
     points: this.level.experienceTotal,
     level: this.level.currentLevel
   };
@@ -600,6 +605,7 @@ userSchema.methods.getFullUserDetails = function () {
     xpHistory: this.xpHistory,
     unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
+    favorites: this.favorites,
   };
 };
 

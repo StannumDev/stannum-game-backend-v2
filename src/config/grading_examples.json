@@ -1,0 +1,77 @@
+{
+  "description": "Ejemplos de correcciones de instrucciones para entrenar al asistente. Cada ejemplo incluye la instrucción, una descripción de lo que el alumno entregó, y la calificación esperada.",
+  "examples": [
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla mostrando Google Drive con una carpeta principal del negocio. Tiene subcarpetas por área: Marketing, Ventas, Finanzas, RRHH, Producción. Dentro de Marketing se ven subcarpetas adicionales: Redes Sociales, Contenido, Campañas. Se ve el ícono de compartido en varias carpetas. También se ve la app de Drive instalada en el celular en una segunda captura.",
+      "grading": {
+        "score": 100,
+        "observations": "Impecable. No solo organizaste la carpeta principal con todas las áreas del negocio, sino que fuiste un paso más allá creando subcarpetas dentro de Marketing. Se nota que compartiste las carpetas con tu equipo y que también instalaste Drive en tu celular. Cumpliste todos los pasos a la perfección.",
+        "referencedLessons": []
+      }
+    },
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla mostrando una carpeta de Google Drive llamada 'Mi Empresa' con subcarpetas: Marketing, Ventas, Administración, Recursos Humanos, Operaciones. Cada subcarpeta tiene íconos de carpeta compartida.",
+      "grading": {
+        "score": 95,
+        "observations": "Excelente trabajo organizando tu carpeta de Drive. Se nota que aplicaste bien la estructura de áreas que vimos en las lecciones, y que ya diste acceso a tu equipo como muestran los íconos de compartido. Un detalle menor: podrías agregar una subcarpeta de 'Proyectos' o 'Clientes' para tener todo aún más organizado.",
+        "referencedLessons": []
+      }
+    },
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla mostrando Google Drive con la carpeta principal del negocio. Tiene subcarpetas: Contabilidad, Marketing, Ventas, Logística. Las carpetas están compartidas. No se ve que haya descargado Drive en la computadora ni en el celular.",
+      "grading": {
+        "score": 80,
+        "observations": "Muy buen trabajo con la estructura de carpetas. Tenés las áreas principales bien definidas y ya compartiste el acceso con tu equipo. Solo te faltaron dos pasos: descargar la aplicación de Drive en tu computadora y en tu celular, que es importante para tener los archivos sincronizados y accesibles en todo momento.",
+        "referencedLessons": []
+      }
+    },
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla de Google Drive con una carpeta principal del negocio y subcarpetas de áreas, pero la imagen está muy borrosa y no se pueden leer bien los nombres de las carpetas.",
+      "grading": {
+        "score": 75,
+        "observations": "Se puede ver que creaste la estructura de carpetas en Drive con varias subcarpetas, lo cual va por buen camino. Sin embargo, la imagen es bastante borrosa y cuesta leer los nombres de las carpetas. Te pido que vuelvas a subir una captura más nítida para poder evaluar mejor tu trabajo. Asegurate de que se lean bien todos los nombres.",
+        "referencedLessons": []
+      }
+    },
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla mostrando una carpeta de Google Drive con el nombre del negocio. Tiene 3 subcarpetas: Documentos, Fotos, Otros. No se ve que estén compartidas con nadie.",
+      "grading": {
+        "score": 65,
+        "observations": "Buen primer paso creando tu carpeta en Drive. Sin embargo, la estructura de subcarpetas debería reflejar las áreas de tu negocio (Marketing, Ventas, Administración, etc.) en lugar de categorías genéricas como 'Documentos' o 'Fotos'. Además, falta dar acceso a los miembros de tu equipo. Te recomiendo repasar la lección sobre la Fórmula Maestra donde explicamos cómo organizar la información.",
+        "referencedLessons": ["TIAM01L05"]
+      }
+    },
+    {
+      "instructionId": "TIAM01I01",
+      "instructionTitle": "Organiza tu carpeta principal",
+      "difficulty": "LOW",
+      "deliverableType": "file",
+      "submissionDescription": "Captura de pantalla mostrando el escritorio de la computadora con una carpeta llamada 'trabajo'. No es Google Drive.",
+      "grading": {
+        "score": 35,
+        "observations": "Veo que creaste una carpeta para organizar tu trabajo, lo cual muestra buena intención. Sin embargo, la instrucción pedía específicamente crear la estructura en Google Drive, no en tu computadora local. Google Drive permite compartir con tu equipo y acceder desde cualquier dispositivo. Te sugiero ver nuevamente las lecciones del módulo y crear la carpeta en Drive siguiendo los pasos indicados.",
+        "referencedLessons": ["TIAM01L03", "TIAM01L05"]
+      }
+    }
+  ]
+}

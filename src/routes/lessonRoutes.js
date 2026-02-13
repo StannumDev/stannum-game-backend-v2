@@ -24,6 +24,7 @@ router.patch(
         validateJWT,
         check("programName").trim().escape().not().isEmpty().isLength({ min: 2, max: 50 }),
         check("lessonId").trim().escape().not().isEmpty(),
+        check("currentTime", "El tiempo actual es obligatorio.").isNumeric().withMessage("currentTime debe ser un número."),
         fieldsValidate,
     ],
     lessonController.updateLastWatched

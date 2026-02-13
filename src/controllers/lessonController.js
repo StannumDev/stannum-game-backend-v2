@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const { addExperience } = require("../services/experienceService");
+const { unlockAchievements } = require("../services/achievementsService");
 const { getError } = require("../helpers/getError");
 const { programs } = require("../config/programs");
 
@@ -20,6 +21,9 @@ const markLessonAsCompleted = async (req, res) => {
 
         const isAlreadyCompleted = userProgram.lessonsCompleted.some(l => l.lessonId === lessonId);
         if (isAlreadyCompleted) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
+
+        const alreadyGivenXP = user.xpHistory.some(entry => entry.type === 'LESSON_COMPLETED' && entry.meta?.lessonId === lessonId);
+        if (alreadyGivenXP) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
 
         const programConfig = programs.find(p => p.id === programName);
         if (!programConfig) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
@@ -49,13 +53,15 @@ const markLessonAsCompleted = async (req, res) => {
         userProgram.lessonsCompleted.push({ lessonId, viewedAt: new Date() });
 
         const xpResult = await addExperience(user, 'LESSON_COMPLETED', { programId: programName, lessonId });
+        const { newlyUnlocked } = await unlockAchievements(user);
 
         await user.save();
 
         return res.status(200).json({
             success: true,
             message: "Lección marcada como completada.",
-            ...xpResult
+            ...xpResult,
+            achievementsUnlocked: newlyUnlocked
         });
 
     } catch (error) {

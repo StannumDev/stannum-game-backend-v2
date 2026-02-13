@@ -69,29 +69,32 @@ const getAllPrompts = async (req, res) => {
                 };
         }
         if (search && search.trim().length >= 2) {
-            const searchRegex = new RegExp(search.trim(), 'i');
+            const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const searchRegex = new RegExp(escaped, 'i');
             filters.$or = [
                 { title: searchRegex },
                 { description: searchRegex },
                 { tags: { $in: [searchRegex] } }
             ];
         }
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
         const query = Prompt.find(filters).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
-        const skip = (page - 1) * limit;
-        const prompts = await query.skip(skip).limit(parseInt(limit));
+        const skip = (pageNum - 1) * limitNum;
+        const prompts = await query.skip(skip).limit(limitNum);
         const totalPrompts = await Prompt.countDocuments(filters);
-        const totalPages = Math.ceil(totalPrompts / limit);
+        const totalPages = Math.ceil(totalPrompts / limitNum);
         const promptsWithUserActions = prompts.map(prompt => prompt.getPreview(req.userAuth.id));
         return res.json({
             success: true,
             data: {
                 prompts: promptsWithUserActions,
                 pagination: {
-                    currentPage: parseInt(page),
+                    currentPage: pageNum,
                     totalPages,
                     totalPrompts,
-                    hasNextPage: page < totalPages,
-                    hasPrevPage: page > 1
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
@@ -274,13 +277,14 @@ const copyPrompt = async (req, res) => {
         
         if (!prompt) return res.status(404).json(getError("PROMPT_NOT_FOUND"));
 
-        if(prompt.author.toString() !== req.userAuth.id.toString()) await prompt.incrementCopies();
-        
+        const isOwnPrompt = prompt.author.toString() === req.userAuth.id.toString();
+        if (!isOwnPrompt) await prompt.incrementCopies();
+
         return res.json({
             success: true,
             data: {
                 content: prompt.content,
-                copiesCount: prompt.metrics.copiesCount
+                copiesCount: isOwnPrompt ? prompt.metrics.copiesCount : prompt.metrics.copiesCount + 1
             },
             message: 'Prompt copied successfully'
         });
@@ -307,7 +311,7 @@ const likePrompt = async (req, res) => {
 
         return res.json({
             success: true,
-            data: { likesCount: prompt.metrics.likesCount },
+            data: { likesCount: prompt.metrics.likesCount + 1 },
             message: 'Prompt liked successfully'
         });
     } catch (error) {
@@ -333,7 +337,7 @@ const unlikePrompt = async (req, res) => {
 
         return res.json({
             success: true,
-            data: { likesCount: prompt.metrics.likesCount },
+            data: { likesCount: Math.max(0, prompt.metrics.likesCount - 1) },
             message: 'Like removed successfully'
         });
     } catch (error) {
@@ -414,15 +418,17 @@ const getUserPrompts = async (req, res) => {
     try {
         const { userId } = req.params;
         const { page = 1, limit = 20 } = req.query;
-        
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+
         const prompts = await Prompt.find({
             author: userId,
             status: true,
             visibility: 'published'
         })
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalPrompts = await Prompt.countDocuments({
@@ -430,6 +436,7 @@ const getUserPrompts = async (req, res) => {
             status: true,
             visibility: 'published'
         });
+        const totalPages = Math.ceil(totalPrompts / limitNum);
 
         const promptsData = prompts.map(prompt => prompt.getPreview(req.userAuth.id));
 
@@ -438,9 +445,11 @@ const getUserPrompts = async (req, res) => {
             data: {
                 prompts: promptsData,
                 pagination: {
-                    currentPage: parseInt(page),
-                    totalPages: Math.ceil(totalPrompts / limit),
-                    totalPrompts
+                    currentPage: pageNum,
+                    totalPages,
+                    totalPrompts,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
@@ -453,31 +462,36 @@ const getUserPrompts = async (req, res) => {
 const getMyPrompts = async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
-        
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+
         const prompts = await Prompt.find({
             author: req.userAuth.id,
             status: true
         })
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .populate('author', 'username profile.name preferences.hasProfilePhoto');
 
         const totalPrompts = await Prompt.countDocuments({
             author: req.userAuth.id,
             status: true
         });
+        const totalPages = Math.ceil(totalPrompts / limitNum);
 
         const promptsData = prompts.map(prompt => prompt.getFullDetails(req.userAuth.id));
-        
+
         return res.json({
             success: true,
             data: {
                 prompts: promptsData,
                 pagination: {
-                    currentPage: parseInt(page),
-                    totalPages: Math.ceil(totalPrompts / limit),
-                    totalPrompts
+                    currentPage: pageNum,
+                    totalPages,
+                    totalPrompts,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
@@ -492,7 +506,7 @@ const getMyFavorites = async (req, res) => {
         const user = await User.findById(req.userAuth.id);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const favoritePrompts = await user.getFavoritePrompts();
+        const favoritePrompts = (await user.getFavoritePrompts()).filter(Boolean);
         const promptsData = favoritePrompts.map(prompt => prompt.getPreview(req.userAuth.id));
 
         return res.json({
