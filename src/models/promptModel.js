@@ -230,29 +230,25 @@ promptSchema.virtual('engagementRate').get(function() {
 });
 
 promptSchema.methods.incrementCopies = function() {
-    this.metrics.copiesCount += 1;
-    return this.save();
+    return this.constructor.updateOne({ _id: this._id }, { $inc: { 'metrics.copiesCount': 1 } });
 };
 
 promptSchema.methods.incrementViews = function() {
-    this.metrics.viewsCount += 1;
-    return this.save();
+    return this.constructor.updateOne({ _id: this._id }, { $inc: { 'metrics.viewsCount': 1 } });
 };
 
 promptSchema.methods.addLike = function(userId) {
-    if (this.likedBy.includes(userId)) return Promise.reject(new Error('User already liked this prompt'));
-    this.likedBy.push(userId);
-    this.metrics.likesCount += 1;
-    return this.save();
+    return this.constructor.updateOne(
+        { _id: this._id, likedBy: { $ne: userId } },
+        { $push: { likedBy: userId }, $inc: { 'metrics.likesCount': 1 } }
+    );
 };
 
 promptSchema.methods.removeLike = function(userId) {
-    const index = this.likedBy.indexOf(userId);
-    if (index === -1) return Promise.reject(new Error('User has not liked this prompt'));
-    
-    this.likedBy.splice(index, 1);
-    this.metrics.likesCount = Math.max(0, this.metrics.likesCount - 1);
-    return this.save();
+    return this.constructor.updateOne(
+        { _id: this._id, likedBy: userId },
+        { $pull: { likedBy: userId }, $inc: { 'metrics.likesCount': -1 } }
+    );
 };
 
 promptSchema.methods.addFavorite = function(userId) {
@@ -396,12 +392,12 @@ promptSchema.methods.getFullDetails = function(userId = null) {
         tags: this.tags,
         exampleOutput: this.exampleOutput,
         metrics: this.metrics,
-        author: {
+        author: this.author ? {
             id: this.author._id,
             username: this.author.username,
             name: this.author.profile?.name,
             profilePhotoUrl: this.author.profilePhotoUrl
-        },
+        } : { id: null, username: 'Usuario eliminado', name: null, profilePhotoUrl: null },
         visibility: this.visibility,
         stannumVerified: this.stannumVerified,
         createdAt: this.createdAt,
@@ -431,14 +427,15 @@ promptSchema.methods.getPreview = function(userId = null) {
         platforms: this.platforms,
         tags: this.tags.slice(0, 4),
         metrics: {
-            copies: this.metrics.copiesCount,
-            likes: this.metrics.likesCount,
-            favorites: this.metrics.favoritesCount
+            copiesCount: this.metrics.copiesCount,
+            likesCount: this.metrics.likesCount,
+            favoritesCount: this.metrics.favoritesCount,
+            viewsCount: this.metrics.viewsCount || 0
         },
-        author: {
+        author: this.author ? {
             username: this.author.username,
             profilePhotoUrl: this.author.profilePhotoUrl
-        },
+        } : { username: 'Usuario eliminado', profilePhotoUrl: null },
         stannumVerified: this.stannumVerified,
         createdAt: this.createdAt,
         hasCustomGpt: !!this.customGptUrl

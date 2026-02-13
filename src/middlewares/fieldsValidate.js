@@ -11,7 +11,6 @@ const fieldsValidate = (req, res, next) => {
     }));
 
     const baseError = getError("VALIDATION_GENERIC_ERROR");
-    console.log(formattedErrors)
     return res.status(400).json({ ...baseError, errors: formattedErrors });
   }
 

@@ -103,7 +103,15 @@ const editUser = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
         if (name) user.profile.name = name;
-        if (birthdate) user.profile.birthdate = birthdate;
+        if (birthdate) {
+            const birthDateObject = new Date(birthdate);
+            if (isNaN(birthDateObject.getTime())) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+            const now = new Date();
+            let age = now.getFullYear() - birthDateObject.getFullYear();
+            if (now.getMonth() < birthDateObject.getMonth() || (now.getMonth() === birthDateObject.getMonth() && now.getDate() < birthDateObject.getDate())) age--;
+            if (age < 18) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+            user.profile.birthdate = birthDateObject;
+        }
         if (country) user.profile.country = country;
         if (region) user.profile.region = region;
         if (aboutme) user.profile.aboutMe = aboutme;

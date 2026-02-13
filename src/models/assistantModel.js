@@ -216,29 +216,25 @@ assistantSchema.virtual('engagementRate').get(function() {
 });
 
 assistantSchema.methods.incrementClicks = function() {
-    this.metrics.clicksCount += 1;
-    return this.save();
+    return this.constructor.updateOne({ _id: this._id }, { $inc: { 'metrics.clicksCount': 1 } });
 };
 
 assistantSchema.methods.incrementViews = function() {
-    this.metrics.viewsCount += 1;
-    return this.save();
+    return this.constructor.updateOne({ _id: this._id }, { $inc: { 'metrics.viewsCount': 1 } });
 };
 
 assistantSchema.methods.addLike = function(userId) {
-    if (this.likedBy.includes(userId)) return Promise.reject(new Error('User already liked this assistant'));
-    this.likedBy.push(userId);
-    this.metrics.likesCount += 1;
-    return this.save();
+    return this.constructor.updateOne(
+        { _id: this._id, likedBy: { $ne: userId } },
+        { $push: { likedBy: userId }, $inc: { 'metrics.likesCount': 1 } }
+    );
 };
 
 assistantSchema.methods.removeLike = function(userId) {
-    const index = this.likedBy.indexOf(userId);
-    if (index === -1) return Promise.reject(new Error('User has not liked this assistant'));
-    
-    this.likedBy.splice(index, 1);
-    this.metrics.likesCount = Math.max(0, this.metrics.likesCount - 1);
-    return this.save();
+    return this.constructor.updateOne(
+        { _id: this._id, likedBy: userId },
+        { $pull: { likedBy: userId }, $inc: { 'metrics.likesCount': -1 } }
+    );
 };
 
 assistantSchema.methods.addFavorite = function(userId) {
@@ -381,12 +377,12 @@ assistantSchema.methods.getFullDetails = function(userId = null) {
         tags: this.tags,
         useCases: this.useCases,
         metrics: this.metrics,
-        author: {
+        author: this.author ? {
             id: this.author._id,
             username: this.author.username,
             name: this.author.profile?.name,
             profilePhotoUrl: this.author.profilePhotoUrl
-        },
+        } : { id: null, username: 'Usuario eliminado', name: null, profilePhotoUrl: null },
         visibility: this.visibility,
         stannumVerified: this.stannumVerified,
         createdAt: this.createdAt,
@@ -417,10 +413,10 @@ assistantSchema.methods.getPreview = function(userId = null) {
         useCases: this.useCases,
         tags: this.tags.slice(0, 4),
         metrics: this.metrics,
-        author: {
+        author: this.author ? {
             username: this.author.username,
             profilePhotoUrl: this.author.profilePhotoUrl
-        },
+        } : { username: 'Usuario eliminado', profilePhotoUrl: null },
         stannumVerified: this.stannumVerified,
         createdAt: this.createdAt
     };

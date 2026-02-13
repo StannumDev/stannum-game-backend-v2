@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { rateLimiter } = require("../middlewares/rateLimiter");
+const { rateLimiter, otpRateLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
 
 const router = Router();
@@ -17,7 +17,7 @@ router.post(
   "/",
   [
     check("username", "Username is required.").trim().escape().not().isEmpty().withMessage("Username cannot be empty."),
-    check("password", "Password is required.").trim().escape().not().isEmpty().withMessage("Password cannot be empty."),
+    check("password", "Password is required.").trim().not().isEmpty().withMessage("Password cannot be empty."),
     fieldsValidate,
   ],
   rateLimiter,
@@ -59,7 +59,7 @@ router.post(
   [
     check("email", "Email is required and must be valid.").trim().escape().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
     check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-zA-Z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
-    check("password", "Password is required and must be valid.").trim().escape().not().isEmpty().withMessage("Password cannot be empty.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
+    check("password", "Password is required and must be valid.").trim().not().isEmpty().withMessage("Password cannot be empty.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
     check("name", "El nombre debe tener entre 2 y 50 caracteres.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')).isLength({ min: 2, max: 50 }).withMessage("El nombre debe tener entre 2 y 50 caracteres.").matches(/^[\p{L}\s]+$/u).withMessage("El nombre solo puede contener letras y espacios."),
     check("birthdate", "Birthdate is required.").trim().escape().not().isEmpty().withMessage("Birthdate cannot be empty.")
       .custom((value) => {
@@ -87,7 +87,7 @@ router.post(
     check("username", "Username or email is required.").trim().escape().not().isEmpty().withMessage("Username or email cannot be empty."),
     fieldsValidate,
   ],
-  rateLimiter,
+  otpRateLimiter,
   authController.sendPasswordRecoveryEmail
 );
 
@@ -98,7 +98,7 @@ router.post(
     check("otp", "OTP is required and must be exactly 6 digits.").isLength({ min: 6, max: 6 }).matches(/^\d{6}$/).withMessage("OTP must be a 6-digit number."),
     fieldsValidate,
   ],
-  rateLimiter,
+  otpRateLimiter,
   authController.verifyRecoveryOtp
 );
 
@@ -110,7 +110,7 @@ router.post(
     check("password", "Password is required and must be valid.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
     fieldsValidate,
   ],
-  rateLimiter,
+  otpRateLimiter,
   authController.resetPassword
 );
 

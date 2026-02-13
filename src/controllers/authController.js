@@ -27,7 +27,9 @@ const login = async (req = request, res = response) => {
       ],
     });
 
-    if (!user || !user.status || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
+    if (!user) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
+    if (!(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
+    if (!user.status) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.preferences?.allowPasswordLogin) return res.status(403).json(getError("AUTH_PASSWORD_LOGIN_DISABLED"));
     
     const token = await newJWT(user.id, user.role);
@@ -131,8 +133,11 @@ const createUser = async (req = request, res = response) => {
     if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
 
     const birthDateObject = new Date(birthdate);
-    const age = new Date().getFullYear() - birthDateObject.getFullYear();
-    if (isNaN(birthDateObject.getTime()) || age < 18) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+    if (isNaN(birthDateObject.getTime())) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+    const now = new Date();
+    let age = now.getFullYear() - birthDateObject.getFullYear();
+    if (now.getMonth() < birthDateObject.getMonth() || (now.getMonth() === birthDateObject.getMonth() && now.getDate() < birthDateObject.getDate())) age--;
+    if (age < 18) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
 
     const hashedPassword = await bcryptjs.hash(password, 10);
 
@@ -179,7 +184,7 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     user.otp = {
       recoveryOtp: otp,
       otpExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
@@ -305,6 +310,7 @@ const resetPassword = async (req, res) => {
       recoveryOtp: null,
       otpExpiresAt: null,
     };
+    if (!user.preferences) user.preferences = {};
     user.preferences.allowPasswordLogin = true;
     await user.save();
 
@@ -364,7 +370,9 @@ const googleAuth = async (req, res) => {
       }
     }
 
-    const jwt = await newJWT(user.id);
+    if (!user.status) return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
+
+    const jwt = await newJWT(user.id, user.role);
     if (!jwt) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
 
     return res.status(200).json({ success: true, token: jwt, username: user.username });
@@ -384,14 +392,19 @@ const updateUsername = async (req = request, res = response) => {
     if (normalizedUsername.length < 6 || normalizedUsername.length > 25) return res.status(400).json(getError("VALIDATION_USERNAME_LENGTH"));
     if (!/^[a-zA-Z0-9._]+$/.test(normalizedUsername)) return res.status(400).json(getError("VALIDATION_USERNAME_FORMAT"));
 
-    const existingUsername = await User.findOne({ username: normalizedUsername });
+    const existingUsername = await User.findOne({ username: normalizedUsername, _id: { $ne: req.userAuth.id } });
     if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
 
-    const user = await User.findById(req.userAuth.id);
-    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-
-    user.username = normalizedUsername;
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      { _id: req.userAuth.id, username: { $ne: normalizedUsername } },
+      { username: normalizedUsername },
+      { new: true, runValidators: true }
+    );
+    if (!user) {
+      const stillExists = await User.findById(req.userAuth.id);
+      if (!stillExists) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+      return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+    }
     const profileStatus = getProfileStatus(user);
     return res.status(200).json({ success: true, message: "Username updated successfully", profileStatus });
   } catch (error) {

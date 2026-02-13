@@ -980,6 +980,24 @@
         "techMessage": "Email is required for Google auth.",
         "friendlyMessage": "El correo electrónico es obligatorio."
     },
+    "AUTH_TOKEN_REQUIRED": {
+        "success": false,
+        "code": "AUTH_020",
+        "type": "error",
+        "showAlert": true,
+        "title": "Autenticación requerida",
+        "techMessage": "Authentication token is required.",
+        "friendlyMessage": "Debes iniciar sesión para acceder a este recurso."
+    },
+    "AUTH_ADMIN_REQUIRED": {
+        "success": false,
+        "code": "AUTH_021",
+        "type": "error",
+        "showAlert": true,
+        "title": "Acceso denegado",
+        "techMessage": "Admin role is required to access this resource.",
+        "friendlyMessage": "No tienes permisos de administrador para acceder a este recurso."
+    },
     "SERVER_INTERNAL_ERROR": {
         "success": false,
         "code": "SERVER_001",

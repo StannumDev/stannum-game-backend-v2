@@ -204,6 +204,8 @@ const gradeInstruction = async (req, res) => {
       timeTakenSec,
     });
 
+    instruction.xpGained = xpResult.gained;
+
     await user.save();
 
     return res.status(200).json({

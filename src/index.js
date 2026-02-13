@@ -33,8 +33,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-// app.set('trust proxy', true);
+app.use(express.json({ limit: '1mb' }));
+app.set('trust proxy', true);
 
 app.use("/api/auth", authRouter);
 app.use("/api/profile-photo", profilePhotoRouter);
