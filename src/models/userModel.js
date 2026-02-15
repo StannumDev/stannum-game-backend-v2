@@ -558,7 +558,7 @@ const userSchema = new Schema(
 );
 
 userSchema.virtual("profilePhotoUrl").get(function () {
-  if (this.preferences.hasProfilePhoto) {
+  if (this.preferences?.hasProfilePhoto) {
     return `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${this._id}`;
   }
   return null;
@@ -730,6 +730,7 @@ userSchema.methods.getFavoriteAssistants = function() {
 
 userSchema.index({ 'favorites.assistants': 1 });
 userSchema.index({ 'favorites.prompts': 1 });
+userSchema.index({ 'level.experienceTotal': -1, status: 1 });
 userSchema.index({ 
   username: 'text',
   'profile.name': 'text',

@@ -50,6 +50,10 @@ const getPhoto = async (req, res) => {
     const userId = req.userAuth.id;
 
     try {
+        const user = await User.findById(userId).select('preferences.hasProfilePhoto');
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+        if (!user.preferences?.hasProfilePhoto) return res.status(200).json({ success: true, url: null });
+
         const profilePhotoUrl = `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${userId}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });
     } catch (error) {
@@ -62,8 +66,9 @@ const getPhotoByUsername = async (req, res) => {
     const { username } = req.params;
 
     try {
-        const user = await User.findOne({ username: username.toLowerCase() });
+        const user = await User.findOne({ username: username.toLowerCase() }).select('preferences.hasProfilePhoto');
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+        if (!user.preferences?.hasProfilePhoto) return res.status(200).json({ success: true, url: null });
 
         const profilePhotoUrl = `${process.env.AWS_S3_BASE_URL}/${process.env.AWS_S3_FOLDER_NAME}/${user.id}`;
         return res.status(200).json({ success: true, url: profilePhotoUrl });

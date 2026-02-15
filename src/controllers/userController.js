@@ -40,6 +40,21 @@ const getUserDetailsByUsername = async (req, res) => {
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const userDetails = user.getFullUserDetails();
+
+        const hasAnyProgram = user.programs?.tmd?.isPurchased || user.programs?.tia?.isPurchased || user.programs?.tia_summer?.isPurchased;
+        if (hasAnyProgram) {
+            const usersAbove = await User.countDocuments({
+                'level.experienceTotal': { $gt: user.level?.experienceTotal ?? 0 },
+                status: true,
+                $or: [
+                    { "programs.tmd.isPurchased": true },
+                    { "programs.tia.isPurchased": true },
+                    { "programs.tia_summer.isPurchased": true }
+                ]
+            });
+            userDetails.rankingPosition = usersAbove + 1;
+        }
+
         return res.status(200).json({ success: true, data: userDetails });
     } catch (error) {
         console.error("Error fetching user details by username:", error);
