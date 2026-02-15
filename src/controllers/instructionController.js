@@ -170,7 +170,7 @@ const gradeInstruction = async (req, res) => {
     const { userId, programName, instructionId } = req.params;
     const { score, observations } = req.body;
 
-    if (score < 0 || score > 100) return res.status(400).json(getError("INSTRUCTION_INVALID_SCORE"));
+    if (score == null || typeof score !== 'number' || score < 0 || score > 100) return res.status(400).json(getError("INSTRUCTION_INVALID_SCORE"));
 
     if (observations?.length > 500) return res.status(400).json(getError("VALIDATION_OBSERVATIONS_TOO_LONG"));
 

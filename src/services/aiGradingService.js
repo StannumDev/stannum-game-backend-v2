@@ -284,7 +284,6 @@ const buildGradingMessage = (config, instruction, programName, instructionId) =>
     message += `  ${i + 1}. ${step}\n`;
   });
 
-  // Incluir TODAS las lecciones anteriores a esta instrucción
   const previousLessonIds = getPreviousLessons(programName, instructionId);
 
   if (previousLessonIds.length > 0) {

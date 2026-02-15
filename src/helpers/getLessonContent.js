@@ -1,11 +1,5 @@
 const lessonsCatalog = require("../config/lessons_catalog.json");
 
-/**
- * Obtiene el contenido completo de una lección (título y topics) dado su ID.
- * @param {string} programId - ID del programa (ej: "tia", "tia_summer", "tmd")
- * @param {string} lessonId - ID de la lección (ej: "TIAM01L01")
- * @returns {{ id: string, title: string, topics: string[] } | null}
- */
 const getLessonContent = (programId, lessonId) => {
   const program = lessonsCatalog.programs.find(p => p.programId === programId);
   if (!program) return null;
@@ -24,12 +18,6 @@ const getLessonContent = (programId, lessonId) => {
   return null;
 };
 
-/**
- * Obtiene el contenido completo de múltiples lecciones.
- * @param {string} programId - ID del programa
- * @param {string[]} lessonIds - Array de IDs de lecciones
- * @returns {Array<{ id: string, title: string, topics: string[] }>}
- */
 const getMultipleLessonsContent = (programId, lessonIds) => {
   return lessonIds
     .map(lessonId => getLessonContent(programId, lessonId))
