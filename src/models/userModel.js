@@ -521,6 +521,16 @@ const userSchema = new Schema(
         ref: 'Assistant'
       }]
     },
+    refreshToken: {
+      token: {
+        type: String,
+        default: null,
+      },
+      expiresAt: {
+        type: Date,
+        default: null,
+      },
+    },
     otp: {
       recoveryOtp: {
         type: String,
@@ -544,6 +554,8 @@ const userSchema = new Schema(
     timestamps: true,
   }
 );
+
+userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
 
 userSchema.virtual("profilePhotoUrl").get(function () {
   if (this.preferences?.hasProfilePhoto) {

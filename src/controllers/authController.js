@@ -12,6 +12,7 @@ const { isOffensive } = require('../helpers/profanityChecker');
 const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
 const { unlockAchievements } = require("../services/achievementsService");
 const { getProfileStatus } = require("../helpers/getProfileStatus");
+const { newRefreshToken, hashRefreshToken } = require("../helpers/newRefreshToken");
 
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
@@ -28,16 +29,25 @@ const login = async (req = request, res = response) => {
     });
 
     if (!user) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
-    if (!(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
+    if (!user.password || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.status) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.preferences?.allowPasswordLogin) return res.status(403).json(getError("AUTH_PASSWORD_LOGIN_DISABLED"));
     
-    const token = await newJWT(user.id, user.role);
-    if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+    const accessToken = await newJWT(user.id, user.role);
+    if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    const { newlyUnlocked } = await unlockAchievements(user, true);
+    const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
+    user.refreshToken = { token: hashedToken, expiresAt };
+    await user.save();
 
-    return res.status(200).json({ success: true, token, achievementsUnlocked: newlyUnlocked });
+    let newlyUnlocked = [];
+    try {
+      ({ newlyUnlocked } = await unlockAchievements(user, true));
+    } catch (err) {
+      console.error("Achievement unlock failed during login:", err);
+    }
+
+    return res.status(200).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
@@ -141,12 +151,14 @@ const createUser = async (req = request, res = response) => {
 
     const hashedPassword = await bcryptjs.hash(password, 10);
 
+    const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
+
     const newUser = new User({
       email: email.toLowerCase().trim(),
       username: username.toLowerCase().trim(),
       password: hashedPassword,
       profile: {
-        name: name.trim(),
+        name: name?.trim() || '',
         country: country.trim(),
         region: region.trim(),
         birthdate: birthDateObject,
@@ -155,15 +167,16 @@ const createUser = async (req = request, res = response) => {
       enterprise: {
         name: enterprise.trim(),
         jobPosition: enterpriseRole.trim(),
-      }
+      },
+      refreshToken: { token: hashedToken, expiresAt },
     });
 
     await newUser.save();
 
-    const token = await newJWT(newUser.id, newUser.role);
-    if (!token) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+    const accessToken = await newJWT(newUser.id, newUser.role);
+    if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    return res.status(201).json({ success: true, token, message: "User created successfully" });
+    return res.status(201).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, message: "User created successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -339,6 +352,8 @@ const googleAuth = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
+      const { token: newRefreshRaw, hashedToken: newHashedRefresh, expiresAt: newRefreshExpiry } = newRefreshToken();
+
       user = new User({
         email,
         username: await generateUsername("google"),
@@ -355,27 +370,41 @@ const googleAuth = async (req, res) => {
           jobPosition: '',
         },
         preferences: {
-          hasProfilePhoto: !!picture,
+          hasProfilePhoto: false,
           isGoogleAccount: true,
           allowPasswordLogin: false
-        }
+        },
+        refreshToken: { token: newHashedRefresh, expiresAt: newRefreshExpiry },
       });
 
       await user.save();
 
-      try {
-        if(picture) await uploadGoogleProfilePhoto(picture, user._id);
-      } catch (error) {
-        return res.status(500).json(getError("PHOTO_UPLOAD_FAILED"));
+      if (picture) {
+        try {
+          await uploadGoogleProfilePhoto(picture, user._id);
+          user.preferences.hasProfilePhoto = true;
+          await user.save();
+        } catch (error) {
+          console.error("Google profile photo upload failed:", error);
+        }
       }
+
+      const accessToken = await newJWT(user.id, user.role);
+      if (!accessToken) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
+
+      return res.status(200).json({ success: true, token: accessToken, refreshToken: newRefreshRaw, username: user.username });
     }
 
     if (!user.status) return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
 
-    const jwt = await newJWT(user.id, user.role);
-    if (!jwt) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
+    const accessToken = await newJWT(user.id, user.role);
+    if (!accessToken) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
 
-    return res.status(200).json({ success: true, token: jwt, username: user.username });
+    const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
+    user.refreshToken = { token: hashedToken, expiresAt };
+    await user.save();
+
+    return res.status(200).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, username: user.username });
   } catch (error) {
     console.error('Google Auth Error:', error);
     if (error.response?.status === 401) return res.status(401).json(getError("AUTH_INVALID_GOOGLE_TOKEN"));
@@ -427,4 +456,55 @@ const authUser = async (req = request, res = response) => {
   }
 };
 
-module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser };
+const refreshTokenHandler = async (req = request, res = response) => {
+  const { refreshToken } = req.body;
+  try {
+    if (!refreshToken) return res.status(400).json(getError("REFRESH_TOKEN_MISSING"));
+
+    const hashedToken = hashRefreshToken(refreshToken);
+
+    const tokenExists = await User.findOne({
+      "refreshToken.token": hashedToken,
+      status: true,
+    });
+
+    if (!tokenExists) return res.status(401).json(getError("REFRESH_TOKEN_INVALID"));
+    if (tokenExists.refreshToken.expiresAt < new Date()) return res.status(401).json(getError("REFRESH_TOKEN_EXPIRED"));
+
+    const { token: newRefreshTokenRaw, hashedToken: newHashedToken, expiresAt } = newRefreshToken();
+
+    const user = await User.findOneAndUpdate(
+      { "refreshToken.token": hashedToken, "refreshToken.expiresAt": { $gt: new Date() }, status: true },
+      { "refreshToken.token": newHashedToken, "refreshToken.expiresAt": expiresAt },
+      { new: true }
+    );
+
+    if (!user) return res.status(401).json(getError("REFRESH_TOKEN_INVALID"));
+
+    const newAccessToken = await newJWT(user.id, user.role);
+    if (!newAccessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+
+    return res.status(200).json({
+      success: true,
+      token: newAccessToken,
+      refreshToken: newRefreshTokenRaw,
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const logoutHandler = async (req = request, res = response) => {
+  try {
+    const user = req.userAuth;
+    user.refreshToken = { token: null, expiresAt: null };
+    await user.save();
+    return res.status(200).json({ success: true, message: "Logged out successfully." });
+  } catch (error) {
+    console.error("Error during logout:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser, refreshTokenHandler, logoutHandler };
