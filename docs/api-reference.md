@@ -4,7 +4,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 
 **Base URL:** `http://localhost:8000/api` (desarrollo) | `https://api.stannumgame.com/api` (producción)
 
-**Autenticación:** JWT token en header `Authorization: Bearer {token}`
+**Autenticación:** JWT access token en header `Authorization: Bearer {token}` (15 min de expiración, renovable con refresh token)
 
 ---
 
@@ -25,12 +25,12 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 ## 🔐 Autenticación
 
 ### POST `/auth`
-**Login con email y contraseña**
+**Login con username/email y contraseña**
 
 **Body:**
 ```json
 {
-  "email": "usuario@example.com",
+  "username": "usuario123",
   "password": "contraseña123"
 }
 ```
@@ -40,6 +40,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 {
   "success": true,
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
   "achievementsUnlocked": [],
   "profileStatus": "complete" | "incomplete"
 }
@@ -55,8 +56,14 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 {
   "username": "usuario123",
   "email": "usuario@example.com",
-  "password": "contraseña123",
-  "recaptchaToken": "token_de_recaptcha"
+  "password": "Contraseña123",
+  "name": "Juan Pérez",
+  "birthdate": "1990-01-15",
+  "country": "Argentina",
+  "region": "Buenos Aires",
+  "enterprise": "Mi Empresa",
+  "enterpriseRole": "Developer",
+  "aboutme": "Descripción sobre mí..."
 }
 ```
 
@@ -65,6 +72,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 {
   "success": true,
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
   "userId": "507f1f77bcf86cd799439011"
 }
 ```
@@ -77,7 +85,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 **Body:**
 ```json
 {
-  "googleToken": "token_de_google_oauth"
+  "token": "google_oauth_credential_token"
 }
 ```
 
@@ -86,9 +94,10 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 {
   "success": true,
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
+  "username": "usuario123",
   "achievementsUnlocked": [],
-  "profileStatus": "complete" | "incomplete",
-  "newUser": true | false
+  "profileStatus": "complete" | "incomplete"
 }
 ```
 
@@ -110,8 +119,40 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 
 ---
 
+### POST `/auth/refresh-token`
+**Renovar access token usando refresh token**
+
+No requiere `Authorization` header (el access token está expirado).
+
+**Body:**
+```json
+{
+  "refreshToken": "a1b2c3d4e5f6...80_hex_chars"
+}
+```
+
+**Validación:**
+- `refreshToken` requerido, exactamente 80 caracteres, solo hex (`[a-f0-9]`)
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "nuevo_refresh_token_80_hex_chars"
+}
+```
+
+**Notas:**
+- Implementa **rotación de tokens**: el refresh token anterior se invalida y se genera uno nuevo
+- Si el refresh token expiró (>7 días) retorna error `JWT_009`
+- Si el refresh token no existe/es inválido retorna error `JWT_008`
+- Rate limited
+
+---
+
 ### POST `/auth/logout`
-**Cerrar sesión**
+**Cerrar sesión (invalida refresh token en servidor)**
 
 **Headers:** `Authorization: Bearer {token}`
 
@@ -122,6 +163,10 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
   "message": "Sesión cerrada exitosamente"
 }
 ```
+
+**Notas:**
+- Elimina el refresh token del usuario en la base de datos
+- El access token sigue vigente hasta su expiración (15 min) pero el refresh token ya no podrá renovarlo
 
 ---
 

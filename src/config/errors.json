@@ -809,6 +809,33 @@
         "techMessage": "The provided JWT is corrupted or unreadable.",
         "friendlyMessage": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
     },
+    "REFRESH_TOKEN_MISSING": {
+        "success": false,
+        "code": "JWT_007",
+        "type": "error",
+        "showAlert": false,
+        "title": "Error de autenticación",
+        "techMessage": "Refresh token is missing from the request.",
+        "friendlyMessage": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+    },
+    "REFRESH_TOKEN_INVALID": {
+        "success": false,
+        "code": "JWT_008",
+        "type": "error",
+        "showAlert": false,
+        "title": "Error de autenticación",
+        "techMessage": "The provided refresh token is invalid or has been revoked.",
+        "friendlyMessage": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+    },
+    "REFRESH_TOKEN_EXPIRED": {
+        "success": false,
+        "code": "JWT_009",
+        "type": "error",
+        "showAlert": false,
+        "title": "Tu sesión expiró",
+        "techMessage": "The refresh token has expired.",
+        "friendlyMessage": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+    },
     "NETWORK_CONNECTION_ERROR": {
         "success": false,
         "code": "NETWORK_001",

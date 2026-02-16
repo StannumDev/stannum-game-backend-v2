@@ -38,7 +38,7 @@ El servidor estará disponible en `http://localhost:8000`.
 - **Runtime:** Node.js 18+
 - **Framework:** Express.js 4.21
 - **Base de datos:** MongoDB + Mongoose 8.23
-- **Autenticación:** JWT + bcrypt
+- **Autenticación:** JWT (access + refresh tokens) + bcrypt
 - **AI:** OpenAI API (GPT-4o)
 - **Storage:** AWS S3
 - **Email:** Nodemailer (SMTP)
@@ -68,8 +68,10 @@ PORT=8000
 # MongoDB
 DB_URL=mongodb+srv://user:pass@cluster.mongodb.net/stannum-game
 
-# JWT
+# JWT & Auth
 SECRET=tu_clave_secreta_jwt
+REFRESH_SECRET=tu_clave_secreta_refresh_token
+ACCESS_TOKEN_EXPIRY=15m
 SECRET_PASSWORD_RECOVERY=tu_clave_secreta_otp
 
 # AWS S3
@@ -105,6 +107,8 @@ MAKE_API_KEY=...
 - `POST /api/auth/register` - Registro
 - `POST /api/auth/google` - Google OAuth
 - `GET /api/auth/auth-user` - Obtener usuario autenticado
+- `POST /api/auth/refresh-token` - Renovar access token
+- `POST /api/auth/logout` - Cerrar sesión (invalidar refresh token)
 
 ### Lecciones
 - `POST /api/lesson/complete/:programName/:lessonId` - Marcar lección completada
@@ -149,7 +153,9 @@ Ver [API Reference completa](./docs/api-reference.md) para lista exhaustiva.
 ## 🔒 Seguridad
 
 - ✅ Contraseñas hasheadas con bcrypt
-- ✅ JWT tokens (expiración 1 año)
+- ✅ Access tokens JWT de corta duración (15 min)
+- ✅ Refresh tokens opacos (7 días) con rotación y hash HMAC-SHA256
+- ✅ Logout server-side (invalidación de refresh token)
 - ✅ Rate limiting (1000 req/hora, 5 OTP/15min)
 - ✅ CORS por whitelist
 - ✅ express-validator en todas las rutas
@@ -159,6 +165,7 @@ Ver [API Reference completa](./docs/api-reference.md) para lista exhaustiva.
 
 ## 📖 Documentación Completa
 
+- [Autenticación](./docs/systems/authentication.md)
 - [Sistema de Gamificación](./docs/systems/gamification.md)
 - [Sistema Educativo](./docs/systems/education.md)
 - [AI Grading](./docs/systems/ai-grading.md)

@@ -120,6 +120,22 @@ router.post(
   authController.googleAuth
 );
 
+router.post(
+  "/refresh-token",
+  [
+    check("refreshToken", "Refresh token is required.").trim().not().isEmpty().isLength({ min: 80, max: 80 }).withMessage("Invalid refresh token format.").matches(/^[a-f0-9]+$/).withMessage("Invalid refresh token format."),
+    fieldsValidate,
+  ],
+  rateLimiter,
+  authController.refreshTokenHandler
+);
+
+router.post(
+  "/logout",
+  validateJWT,
+  authController.logoutHandler
+);
+
 router.put(
   "/update-username",
   [
