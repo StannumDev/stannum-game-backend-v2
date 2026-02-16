@@ -535,14 +535,6 @@ const userSchema = new Schema(
       recoveryOtp: {
         type: String,
         default: null,
-        minlength: [6, "El OTP debe tener exactamente 6 dígitos."],
-        maxlength: [6, "El OTP debe tener exactamente 6 dígitos."],
-        validate: {
-          validator: function (value) {
-            return !value || /^\d{6}$/.test(value);
-          },
-          message: "El OTP debe ser un número de 6 dígitos.",
-        },
       },
       otpExpiresAt: {
         type: Date,
@@ -556,6 +548,7 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
+userSchema.index({ 'programs.tia.isPurchased': 1, 'programs.tmd.isPurchased': 1, 'programs.tia_summer.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
 
 userSchema.virtual("profilePhotoUrl").get(function () {
   if (this.preferences?.hasProfilePhoto) {

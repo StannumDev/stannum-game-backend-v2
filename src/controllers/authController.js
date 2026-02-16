@@ -13,6 +13,7 @@ const { uploadGoogleProfilePhoto } = require("./profilePhotoController");
 const { unlockAchievements } = require("../services/achievementsService");
 const { getProfileStatus } = require("../helpers/getProfileStatus");
 const { newRefreshToken, hashRefreshToken } = require("../helpers/newRefreshToken");
+const { setAuthCookies, clearAuthCookies } = require("../helpers/authCookies");
 
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
@@ -47,7 +48,8 @@ const login = async (req = request, res = response) => {
       console.error("Achievement unlock failed during login:", err);
     }
 
-    return res.status(200).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, achievementsUnlocked: newlyUnlocked });
+    setAuthCookies(res, accessToken, refreshTokenRaw);
+    return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
@@ -176,7 +178,8 @@ const createUser = async (req = request, res = response) => {
     const accessToken = await newJWT(newUser.id, newUser.role);
     if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    return res.status(201).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, message: "User created successfully" });
+    setAuthCookies(res, accessToken, refreshTokenRaw);
+    return res.status(201).json({ success: true, message: "User created successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -198,8 +201,9 @@ const sendPasswordRecoveryEmail = async (req = request, res = response) => {
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
     const otp = crypto.randomInt(100000, 1000000).toString();
+    const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
     user.otp = {
-      recoveryOtp: otp,
+      recoveryOtp: hashedOtp,
       otpExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
     };
     await user.save();
@@ -283,8 +287,10 @@ const verifyRecoveryOtp = async (req, res) => {
     });
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    if (!user.otp || user.otp.recoveryOtp !== otp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    if (!user.otp || !user.otp.recoveryOtp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
     if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
+    const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
+    if (user.otp.recoveryOtp !== hashedOtp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
 
     return res.status(200).json({ success: true, message: "OTP validado con éxito." });
   } catch (error) {
@@ -308,9 +314,10 @@ const resetPassword = async (req, res) => {
     });
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    if (!user.otp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
-    if (user.otp.recoveryOtp !== otp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    if (!user.otp || !user.otp.recoveryOtp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
     if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
+    const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
+    if (user.otp.recoveryOtp !== hashedOtp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/;
     if (!passwordRegex.test(password)) {
@@ -323,10 +330,12 @@ const resetPassword = async (req, res) => {
       recoveryOtp: null,
       otpExpiresAt: null,
     };
+    user.refreshToken = { token: null, expiresAt: null };
     if (!user.preferences) user.preferences = {};
     user.preferences.allowPasswordLogin = true;
     await user.save();
 
+    clearAuthCookies(res);
     return res.status(200).json({ success: true, message: "Contraseña actualizada exitosamente." });
   } catch (error) {
     console.error("Error al restablecer contraseña:", error);
@@ -392,7 +401,8 @@ const googleAuth = async (req, res) => {
       const accessToken = await newJWT(user.id, user.role);
       if (!accessToken) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
 
-      return res.status(200).json({ success: true, token: accessToken, refreshToken: newRefreshRaw, username: user.username });
+      setAuthCookies(res, accessToken, newRefreshRaw);
+      return res.status(200).json({ success: true, username: user.username });
     }
 
     if (!user.status) return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
@@ -404,7 +414,8 @@ const googleAuth = async (req, res) => {
     user.refreshToken = { token: hashedToken, expiresAt };
     await user.save();
 
-    return res.status(200).json({ success: true, token: accessToken, refreshToken: refreshTokenRaw, username: user.username });
+    setAuthCookies(res, accessToken, refreshTokenRaw);
+    return res.status(200).json({ success: true, username: user.username });
   } catch (error) {
     console.error('Google Auth Error:', error);
     if (error.response?.status === 401) return res.status(401).json(getError("AUTH_INVALID_GOOGLE_TOKEN"));
@@ -457,11 +468,14 @@ const authUser = async (req = request, res = response) => {
 };
 
 const refreshTokenHandler = async (req = request, res = response) => {
-  const { refreshToken } = req.body;
+  const refreshTokenValue = req.cookies?.refresh_token || req.body?.refreshToken;
   try {
-    if (!refreshToken) return res.status(400).json(getError("REFRESH_TOKEN_MISSING"));
+    if (!refreshTokenValue) return res.status(400).json(getError("REFRESH_TOKEN_MISSING"));
+    if (typeof refreshTokenValue !== "string" || refreshTokenValue.length !== 80 || !/^[a-f0-9]+$/.test(refreshTokenValue)) {
+      return res.status(400).json(getError("REFRESH_TOKEN_INVALID"));
+    }
 
-    const hashedToken = hashRefreshToken(refreshToken);
+    const hashedToken = hashRefreshToken(refreshTokenValue);
 
     const tokenExists = await User.findOne({
       "refreshToken.token": hashedToken,
@@ -484,11 +498,8 @@ const refreshTokenHandler = async (req = request, res = response) => {
     const newAccessToken = await newJWT(user.id, user.role);
     if (!newAccessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
-    return res.status(200).json({
-      success: true,
-      token: newAccessToken,
-      refreshToken: newRefreshTokenRaw,
-    });
+    setAuthCookies(res, newAccessToken, newRefreshTokenRaw);
+    return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Error refreshing token:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -500,6 +511,7 @@ const logoutHandler = async (req = request, res = response) => {
     const user = req.userAuth;
     user.refreshToken = { token: null, expiresAt: null };
     await user.save();
+    clearAuthCookies(res);
     return res.status(200).json({ success: true, message: "Logged out successfully." });
   } catch (error) {
     console.error("Error during logout:", error);

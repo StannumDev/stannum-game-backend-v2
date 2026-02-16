@@ -3,7 +3,7 @@ const { check, query } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { searchRateLimiter } = require("../middlewares/rateLimiter");
+const { searchLimiter } = require("../middlewares/rateLimiter");
 const assistantController = require("../controllers/assistantController");
 
 const router = Router();
@@ -23,7 +23,7 @@ router.get(
         query("stannumVerifiedOnly").optional().isIn(['true', 'false']).withMessage("stannumVerifiedOnly must be true or false."),
         fieldsValidate,
     ],
-    searchRateLimiter,
+    searchLimiter,
     assistantController.getAllAssistants
 );
 

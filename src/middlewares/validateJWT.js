@@ -6,7 +6,7 @@ const { getError } = require("../helpers/getError");
 const validateJWT = async (req = request, res = response, next) => {
   try {
     const authHeader = req.header('Authorization');
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = req.cookies?.access_token || (authHeader && authHeader.split(' ')[1]);
     if (!token) return res.status(400).json(getError("JWT_MISSING_TOKEN"));
 
     let decodedToken;
