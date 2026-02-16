@@ -3,7 +3,6 @@ const { check } = require("express-validator");
 
 const profilePhotoController = require("../controllers/profilePhotoController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { rateLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
 
 const router = Router();
@@ -13,7 +12,6 @@ router.post(
     [
         validateJWT,
     ],
-    rateLimiter,
     profilePhotoController.getPresignedPhotoUrl
 );
 
@@ -22,7 +20,6 @@ router.post(
     [
         validateJWT,
     ],
-    rateLimiter,
     profilePhotoController.confirmPhotoUpload
 );
 
@@ -31,7 +28,6 @@ router.get(
     [
         validateJWT,
     ],
-    rateLimiter,
     profilePhotoController.getPhoto
 );
 
@@ -41,7 +37,6 @@ router.get(
         check("username", "Username is required.").trim().escape().not().isEmpty().withMessage("Username cannot be empty."),
         fieldsValidate,
     ],
-    rateLimiter,
     profilePhotoController.getPhotoByUsername
 );
 
@@ -50,7 +45,6 @@ router.delete(
     [
         validateJWT,
     ],
-    rateLimiter,
     profilePhotoController.deletePhoto
 );
 

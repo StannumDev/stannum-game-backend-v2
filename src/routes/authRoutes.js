@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { rateLimiter, otpRateLimiter } = require("../middlewares/rateLimiter");
+const { authLimiter, otpLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
 
 const router = Router();
@@ -20,7 +20,7 @@ router.post(
     check("password", "Password is required.").trim().not().isEmpty().withMessage("Password cannot be empty."),
     fieldsValidate,
   ],
-  rateLimiter,
+  authLimiter,
   authController.login
 );
 
@@ -30,7 +30,6 @@ router.post(
     check("email", "Email is required and must be valid.").trim().escape().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
     fieldsValidate,
   ],
-  rateLimiter,
   authController.checkEmailExists
 );
 
@@ -40,7 +39,6 @@ router.post(
     check("token", "ReCAPTCHA token is required.").trim().escape().not().isEmpty().withMessage("ReCAPTCHA token cannot be empty."),
     fieldsValidate,
   ],
-  rateLimiter,
   authController.verifyReCAPTCHA
 );
 
@@ -50,7 +48,6 @@ router.post(
     check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-zA-Z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
     fieldsValidate,
   ],
-  rateLimiter,
   authController.validateUsername
 );
 
@@ -77,7 +74,7 @@ router.post(
     check("aboutme", "About me is required.").trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
     fieldsValidate,
   ],
-  rateLimiter,
+  authLimiter,
   authController.createUser
 );
 
@@ -87,7 +84,7 @@ router.post(
     check("username", "Username or email is required.").trim().escape().not().isEmpty().withMessage("Username or email cannot be empty."),
     fieldsValidate,
   ],
-  otpRateLimiter,
+  otpLimiter,
   authController.sendPasswordRecoveryEmail
 );
 
@@ -98,7 +95,7 @@ router.post(
     check("otp", "OTP is required and must be exactly 6 digits.").isLength({ min: 6, max: 6 }).matches(/^\d{6}$/).withMessage("OTP must be a 6-digit number."),
     fieldsValidate,
   ],
-  otpRateLimiter,
+  otpLimiter,
   authController.verifyRecoveryOtp
 );
 
@@ -110,23 +107,19 @@ router.post(
     check("password", "Password is required and must be valid.").isLength({ min: 8, max: 50 }).withMessage("Password must be between 8 and 50 characters.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must include at least one lowercase letter, one uppercase letter, and one number."),
     fieldsValidate,
   ],
-  otpRateLimiter,
+  otpLimiter,
   authController.resetPassword
 );
 
 router.post(
   '/google',
-  rateLimiter,
+  authLimiter,
   authController.googleAuth
 );
 
 router.post(
   "/refresh-token",
-  [
-    check("refreshToken", "Refresh token is required.").trim().not().isEmpty().isLength({ min: 80, max: 80 }).withMessage("Invalid refresh token format.").matches(/^[a-f0-9]+$/).withMessage("Invalid refresh token format."),
-    fieldsValidate,
-  ],
-  rateLimiter,
+  authLimiter,
   authController.refreshTokenHandler
 );
 

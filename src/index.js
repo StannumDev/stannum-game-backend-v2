@@ -1,6 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
+const { globalLimiter } = require("./middlewares/rateLimiter");
 
 const authRouter = require("./routes/authRoutes");
 const profilePhotoRouter = require("./routes/profilePhotoRoutes");
@@ -32,9 +35,12 @@ const corsOptions = {
   credentials: true
 };
 
-app.use(cors(corsOptions));
-app.use(express.json({ limit: '1mb' }));
 app.set('trust proxy', true);
+app.use(helmet());
+app.use(cors(corsOptions));
+app.use(cookieParser());
+app.use(express.json({ limit: '1mb' }));
+app.use(globalLimiter);
 
 app.use("/api/auth", authRouter);
 app.use("/api/profile-photo", profilePhotoRouter);
@@ -61,6 +67,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`API Rest escuchando el puerto ${PORT}`);
 });
+
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} recibido. Cerrando servidor...`);
+  server.close(() => {
+    console.log('Servidor HTTP cerrado.');
+    mongoose.connection.close(false).then(() => {
+      console.log('Conexión a MongoDB cerrada.');
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    console.error('Shutdown forzado por timeout.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
