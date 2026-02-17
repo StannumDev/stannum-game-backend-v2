@@ -6,7 +6,9 @@ const { getError } = require('../helpers/getError');
 const getAllAssistants = async (req, res) => {
     try {
         const { search, category, difficulty, tags, platform, sortBy = 'popular', favoritesOnly, stannumVerifiedOnly, page = 1, limit = 20 } = req.query;
-        const filters = { 
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const filters = {
             status: true,
             visibility: 'published'
         };
@@ -21,7 +23,7 @@ const getAllAssistants = async (req, res) => {
                     data: {
                         assistants: [],
                         pagination: {
-                            currentPage: parseInt(page),
+                            currentPage: pageNum,
                             totalPages: 0,
                             totalAssistants: 0,
                             hasNextPage: false,
@@ -81,11 +83,11 @@ const getAllAssistants = async (req, res) => {
         }
         const query = Assistant.find(filters).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
 
-        const skip = (page - 1) * limit;
-        const assistants = await query.skip(skip).limit(parseInt(limit));
-        
+        const skip = (pageNum - 1) * limitNum;
+        const assistants = await query.skip(skip).limit(limitNum);
+
         const totalAssistants = await Assistant.countDocuments(filters);
-        const totalPages = Math.ceil(totalAssistants / limit);
+        const totalPages = Math.ceil(totalAssistants / limitNum);
 
         const assistantsWithUserActions = assistants.map(assistant => assistant.getPreview(req.userAuth.id));
         return res.json({
@@ -93,11 +95,11 @@ const getAllAssistants = async (req, res) => {
             data: {
                 assistants: assistantsWithUserActions,
                 pagination: {
-                    currentPage: parseInt(page),
+                    currentPage: pageNum,
                     totalPages,
                     totalAssistants,
-                    hasNextPage: page < totalPages,
-                    hasPrevPage: page > 1
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
                 }
             }
         });
