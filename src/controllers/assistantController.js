@@ -122,7 +122,8 @@ const getAssistantById = async (req, res) => {
         
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
 
-        if(assistant.author.toString() !== req.userAuth.id.toString()) await assistant.incrementViews();
+        const authorId = assistant.author?._id || assistant.author;
+        if(authorId?.toString() !== req.userAuth.id.toString()) await assistant.incrementViews();
         const assistantDetails = assistant.getFullDetails(req.userAuth.id);
 
         return res.json({ success: true, data: assistantDetails });

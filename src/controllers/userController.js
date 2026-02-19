@@ -39,7 +39,8 @@ const getUserDetailsByUsername = async (req, res) => {
         const user = await User.findOne({ username: username.toLowerCase().trim() });
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const userDetails = user.getFullUserDetails();
+        const isOwner = req.userAuth.id.toString() === user._id.toString();
+        const userDetails = isOwner ? user.getFullUserDetails() : user.getPublicUserDetails();
 
         const hasAnyProgram = user.programs?.tmd?.isPurchased || user.programs?.tia?.isPurchased || user.programs?.tia_summer?.isPurchased;
         if (hasAnyProgram) {
@@ -71,7 +72,7 @@ const getTutorialStatus = async (req, res) => {
         const user = await User.findById(req.userAuth.id);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
     
-        const tutorial = user.preferences.tutorials.find((t) => t.name === tutorialName);
+        const tutorial = user.preferences?.tutorials?.find((t) => t.name === tutorialName);
         if (!tutorial) return res.status(404).json(getError("VALIDATION_TUTORIAL_NOT_FOUND"));
     
         return res.status(200).json({ success: true, tutorial });

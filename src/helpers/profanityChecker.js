@@ -2,7 +2,7 @@ const { Profanity, CensorType } = require('@2toad/profanity');
 
 const profanity = new Profanity({
     languages: ['en'],
-    wholeWord: false,
+    wholeWord: true,
     grawlix: '****',
     grawlixChar: '*',
 });

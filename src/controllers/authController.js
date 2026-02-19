@@ -1,4 +1,3 @@
-const { request, response } = require("express");
 const bcryptjs = require("bcryptjs");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
@@ -15,7 +14,7 @@ const { getProfileStatus } = require("../helpers/getProfileStatus");
 const { newRefreshToken, hashRefreshToken } = require("../helpers/newRefreshToken");
 const { setAuthCookies, clearAuthCookies } = require("../helpers/authCookies");
 
-const login = async (req = request, res = response) => {
+const login = async (req , res) => {
   const { username, password } = req.body;
   try {
     if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
@@ -128,7 +127,7 @@ const verifyReCAPTCHA = async (req, res) => {
   }
 };
 
-const createUser = async (req = request, res = response) => {
+const createUser = async (req , res) => {
   const { email, username, password, name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
 
   try {
@@ -181,12 +180,18 @@ const createUser = async (req = request, res = response) => {
     setAuthCookies(res, accessToken, refreshTokenRaw);
     return res.status(201).json({ success: true, message: "User created successfully" });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      if (field === 'email') return res.status(409).json(getError("AUTH_EMAIL_ALREADY_EXISTS"));
+      if (field === 'username') return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+      return res.status(409).json(getError("AUTH_EMAIL_ALREADY_EXISTS"));
+    }
     console.error(error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
 
-const sendPasswordRecoveryEmail = async (req = request, res = response) => {
+const sendPasswordRecoveryEmail = async (req , res) => {
   const { username } = req.body;
   try {
     if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
@@ -292,6 +297,10 @@ const verifyRecoveryOtp = async (req, res) => {
     const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
     if (user.otp.recoveryOtp !== hashedOtp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
 
+    user.otp.recoveryOtp = null;
+    user.otp.recoveryVerified = true;
+    await user.save();
+
     return res.status(200).json({ success: true, message: "OTP validado con éxito." });
   } catch (error) {
     console.error("Error al verificar el OTP:", error);
@@ -314,10 +323,8 @@ const resetPassword = async (req, res) => {
     });
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    if (!user.otp || !user.otp.recoveryOtp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
+    if (!user.otp?.recoveryVerified) return res.status(400).json(getError("AUTH_OTP_MISSING"));
     if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
-    const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
-    if (user.otp.recoveryOtp !== hashedOtp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/;
     if (!passwordRegex.test(password)) {
@@ -329,6 +336,7 @@ const resetPassword = async (req, res) => {
     user.otp = {
       recoveryOtp: null,
       otpExpiresAt: null,
+      recoveryVerified: false,
     };
     user.refreshToken = { token: null, expiresAt: null };
     if (!user.preferences) user.preferences = {};
@@ -358,7 +366,7 @@ const googleAuth = async (req, res) => {
 
     if (!email) return res.status(400).json(getError("AUTH_EMAIL_REQUIRED"));
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       const { token: newRefreshRaw, hashedToken: newHashedRefresh, expiresAt: newRefreshExpiry } = newRefreshToken();
@@ -414,8 +422,15 @@ const googleAuth = async (req, res) => {
     user.refreshToken = { token: hashedToken, expiresAt };
     await user.save();
 
+    let newlyUnlocked = [];
+    try {
+      ({ newlyUnlocked } = await unlockAchievements(user, true));
+    } catch (err) {
+      console.error("Achievement unlock failed during Google login:", err);
+    }
+
     setAuthCookies(res, accessToken, refreshTokenRaw);
-    return res.status(200).json({ success: true, username: user.username });
+    return res.status(200).json({ success: true, username: user.username, achievementsUnlocked: newlyUnlocked });
   } catch (error) {
     console.error('Google Auth Error:', error);
     if (error.response?.status === 401) return res.status(401).json(getError("AUTH_INVALID_GOOGLE_TOKEN"));
@@ -423,7 +438,7 @@ const googleAuth = async (req, res) => {
   }
 };
 
-const updateUsername = async (req = request, res = response) => {
+const updateUsername = async (req , res) => {
   const { username } = req.body;
   try {
     if (!username) return res.status(400).json(getError("VALIDATION_USERNAME_REQUIRED"));
@@ -453,7 +468,7 @@ const updateUsername = async (req = request, res = response) => {
   }
 };
 
-const authUser = async (req = request, res = response) => {
+const authUser = async (req , res) => {
   try {
     const userId = req.userAuth.id;
     const user = await User.findById(userId);
@@ -467,8 +482,8 @@ const authUser = async (req = request, res = response) => {
   }
 };
 
-const refreshTokenHandler = async (req = request, res = response) => {
-  const refreshTokenValue = req.cookies?.refresh_token || req.body?.refreshToken;
+const refreshTokenHandler = async (req , res) => {
+  const refreshTokenValue = req.cookies?.refresh_token;
   try {
     if (!refreshTokenValue) return res.status(400).json(getError("REFRESH_TOKEN_MISSING"));
     if (typeof refreshTokenValue !== "string" || refreshTokenValue.length !== 80 || !/^[a-f0-9]+$/.test(refreshTokenValue)) {
@@ -506,15 +521,20 @@ const refreshTokenHandler = async (req = request, res = response) => {
   }
 };
 
-const logoutHandler = async (req = request, res = response) => {
+const logoutHandler = async (req , res) => {
   try {
     const user = req.userAuth;
+    if (!user) {
+      clearAuthCookies(res);
+      return res.status(200).json({ success: true, message: "Logged out successfully." });
+    }
     user.refreshToken = { token: null, expiresAt: null };
     await user.save();
     clearAuthCookies(res);
     return res.status(200).json({ success: true, message: "Logged out successfully." });
   } catch (error) {
     console.error("Error during logout:", error);
+    clearAuthCookies(res);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };

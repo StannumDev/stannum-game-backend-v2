@@ -59,7 +59,13 @@ const addExperience = async (user, type, payload) => {
     }
     user.level.progress = computeLevelProgress(user.level);
 
-    if (gained > 0) user.xpHistory.push({ type, xp: gained, meta: payload });
+    if (gained > 0) {
+        user.xpHistory.push({ type, xp: gained, meta: payload });
+        const progId = payload.programId;
+        if (progId && user.programs?.[progId]) {
+            user.programs[progId].totalXp = (user.programs[progId].totalXp || 0) + gained;
+        }
+    }
     if (user.xpHistory.length > XP_HISTORY_MAX) user.xpHistory = user.xpHistory.slice(-XP_HISTORY_MAX);
 
     const { newlyUnlocked } = await unlockAchievements(user);

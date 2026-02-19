@@ -2,8 +2,9 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { authLimiter, otpLimiter } = require("../middlewares/rateLimiter");
+const { authLimiter, otpLimiter, validationLimiter, refreshLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
+const { resolveUserByRefreshToken } = require("../middlewares/resolveUserByRefreshToken");
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.post(
     check("email", "Email is required and must be valid.").trim().escape().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
     fieldsValidate,
   ],
+  validationLimiter,
   authController.checkEmailExists
 );
 
@@ -48,6 +50,7 @@ router.post(
     check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-zA-Z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
     fieldsValidate,
   ],
+  validationLimiter,
   authController.validateUsername
 );
 
@@ -119,13 +122,13 @@ router.post(
 
 router.post(
   "/refresh-token",
-  authLimiter,
+  refreshLimiter,
   authController.refreshTokenHandler
 );
 
 router.post(
   "/logout",
-  validateJWT,
+  resolveUserByRefreshToken,
   authController.logoutHandler
 );
 

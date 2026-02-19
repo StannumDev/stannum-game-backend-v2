@@ -2,7 +2,6 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
-const { isAdmin } = require("../middlewares/isAdmin");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const { submissionLimiter } = require("../middlewares/rateLimiter");
 const instructionController = require("../controllers/instructionController");
@@ -43,21 +42,6 @@ router.post(
     fieldsValidate,
   ],
   instructionController.submitInstruction
-);
-
-router.post(
-  "/grade/:userId/:programName/:instructionId",
-  [
-    validateJWT,
-    isAdmin,
-    check("userId", "El ID del usuario es obligatorio.").trim().escape().notEmpty(),
-    check("programName", "El nombre del programa es obligatorio.").trim().escape().notEmpty(),
-    check("instructionId", "El ID de la instrucción es obligatorio.").trim().escape().notEmpty(),
-    check("score", "El puntaje es obligatorio.").isNumeric(),
-    check("observations").optional().trim().isLength({ max: 500 }).withMessage("Las observaciones no pueden exceder 500 caracteres."),
-    fieldsValidate,
-  ],
-  instructionController.gradeInstruction
 );
 
 router.post(

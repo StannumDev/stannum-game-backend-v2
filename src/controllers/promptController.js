@@ -117,7 +117,8 @@ const getPromptById = async (req, res) => {
         
         if (!prompt) return res.status(404).json(getError("PROMPT_NOT_FOUND"));
 
-        if(prompt.author.toString() !== req.userAuth.id.toString()) await prompt.incrementViews();
+        const authorId = prompt.author?._id || prompt.author;
+        if(authorId?.toString() !== req.userAuth.id.toString()) await prompt.incrementViews();
         const promptDetails = prompt.getFullDetails(req.userAuth.id);
 
         return res.json({ success: true, data: promptDetails });

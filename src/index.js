@@ -19,9 +19,13 @@ const app = express();
 
 const PORT = process.env.PORT || 4000;
 
-mongoose.connect(process.env.DB_URL).catch((error) => console.log(error)).then(() => console.log("Conectado a la base de datos."));
-
-const allowedOrigins = JSON.parse(process.env.ALLOWED_ORIGINS||"[]")
+let allowedOrigins = [];
+try {
+  allowedOrigins = JSON.parse(process.env.ALLOWED_ORIGINS || "[]");
+} catch (err) {
+  console.error("ALLOWED_ORIGINS no es un JSON válido:", err.message);
+  process.exit(1);
+}
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -35,10 +39,10 @@ const corsOptions = {
   credentials: true
 };
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(cookieParser());
+app.use(cookieParser(process.env.SECRET));
 app.use(express.json({ limit: '1mb' }));
 app.use(globalLimiter);
 
@@ -57,34 +61,53 @@ app.use((err, req, res, next) => {
     console.error(`JSON parse error from ${req.ip} on ${req.method} ${req.originalUrl}`);
     return res.status(400).json({
       success: false,
-      msg: "JSON inválido en el body del request.",
+      code: "VALIDATION_INVALID_JSON",
+      type: "error",
+      showAlert: true,
+      title: "JSON inválido",
+      techMessage: "Invalid JSON in request body.",
+      friendlyMessage: "El formato de los datos enviados es inválido.",
     });
   }
   console.error(err);
   return res.status(500).json({
     success: false,
-    msg: "Error interno del servidor.",
+    code: "SERVER_ERROR",
+    type: "error",
+    showAlert: true,
+    title: "Error del servidor",
+    techMessage: "Internal server error.",
+    friendlyMessage: "Ocurrió un error inesperado. Intentá de nuevo más tarde.",
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`API Rest escuchando el puerto ${PORT}`);
-});
+mongoose.connect(process.env.DB_URL)
+  .then(() => {
+    console.log("Conectado a la base de datos.");
 
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} recibido. Cerrando servidor...`);
-  server.close(() => {
-    console.log('Servidor HTTP cerrado.');
-    mongoose.connection.close(false).then(() => {
-      console.log('Conexión a MongoDB cerrada.');
-      process.exit(0);
+    const server = app.listen(PORT, () => {
+      console.log(`API Rest escuchando el puerto ${PORT}`);
     });
-  });
-  setTimeout(() => {
-    console.error('Shutdown forzado por timeout.');
-    process.exit(1);
-  }, 10000);
-};
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    const gracefulShutdown = (signal) => {
+      console.log(`${signal} recibido. Cerrando servidor...`);
+      server.close(() => {
+        console.log('Servidor HTTP cerrado.');
+        mongoose.connection.close(false).then(() => {
+          console.log('Conexión a MongoDB cerrada.');
+          process.exit(0);
+        });
+      });
+      setTimeout(() => {
+        console.error('Shutdown forzado por timeout.');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  })
+  .catch((error) => {
+    console.error("Error conectando a la base de datos:", error.message);
+    process.exit(1);
+  });
