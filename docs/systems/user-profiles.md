@@ -26,7 +26,7 @@ Cada usuario tiene un perfil completo que incluye:
 ```javascript
 {
   // Autenticación
-  username: String (3-30 caracteres, único),
+  username: String (6-25 caracteres, único),
   email: String (único, validado),
   password: String (hasheado, min 8 caracteres),
   role: Enum ['USER', 'ADMIN'],
@@ -55,6 +55,10 @@ Cada usuario tiene un perfil completo que incluye:
     name: String (max 100),
     jobPosition: String (max 50)
   },
+  // Nota: enterprise.name siempre se retorna en UPPERCASE desde el backend.
+  // Los métodos getRankingUserDetails(), getFullUserDetails(),
+  // getPublicUserDetails() y getSearchUserDetails() aplican
+  // .toUpperCase() a enterprise.name antes de retornarlo.
 
   // Teams
   teams: [
@@ -69,7 +73,12 @@ Cada usuario tiene un perfil completo que incluye:
   level: { ... },
   dailyStreak: { ... },
   xpHistory: [ ... ],
-  achievements: [ ... ],
+  achievements: [
+    {
+      achievementId: String (required: [true, "Achievement ID is required"]),
+      ...
+    }
+  ],
   unlockedCovers: [ ... ],
 
   // Programas
@@ -309,13 +318,13 @@ GET /api/user/search-users?query=juan
 ### Índice de Búsqueda
 
 ```javascript
-userSchema.index({
-  username: 'text',
-  'profile.name': 'text',
-  'enterprise.name': 'text',
-  'enterprise.jobPosition': 'text'
-});
+userSchema.index(
+  { username: 'text', 'profile.name': 'text', 'enterprise.name': 'text', 'enterprise.jobPosition': 'text' },
+  { weights: { username: 10, 'profile.name': 5, 'enterprise.name': 2, 'enterprise.jobPosition': 1 } }
+);
 ```
+
+Los resultados de búsqueda de texto se ponderan por relevancia: las coincidencias con `username` pesan 10x más que las de `enterprise.jobPosition`, haciendo que las búsquedas por username sean las más relevantes. `profile.name` tiene peso 5, y `enterprise.name` peso 2.
 
 ---
 
@@ -774,13 +783,11 @@ Frontend: renderizar perfil
 ### Índices de Performance
 
 ```javascript
-// Búsqueda de texto
-userSchema.index({
-  username: 'text',
-  'profile.name': 'text',
-  'enterprise.name': 'text',
-  'enterprise.jobPosition': 'text'
-});
+// Búsqueda de texto (con pesos de relevancia)
+userSchema.index(
+  { username: 'text', 'profile.name': 'text', 'enterprise.name': 'text', 'enterprise.jobPosition': 'text' },
+  { weights: { username: 10, 'profile.name': 5, 'enterprise.name': 2, 'enterprise.jobPosition': 1 } }
+);
 
 // Favoritos
 userSchema.index({ 'favorites.assistants': 1 });

@@ -649,6 +649,8 @@ productKeySchema.index({ code: 1 }, { unique: true });
 productKeySchema.index({ email: 1 });
 productKeySchema.index({ used: 1 });
 productKeySchema.index({ product: 1, team: 1 });
+productKeySchema.index({ product: 1, used: 1 });  // Consultas de claves disponibles por producto
+productKeySchema.index({ usedBy: 1 });              // Buscar claves usadas por un usuario específico
 ```
 
 ---
