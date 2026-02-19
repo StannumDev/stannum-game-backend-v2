@@ -14,11 +14,14 @@ const markLessonAsCompleted = async (req, res) => {
         if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
         if (!lessonId) return res.status(400).json(getError("VALIDATION_LESSON_ID_REQUIRED"));
 
+        const validPrograms = ['tia', 'tia_summer', 'tmd'];
+        if (!validPrograms.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+
         const userProgram = user.programs[programName];
         if (!userProgram) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
         if (!userProgram.isPurchased) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
 
-        const isAlreadyCompleted = userProgram.lessonsCompleted.some(l => l.lessonId === lessonId);
+        const isAlreadyCompleted = userProgram.lessonsCompleted?.some(l => l.lessonId === lessonId);
         if (isAlreadyCompleted) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
 
         const alreadyGivenXP = user.xpHistory.some(entry => entry.type === 'LESSON_COMPLETED' && entry.meta?.lessonId === lessonId);
@@ -49,11 +52,21 @@ const markLessonAsCompleted = async (req, res) => {
         }
         if (!lessonFound) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));
 
-        userProgram.lessonsCompleted.push({ lessonId, viewedAt: new Date() });
+        const atomicPush = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                [`programs.${programName}.lessonsCompleted.lessonId`]: { $ne: lessonId },
+            },
+            {
+                $push: { [`programs.${programName}.lessonsCompleted`]: { lessonId, viewedAt: new Date() } },
+            },
+            { new: true }
+        );
+        if (!atomicPush) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
 
-        const xpResult = await addExperience(user, 'LESSON_COMPLETED', { programId: programName, lessonId });
+        const xpResult = await addExperience(atomicPush, 'LESSON_COMPLETED', { programId: programName, lessonId });
 
-        await user.save();
+        await atomicPush.save();
 
         return res.status(200).json({
             success: true,

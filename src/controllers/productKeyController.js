@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 
 const ProductKey = require("../models/productKeyModel");
@@ -50,61 +51,60 @@ const verifyProductKey = async (req, res) => {
 };
 
 const activateProductKey = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const userId = req.userAuth.id;
         const { code } = req.body;
 
         if (!code) return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_REQUIRED"));
 
-        const key = await ProductKey.findOneAndUpdate(
-            { code: code.toUpperCase(), used: false },
-            { used: true, usedAt: new Date(), usedBy: userId },
-            { new: true }
-        );
-
-        if (!key) {
-            const exists = await ProductKey.findOne({ code: code.toUpperCase() });
-            if (!exists) return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
-            return res.status(400).json(getError("VALIDATION_PRODUCT_KEY_ALREADY_USED"));
-        }
-
-        const user = await User.findById(userId);
-        if (!user) {
-            await ProductKey.findOneAndUpdate(
-                { code: code.toUpperCase() },
-                { used: false, usedAt: null, usedBy: null }
+        let result;
+        await session.withTransaction(async () => {
+            const key = await ProductKey.findOneAndUpdate(
+                { code: code.toUpperCase(), used: false },
+                { used: true, usedAt: new Date(), usedBy: userId },
+                { new: true, session }
             );
-            return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-        }
 
-        const alreadyHasProduct = user.programs?.[key.product]?.isPurchased;
-        if (alreadyHasProduct) {
-            await ProductKey.findOneAndUpdate(
-                { code: code.toUpperCase() },
-                { used: false, usedAt: null, usedBy: null }
-            );
-            return res.status(400).json(getError("VALIDATION_PRODUCT_ALREADY_OWNED"));
-        }
+            if (!key) {
+                const exists = await ProductKey.findOne({ code: code.toUpperCase() }).session(session);
+                if (!exists) throw { statusCode: 404, errorKey: "VALIDATION_PRODUCT_KEY_NOT_FOUND" };
+                throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_KEY_ALREADY_USED" };
+            }
 
-        user.programs[key.product].isPurchased = true;
-        user.programs[key.product].acquiredAt = new Date();
+            const user = await User.findById(userId).session(session);
+            if (!user) throw { statusCode: 404, errorKey: "AUTH_USER_NOT_FOUND" };
 
-        const alreadyInTeam = user.teams.some(t => t.programName === key.product);
-        if (!alreadyInTeam && key.team && key.team !== 'no_team') {
-            user.teams.push({
-                programName: key.product,
-                teamName: key.team,
-                role: 'member',
-            });
-        }
+            const alreadyHasProduct = user.programs?.[key.product]?.isPurchased;
+            if (alreadyHasProduct) throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_ALREADY_OWNED" };
 
-        const { newlyUnlocked } = await unlockAchievements(user);
-        await user.save();
+            user.programs[key.product].isPurchased = true;
+            user.programs[key.product].acquiredAt = new Date();
 
-        return res.status(200).json({ success: true, message: "Programa activado correctamente.", achievementsUnlocked: newlyUnlocked });
+            const alreadyInTeam = user.teams.some(t => t.programName === key.product);
+            if (!alreadyInTeam && key.team && key.team !== 'no_team') {
+                user.teams.push({
+                    programName: key.product,
+                    teamName: key.team,
+                    role: 'member',
+                });
+            }
+
+            const { newlyUnlocked } = await unlockAchievements(user);
+            await user.save({ session });
+
+            result = { newlyUnlocked };
+        });
+
+        return res.status(200).json({ success: true, message: "Programa activado correctamente.", achievementsUnlocked: result.newlyUnlocked });
     } catch (error) {
+        if (error.statusCode && error.errorKey) {
+            return res.status(error.statusCode).json(getError(error.errorKey));
+        }
         console.error("Error al activar la clave de producto:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    } finally {
+        session.endSession();
     }
 };
 

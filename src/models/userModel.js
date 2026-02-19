@@ -137,7 +137,7 @@ const dailyStreakSchema = new Schema({
 const achievementSchema = new Schema({
   achievementId: {
     type: String,
-    required: [true]
+    required: [true, "Achievement ID is required"]
   },
   unlockedAt: {
     type: Date,
@@ -243,6 +243,11 @@ const programSchema = new Schema({
   isPurchased: {
     type: Boolean,
     default: false,
+  },
+  totalXp: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   acquiredAt: {
     type: Date,
@@ -355,8 +360,8 @@ const userSchema = new Schema(
       required: [true, "Username is required"],
       unique: true,
       trim: true,
-      minlength: [3, "Username must be at least 3 characters long"],
-      maxlength: [30, "Username cannot exceed 30 characters"],
+      minlength: [6, "Username must be at least 6 characters long"],
+      maxlength: [25, "Username cannot exceed 25 characters"],
       match: [/^[a-zA-Z0-9._]+$/, "Username can only contain letters, numbers, and underscores"],
     },
     email: {
@@ -540,10 +545,22 @@ const userSchema = new Schema(
         type: Date,
         default: null,
       },
+      recoveryVerified: {
+        type: Boolean,
+        default: false,
+      },
     },
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(doc, ret) {
+        delete ret.password;
+        delete ret.otp;
+        delete ret.refreshToken;
+        return ret;
+      }
+    },
   }
 );
 
@@ -571,7 +588,7 @@ userSchema.methods.getRankingUserDetails = function () {
     name: censor(this.profile.name),
     username: this.username,
     photo: this.profilePhotoUrl,
-    enterprise: censor(this.enterprise?.name) || "",
+    enterprise: (censor(this.enterprise?.name) || "").toUpperCase(),
     points: this.level.experienceTotal,
     level: this.level.currentLevel
   };
@@ -595,7 +612,7 @@ userSchema.methods.getFullUserDetails = function () {
       aboutMe: censor(this.profile.aboutMe),
     },
     enterprise: {
-      name: censor(this.enterprise?.name),
+      name: (censor(this.enterprise?.name) || "").toUpperCase(),
       jobPosition: censor(this.enterprise?.jobPosition),
     },
     teams: this.teams,
@@ -614,13 +631,68 @@ userSchema.methods.getFullUserDetails = function () {
   };
 };
 
+userSchema.methods.getPublicUserDetails = function () {
+  const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
+  const today = localTodayString(tz);
+  const last = this.dailyStreak?.lastActivityLocalDate;
+
+  const isStreakAlive = last && (isSameLocalDay(last, today) || isConsecutiveLocalDay(last, today));
+  const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
+
+  const sanitizeProgram = (prog) => {
+    if (!prog) return prog;
+    return {
+      isPurchased: prog.isPurchased,
+      acquiredAt: prog.acquiredAt,
+      totalXp: prog.totalXp || 0,
+      lessonsCompleted: prog.lessonsCompleted,
+      instructions: (prog.instructions || []).map(i => ({
+        instructionId: i.instructionId,
+        status: i.status,
+        score: i.score,
+        observations: i.observations,
+      })),
+    };
+  };
+
+  return {
+    id: this._id,
+    username: this.username,
+    profilePhoto: this.profilePhotoUrl,
+    profile: {
+      name: censor(this.profile.name),
+      country: this.profile.country,
+      region: this.profile.region,
+      birthdate: this.profile.birthdate,
+      aboutMe: censor(this.profile.aboutMe),
+      socialLinks: this.profile.socialLinks,
+    },
+    enterprise: {
+      name: (censor(this.enterprise?.name) || "").toUpperCase(),
+      jobPosition: censor(this.enterprise?.jobPosition),
+    },
+    teams: this.teams,
+    level: this.level,
+    achievements: this.achievements,
+    programs: {
+      tia: sanitizeProgram(this.programs?.tia),
+      tmd: sanitizeProgram(this.programs?.tmd),
+      tia_summer: sanitizeProgram(this.programs?.tia_summer),
+    },
+    dailyStreak: {
+      count: effectiveCount,
+    },
+    unlockedCovers: this.unlockedCovers,
+  };
+};
+
 userSchema.methods.getSearchUserDetails = function () {
   return {
     id: this._id,
     username: this.username,
     name: censor(this.profile.name),
     profilePhoto: this.profilePhotoUrl,
-    enterprise: censor(this.enterprise?.name) || null,
+    enterprise: (censor(this.enterprise?.name) || "").toUpperCase() || null,
     jobPosition: censor(this.enterprise?.jobPosition) || null,
   };
 };
@@ -724,11 +796,18 @@ userSchema.methods.getFavoriteAssistants = function() {
 userSchema.index({ 'favorites.assistants': 1 });
 userSchema.index({ 'favorites.prompts': 1 });
 userSchema.index({ 'level.experienceTotal': -1, status: 1 });
-userSchema.index({ 
+userSchema.index({
   username: 'text',
   'profile.name': 'text',
   'enterprise.name': 'text',
   'enterprise.jobPosition': 'text'
+}, {
+  weights: {
+    username: 10,
+    'profile.name': 5,
+    'enterprise.name': 2,
+    'enterprise.jobPosition': 1
+  }
 });
 
 module.exports = model("User", userSchema);

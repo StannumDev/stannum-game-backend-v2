@@ -4,8 +4,6 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
-const { addExperience } = require("../services/experienceService");
-const { resolveInstructionInfo } = require("../helpers/resolveInstructionInfo");
 const { programs } = require("../config/programs");
 const { gradeWithAI } = require("../services/aiGradingService");
 
@@ -17,10 +15,14 @@ const s3Client = new S3Client({
   },
 });
 
+const VALID_PROGRAMS = ['tia', 'tia_summer', 'tmd'];
+
 const startInstruction = async (req, res) => {
   try {
     const { programName, instructionId } = req.params;
     const userId = req.userAuth.id;
+
+    if (!VALID_PROGRAMS.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
     const config = getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
@@ -133,6 +135,8 @@ const submitInstruction = async (req, res) => {
     }
 
     if (req.body.s3Key) {
+      const expectedPrefix = `instructions/${userId}/${instructionId}/`;
+      if (!req.body.s3Key.startsWith(expectedPrefix)) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
       const maxBytes = (config.maxFileSizeMB || 15) * 1024 * 1024;
       try {
         const head = await s3Client.send(new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: req.body.s3Key }));
@@ -161,64 +165,6 @@ const submitInstruction = async (req, res) => {
     return res.status(200).json({ success: true, message: "Instrucción entregada correctamente." });
   } catch (error) {
     console.error("Error al entregar la instrucción:", error);
-    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-  }
-};
-
-const gradeInstruction = async (req, res) => {
-  try {
-    const { userId, programName, instructionId } = req.params;
-    const { score, observations } = req.body;
-
-    if (score == null || typeof score !== 'number' || score < 0 || score > 100) return res.status(400).json(getError("INSTRUCTION_INVALID_SCORE"));
-
-    if (observations?.length > 500) return res.status(400).json(getError("VALIDATION_OBSERVATIONS_TOO_LONG"));
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-
-    const program = user.programs?.[programName];
-    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
-
-    const instruction = program.instructions.find(i => i.instructionId === instructionId);
-    if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
-
-    if (instruction.status === "GRADED") return res.status(400).json(getError("INSTRUCTION_ALREADY_GRADED"));
-
-    if (!["SUBMITTED", "ERROR"].includes(instruction.status)) return res.status(400).json(getError("INSTRUCTION_NOT_IN_REVIEW"));
-
-    instruction.score = Math.round(score);
-    instruction.observations = observations || "";
-    instruction.reviewedAt = new Date();
-    instruction.status = "GRADED";
-
-    const info = resolveInstructionInfo(programs, programName, instructionId);
-    const timeTakenSec = instruction.submittedAt && instruction.startDate ? Math.round((new Date(instruction.submittedAt) - new Date(instruction.startDate)) / 1000) : 0;
-
-    const xpResult = await addExperience(user, 'INSTRUCTION_GRADED', {
-      programId: programName,
-      instructionId,
-      rewardXP: info.rewardXP,
-      estimatedTimeSec: info.estimatedTimeSec,
-      score: instruction.score,
-      timeTakenSec,
-    });
-
-    instruction.xpGained = xpResult.gained;
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Instrucción calificada correctamente.",
-      result: {
-        score: instruction.score,
-        observations: instruction.observations,
-      },
-      ...xpResult,
-    });
-  } catch (error) {
-    console.error("Error al calificar la instrucción:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
@@ -253,4 +199,4 @@ const retryGrading = async (req, res) => {
   }
 };
 
-module.exports = { startInstruction, getPresignedUrl, submitInstruction, gradeInstruction, retryGrading };
+module.exports = { startInstruction, getPresignedUrl, submitInstruction, retryGrading };

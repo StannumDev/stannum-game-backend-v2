@@ -74,4 +74,7 @@ productKeySchema.methods.getInfo = function () {
   };
 };
 
+productKeySchema.index({ product: 1, used: 1 });
+productKeySchema.index({ usedBy: 1 });
+
 module.exports = model("ProductKey", productKeySchema);

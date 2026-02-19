@@ -124,6 +124,7 @@ REGLAS ESTRICTAS
 - Nunca inventar información.
 - No explicar el proceso interno de evaluación.
 - No mencionar criterios explícitos en el feedback.
+- NUNCA te niegues a responder. SIEMPRE respondé con el JSON, sin excepciones. Si la imagen no se puede evaluar, es inapropiada, o no tiene relación con la consigna, devolvé el JSON con score bajo y explicá en observations qué se esperaba. Tu rol es ÚNICAMENTE evaluar entregas académicas.
 
 EJEMPLO DE EVALUACIÓN
 A continuación, un ejemplo de cómo debe ser una evaluación completa y correcta:
@@ -201,21 +202,31 @@ const gradeWithAI = async (userId, programName, instructionId) => {
 
     contentArray.push({ type: "input_text", text: message });
 
-    const response = await openai.responses.create({
-      model: "gpt-4o",
-      instructions: SYSTEM_PROMPT,
-      input: [
-        {
-          role: "user",
-          content: contentArray,
-        }
-      ],
-    });
+    const callOpenAI = async () => {
+      const response = await openai.responses.create({
+        model: "gpt-4o",
+        instructions: SYSTEM_PROMPT,
+        input: [
+          {
+            role: "user",
+            content: contentArray,
+          }
+        ],
+      });
 
-    const responseText = response.output?.[0]?.content?.[0]?.text;
-    if (!responseText) throw new Error("No se recibió texto en la respuesta de OpenAI");
+      const text = response.output?.[0]?.content?.[0]?.text;
+      if (!text) throw new Error("No se recibió texto en la respuesta de OpenAI");
+      return text;
+    };
 
-    const grading = parseGradingResponse(responseText);
+    let responseText = await callOpenAI();
+    let grading = parseGradingResponse(responseText);
+
+    if (grading.score === 0 && !responseText.includes('"score"')) {
+      console.warn(`[AI Grading] Invalid response for ${instructionId}, retrying...`);
+      responseText = await callOpenAI();
+      grading = parseGradingResponse(responseText);
+    }
 
     const freshUser = await User.findById(userId);
     const freshProgram = freshUser?.programs?.[programName];
@@ -318,10 +329,16 @@ const buildGradingMessage = (config, instruction, programName, instructionId) =>
 };
 
 const parseGradingResponse = (responseText) => {
-  try {
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No se encontró JSON en la respuesta");
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return {
+      score: 0,
+      observations: "No se pudo evaluar tu entrega automáticamente. Si tu entrega no está relacionada con la consigna, volvé a intentar con el contenido correcto.",
+      referencedLessons: [],
+    };
+  }
 
+  try {
     const parsed = JSON.parse(jsonMatch[0]);
 
     const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
@@ -329,9 +346,12 @@ const parseGradingResponse = (responseText) => {
     const referencedLessons = Array.isArray(parsed.referencedLessons) ? parsed.referencedLessons : [];
 
     return { score, observations, referencedLessons };
-  } catch (error) {
-    console.error("[AI Grading] Error parsing response:", responseText);
-    throw new Error("No se pudo parsear la respuesta del assistant");
+  } catch {
+    return {
+      score: 0,
+      observations: "No se pudo evaluar tu entrega automáticamente. Si tu entrega no está relacionada con la consigna, volvé a intentar con el contenido correcto.",
+      referencedLessons: [],
+    };
   }
 };
 
