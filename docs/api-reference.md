@@ -234,6 +234,8 @@ No requiere `Authorization` header (el access token está expirado).
 
 ## 👤 Usuario
 
+> **Nota:** El modelo User utiliza un transform `toJSON` que excluye automáticamente los campos `password`, `otp` y `refreshToken` de todas las respuestas JSON.
+
 ### GET `/user`
 **Obtener datos completos del usuario autenticado**
 
@@ -570,36 +572,6 @@ await axios.put(presignedUrl, file, {
 {
   "success": true,
   "message": "Reintentando corrección automática"
-}
-```
-
----
-
-### POST `/instruction/grade/:userId/:programName/:instructionId` (ADMIN)
-**Calificar manualmente una instrucción**
-
-**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
-
-**Body:**
-```json
-{
-  "score": 85,
-  "observations": "Buen trabajo, pero faltó..."
-}
-```
-
-**Response 200:**
-```json
-{
-  "success": true,
-  "message": "Instrucción calificada correctamente",
-  "result": {
-    "score": 85,
-    "observations": "..."
-  },
-  "gained": 750,
-  "streakBonus": 0,
-  "totalGain": 750
 }
 ```
 

@@ -228,6 +228,16 @@ Cada entrada en `user.xpHistory` registra:
 
 **Límite:** 1000 entradas (se eliminan las más antiguas)
 
+### totalXp por programa
+
+Cada programa en `user.programs[programId]` ahora incluye un campo `totalXp` que se incrementa atómicamente al ganar XP:
+
+```javascript
+user.programs[progId].totalXp += totalGain;
+```
+
+Esto evita recalcular el XP total a partir de `xpHistory` en cada consulta (ej: rankings). El campo `xpHistory` sigue registrando cada transacción individual para auditoría.
+
 ---
 
 ## 🎮 FLUJO COMPLETO: Completar Lección

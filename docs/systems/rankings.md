@@ -112,24 +112,25 @@ userSchema.methods.getRankingUserDetails = function () {
 
 **Helper:** `src/helpers/profanityChecker.js`
 
-El helper `censor()` oculta parcialmente información personal:
+El helper usa la librería `@2toad/profanity` para censurar lenguaje ofensivo en campos de texto visibles en el ranking. Se configura con `wholeWord: true` para evitar falsos positivos (por ejemplo, sin esta opción "obstáculo" se censuraba porque "culo" coincidía como substring; con `wholeWord: true` solo se censuran coincidencias de palabras completas).
 
 ```javascript
+const { Profanity, CensorType } = require('@2toad/profanity');
+
+const profanity = new Profanity({
+    languages: ['en'],
+    wholeWord: true,   // Evita falsos positivos con substrings
+    grawlix: '****',
+    grawlixChar: '*',
+});
+
+// Se agregan palabras ofensivas en español (blackList) y excepciones (whiteList)
+profanity.addWords(blackList);
+profanity.removeWords(whiteList);
+
 const censor = (text) => {
-  if (!text) return "";
-
-  // Ejemplo: "Juan Pérez" → "Juan ****"
-  const words = text.split(" ");
-  if (words.length > 1) {
-    return words[0] + " " + "*".repeat(words.slice(1).join(" ").length);
-  }
-
-  // "Microsoft" → "Micr****"
-  if (text.length > 4) {
-    return text.slice(0, 4) + "*".repeat(text.length - 4);
-  }
-
-  return text;
+    if (!text || typeof text !== 'string') return text;
+    return profanity.censor(text, CensorType.Word);
 };
 ```
 

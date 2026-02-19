@@ -68,7 +68,7 @@ Documentación del sistema de autenticación de STANNUM Game, basado en access t
    - Backend busca usuario por hash del refresh token, valida expiración
    - Backend genera NUEVO par de tokens (rotación) y retorna ambos
    - Frontend actualiza cookies y reintenta todos los requests encolados
-4. Si no hay refresh token o el refresh falla → `forceLogout()` (limpia cookies, redirect a `/`)
+4. Si no hay refresh token o el refresh falla → `forceLogout()` (limpia cookies, muestra toast "Sesión expirada - Tu sesión expiró. Volvé a iniciar sesión.", espera 1.5 segundos y redirige a `/`)
 
 ### Logout
 1. Frontend llama `POST /auth/logout` con access token
@@ -83,6 +83,10 @@ Cada vez que se usa un refresh token para obtener nuevos tokens, el anterior se 
 Refresh #1 → usado → genera Access #2 + Refresh #2 → Refresh #1 ya no es válido
 Refresh #2 → usado → genera Access #3 + Refresh #3 → Refresh #2 ya no es válido
 ```
+
+## Sanitización de Datos (toJSON)
+
+El schema de usuario tiene un transform `toJSON` que automáticamente elimina los campos `password`, `otp` y `refreshToken` de cualquier serialización a JSON. Esto previene la filtración accidental de campos sensibles en las respuestas de la API, incluso si se devuelve el documento completo del usuario sin selección explícita de campos.
 
 ## Almacenamiento Seguro
 
@@ -140,6 +144,21 @@ refreshToken: {
   expiresAt: { type: Date, default: null },  // Fecha de expiración (7 días)
 }
 ```
+
+Campo `otp` en el schema de usuario:
+
+```javascript
+otp: {
+  code: { type: String, default: null },          // Código OTP hasheado
+  expiresAt: { type: Date, default: null },        // Fecha de expiración del OTP
+  recoveryVerified: { type: Boolean, default: false }, // Verificación de recuperación completada
+}
+```
+
+`recoveryVerified` se usa en el flujo de recuperación de contraseña:
+- Cuando el usuario verifica su OTP via `POST /auth/verify-recovery-otp`, `recoveryVerified` se setea a `true`.
+- El endpoint `POST /auth/password-reset` verifica que `recoveryVerified === true` antes de permitir el cambio de contraseña.
+- Después de resetear la contraseña exitosamente, `recoveryVerified` se vuelve a setear a `false`.
 
 Índice sparse para búsqueda eficiente:
 ```javascript
