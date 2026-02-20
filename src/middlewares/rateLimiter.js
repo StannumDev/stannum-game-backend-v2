@@ -69,4 +69,13 @@ const refreshLimiter = rateLimit({
     keyGenerator: (req) => req.ip,
 });
 
-module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter };
+const contentCreationLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.ip,
+});
+
+module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter };

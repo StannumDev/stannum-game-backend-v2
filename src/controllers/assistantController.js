@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const Assistant = require('../models/assistantModel');
 const User = require('../models/userModel');
 const { getError } = require('../helpers/getError');
@@ -384,53 +385,49 @@ const toggleFavorite = async (req, res) => {
         
         if (!assistant) return res.status(404).json(getError("ASSISTANT_NOT_FOUND"));
         const isFavorited = assistant.favoritedBy.includes(userId);
-        if (isFavorited) {
-            const [updatedAssistant, _] = await Promise.all([
-                Assistant.findByIdAndUpdate( id,
-                    { 
-                        $pull: { favoritedBy: userId },
-                        $inc: { 'metrics.favoritesCount': -1 }
-                    },
-                    { new: true }
-                ),
-                User.findByIdAndUpdate( userId,
-                    { $pull: { 'favorites.assistants': id } },
-                    { new: true }
-                )
-            ]);
-
-            return res.json({
-                success: true,
-                data: {
-                    isFavorited: false,
-                    favoritesCount: updatedAssistant.metrics.favoritesCount
-                },
-                message: 'Removed from favorites'
+        const session = await mongoose.startSession();
+        let updatedAssistant;
+        let resultIsFavorited;
+        try {
+            await session.withTransaction(async () => {
+                if (isFavorited) {
+                    [updatedAssistant] = await Promise.all([
+                        Assistant.findByIdAndUpdate(id,
+                            { $pull: { favoritedBy: userId }, $inc: { 'metrics.favoritesCount': -1 } },
+                            { new: true, session }
+                        ),
+                        User.findByIdAndUpdate(userId,
+                            { $pull: { 'favorites.assistants': id } },
+                            { new: true, session }
+                        )
+                    ]);
+                    resultIsFavorited = false;
+                } else {
+                    [updatedAssistant] = await Promise.all([
+                        Assistant.findByIdAndUpdate(id,
+                            { $addToSet: { favoritedBy: userId }, $inc: { 'metrics.favoritesCount': 1 } },
+                            { new: true, session }
+                        ),
+                        User.findByIdAndUpdate(userId,
+                            { $addToSet: { 'favorites.assistants': id } },
+                            { new: true, session }
+                        )
+                    ]);
+                    resultIsFavorited = true;
+                }
             });
-        } else {
-            const [updatedAssistant, _] = await Promise.all([
-                Assistant.findByIdAndUpdate( id,
-                    { 
-                        $addToSet: { favoritedBy: userId },
-                        $inc: { 'metrics.favoritesCount': 1 }
-                    },
-                    { new: true }
-                ),
-                User.findByIdAndUpdate( userId,
-                    { $addToSet: { 'favorites.assistants': id } },
-                    { new: true }
-                )
-            ]);
-
-            return res.json({
-                success: true,
-                data: {
-                    isFavorited: true,
-                    favoritesCount: updatedAssistant.metrics.favoritesCount
-                },
-                message: 'Added to favorites'
-            });
+        } finally {
+            session.endSession();
         }
+
+        return res.json({
+            success: true,
+            data: {
+                isFavorited: resultIsFavorited,
+                favoritesCount: updatedAssistant.metrics.favoritesCount
+            },
+            message: resultIsFavorited ? 'Added to favorites' : 'Removed from favorites'
+        });
     } catch (error) {
         console.error('Error toggling favorite:', error);
         return res.status(500).json(getError("ASSISTANT_FAVORITE_FAILED"));

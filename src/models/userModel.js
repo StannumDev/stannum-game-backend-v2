@@ -447,7 +447,7 @@ const userSchema = new Schema(
     },
     enterprise: enterpriseSchema,
     teams: [teamSchema],
-    level: { type: levelSchema, default: () => ({}) },
+    level: { type: levelSchema, default: () => ({ currentLevel: 1, experienceTotal: 0, experienceCurrentLevel: 0, experienceNextLevel: 150, progress: 0 }) },
     dailyStreak: { type: dailyStreakSchema, default: () => ({}) },
     xpHistory: { type: [xpEventSchema], default: [] },
     achievements: [achievementSchema],
