@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const Prompt = require('../models/promptModel');
 const User = require('../models/userModel');
 const { getError } = require('../helpers/getError');
@@ -362,53 +363,49 @@ const toggleFavorite = async (req, res) => {
         
         const isFavorited = prompt.favoritedBy.includes(userId);
         
-        if (isFavorited) {
-            const [updatedPrompt, _] = await Promise.all([
-                Prompt.findByIdAndUpdate(id,
-                    { 
-                        $pull: { favoritedBy: userId },
-                        $inc: { 'metrics.favoritesCount': -1 }
-                    },
-                    { new: true }
-                ),
-                User.findByIdAndUpdate(userId,
-                    { $pull: { 'favorites.prompts': id } },
-                    { new: true }
-                )
-            ]);
-
-            return res.json({
-                success: true,
-                data: {
-                    isFavorited: false,
-                    favoritesCount: updatedPrompt.metrics.favoritesCount
-                },
-                message: 'Removed from favorites'
+        const session = await mongoose.startSession();
+        let updatedPrompt;
+        let resultIsFavorited;
+        try {
+            await session.withTransaction(async () => {
+                if (isFavorited) {
+                    [updatedPrompt] = await Promise.all([
+                        Prompt.findByIdAndUpdate(id,
+                            { $pull: { favoritedBy: userId }, $inc: { 'metrics.favoritesCount': -1 } },
+                            { new: true, session }
+                        ),
+                        User.findByIdAndUpdate(userId,
+                            { $pull: { 'favorites.prompts': id } },
+                            { new: true, session }
+                        )
+                    ]);
+                    resultIsFavorited = false;
+                } else {
+                    [updatedPrompt] = await Promise.all([
+                        Prompt.findByIdAndUpdate(id,
+                            { $addToSet: { favoritedBy: userId }, $inc: { 'metrics.favoritesCount': 1 } },
+                            { new: true, session }
+                        ),
+                        User.findByIdAndUpdate(userId,
+                            { $addToSet: { 'favorites.prompts': id } },
+                            { new: true, session }
+                        )
+                    ]);
+                    resultIsFavorited = true;
+                }
             });
-        } else {
-            const [updatedPrompt, _] = await Promise.all([
-                Prompt.findByIdAndUpdate(id,
-                    { 
-                        $addToSet: { favoritedBy: userId },
-                        $inc: { 'metrics.favoritesCount': 1 }
-                    },
-                    { new: true }
-                ),
-                User.findByIdAndUpdate(userId,
-                    { $addToSet: { 'favorites.prompts': id } },
-                    { new: true }
-                )
-            ]);
-
-            return res.json({
-                success: true,
-                data: {
-                    isFavorited: true,
-                    favoritesCount: updatedPrompt.metrics.favoritesCount
-                },
-                message: 'Added to favorites'
-            });
+        } finally {
+            session.endSession();
         }
+
+        return res.json({
+            success: true,
+            data: {
+                isFavorited: resultIsFavorited,
+                favoritesCount: updatedPrompt.metrics.favoritesCount
+            },
+            message: resultIsFavorited ? 'Added to favorites' : 'Removed from favorites'
+        });
     } catch (error) {
         console.error('Error toggling favorite:', error);
         return res.status(500).json(getError("PROMPT_FAVORITE_FAILED"));

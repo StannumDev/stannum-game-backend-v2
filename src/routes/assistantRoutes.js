@@ -3,7 +3,7 @@ const { check, query } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { searchLimiter } = require("../middlewares/rateLimiter");
+const { searchLimiter, contentCreationLimiter } = require("../middlewares/rateLimiter");
 const assistantController = require("../controllers/assistantController");
 
 const router = Router();
@@ -97,6 +97,7 @@ router.post(
         check("useCases", "Use cases are too long.").optional().isLength({ max: 1000 }).withMessage("Use cases cannot exceed 1000 characters."),
         fieldsValidate,
     ],
+    contentCreationLimiter,
     assistantController.createAssistant
 );
 

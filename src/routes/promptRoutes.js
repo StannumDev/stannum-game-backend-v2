@@ -3,7 +3,7 @@ const { check, query } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { searchLimiter } = require("../middlewares/rateLimiter");
+const { searchLimiter, contentCreationLimiter } = require("../middlewares/rateLimiter");
 const promptController = require("../controllers/promptController");
 
 const router = Router();
@@ -102,6 +102,7 @@ router.post(
         check("visibility").optional().isIn(['published', 'draft']).withMessage("Invalid visibility value."),
         fieldsValidate,
     ],
+    contentCreationLimiter,
     promptController.createPrompt
 );
 
