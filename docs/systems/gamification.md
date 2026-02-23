@@ -4,12 +4,13 @@ El sistema de gamificación de STANNUM Game está diseñado para maximizar el en
 
 ## 📊 Visión General
 
-El sistema se compone de 4 pilares principales:
+El sistema se compone de 5 pilares principales:
 
 1. **XP (Experience Points)** - Puntos ganados al completar actividades
-2. **Niveles** - Progresión del 1 al 30 con curva exponencial
-3. **Achievements** - 19 logros desbloqueables automáticamente
-4. **Daily Streaks** - Bonificación por días consecutivos de actividad
+2. **Tins (Moneda Virtual)** - Moneda interna ganada con actividades
+3. **Niveles** - Progresion del 1 al 30 con curva exponencial
+4. **Achievements** - 28 logros desbloqueables automaticamente
+5. **Daily Streaks** - Bonificacion por dias consecutivos de actividad
 
 ---
 
@@ -122,7 +123,45 @@ El sistema detecta automáticamente actividad diaria y otorga bonos XP por días
 
 ---
 
-## 📈 2. SISTEMA DE NIVELES
+## 💰 2. SISTEMA DE TINS (MONEDA VIRTUAL)
+
+**Archivo:** `src/services/coinsService.js` + `src/config/coinsConfig.js`
+
+Tins es la moneda virtual de la plataforma. Se ganan al completar actividades y desbloquear logros.
+
+### Fuentes de Tins
+
+| Accion | Tins |
+|--------|------|
+| Completar leccion | 5 |
+| Instruccion calificada (score < 70) | 10 |
+| Instruccion calificada (score 70-89) | 15 |
+| Instruccion calificada (score 90-99) | 20 |
+| Instruccion calificada (score 100) | 25 |
+| Daily streak (por dia) | 3 |
+| Streak bonus (7 dias) | 10 |
+| Streak bonus (30 dias) | 50 |
+| Modulo completado | 30 |
+| Programa completado | 100 |
+| Favorito recibido en publicacion | 2 |
+| Desbloquear achievement | Variable (5-60) |
+
+### Historial
+
+Cada transaccion de Tins se registra en `user.coinsHistory`:
+
+```javascript
+{
+  type: "LESSON_COMPLETED" | "INSTRUCTION_GRADED" | "DAILY_STREAK" | "ACHIEVEMENT_UNLOCKED" | ...,
+  coins: Number,
+  date: Date,
+  meta: { ... }
+}
+```
+
+---
+
+## 📈 3. SISTEMA DE NIVELES
 
 ### Configuración
 
@@ -157,39 +196,56 @@ El sistema detecta automáticamente actividad diaria y otorga bonos XP por días
 
 ---
 
-## 🏆 3. SISTEMA DE ACHIEVEMENTS
+## 🏆 4. SISTEMA DE ACHIEVEMENTS
 
 **Archivo:** `src/config/achievementsConfig.js`
 
-### Lista Completa de Logros
+### Lista Completa de Logros (28 total)
 
-#### Logros Generales (13 logros)
+#### Logros Generales (22 logros)
 
-1. **first_program_acquired** (50 XP) - Compra primer programa
-2. **profile_completed** (50 XP) - Completa perfil
-3. **first_lesson_completed** (50 XP) - Completa 1 lección
-4. **first_instruction_completed** (50 XP) - 1 instrucción calificada
-5. **first_module_completed** (100 XP) - Completa módulo entero
-6. **module_instructions_completed** (100 XP) - Todas instrucciones de módulo
-7. **first_program_completed** (200 XP) - Completa programa entero
-8. **level_5** (50 XP) - Alcanza nivel 5
-9. **level_10** (100 XP) - Alcanza nivel 10
-10. **level_20** (200 XP) - Alcanza nivel 20
-11. **streak_3_days** (50 XP) - 3 días consecutivos
-12. **streak_7_days** (100 XP) - 7 días consecutivos
-13. **streak_30_days** (200 XP) - 30 días consecutivos
+| ID | Descripcion | XP | Tins |
+|----|-------------|-----|------|
+| `first_program_acquired` | Compra primer programa | 50 | 10 |
+| `profile_completed` | Completa todos los campos del perfil | 50 | 10 |
+| `first_lesson_completed` | Completa 1 leccion | 50 | 5 |
+| `first_instruction_completed` | 1 instruccion calificada | 50 | 5 |
+| `first_module_completed` | Completa modulo entero (lecciones + instrucciones) | 100 | 15 |
+| `module_instructions_completed` | Todas las instrucciones de un modulo calificadas | 100 | 15 |
+| `first_program_completed` | Completa programa entero | 200 | 25 |
+| `level_5` | Alcanza nivel 5 | 50 | 10 |
+| `level_10` | Alcanza nivel 10 | 100 | 15 |
+| `level_20` | Alcanza nivel 20 | 200 | 25 |
+| `level_25` | Alcanza nivel 25 | 250 | 30 |
+| `streak_3_days` | 3 dias consecutivos | 50 | 5 |
+| `streak_7_days` | 7 dias consecutivos | 100 | 10 |
+| `streak_15_days` | 15 dias consecutivos | 200 | 20 |
+| `streak_30_days` | 30 dias consecutivos | 300 | 30 |
+| `perfect_score` | 100% en una instruccion | 100 | 15 |
+| `triple_perfect` | 100% en 3 instrucciones distintas | 200 | 25 |
+| `marathon_day` | 5 lecciones completadas en un mismo dia | 100 | 15 |
+| `prompt_creator` | Publica primer prompt en comunidad | 50 | 10 |
+| `assistant_creator` | Publica primer asistente en comunidad | 50 | 10 |
+| `community_favorite` | Recibe 5 favoritos en publicaciones | 150 | 20 |
+| `collector` | Guarda 10 prompts o asistentes en favoritos | 50 | 10 |
 
-#### Logros Específicos de Programas (6 logros)
+#### Logros Especificos de Programas (6 logros)
 
 **TIA:**
-- **trenno_ia_joined** (100 XP) - Compra TIA
-- **trenno_ia_first_module_completed** (150 XP) - Módulo 1 completo
-- **trenno_ia_completed** (300 XP) - TODO TIA completo
+
+| ID | Descripcion | XP | Tins |
+|----|-------------|-----|------|
+| `trenno_ia_joined` | Compra TIA | 100 | 15 |
+| `trenno_ia_first_module_completed` | Modulo 1 completo | 150 | 20 |
+| `trenno_ia_completed` | Todo TIA completo | 300 | 40 |
 
 **SUMMER:**
-- **trenno_ia_summer_joined** (100 XP) - Participa en SUMMER
-- **trenno_ia_summer_halfway** (150 XP) - 50% completado
-- **trenno_ia_summer_graduate** (500 XP) - TODO SUMMER completo
+
+| ID | Descripcion | XP | Tins |
+|----|-------------|-----|------|
+| `trenno_ia_summer_joined` | Participa en SUMMER | 100 | 15 |
+| `trenno_ia_summer_halfway` | 50% completado | 150 | 20 |
+| `trenno_ia_summer_graduate` | Todo SUMMER completo | 500 | 60 |
 
 ### Sistema de Desbloqueo
 
@@ -210,7 +266,7 @@ const { newlyUnlocked } = await unlockAchievements(user)
 
 ---
 
-## 📊 4. HISTORIAL DE XP
+## 📊 5. HISTORIAL DE XP
 
 Cada entrada en `user.xpHistory` registra:
 
@@ -248,15 +304,20 @@ Usuario completa lección
 POST /api/lesson/complete/:programId/:lessonId
   ↓
 experienceService.addExperience()
-  ├─ Calcular XP = base × (1 + factorDuración)
+  ├─ Calcular XP = base x (1 + factorDuracion)
   ├─ Detectar daily streak → bonus XP
   ├─ Actualizar level (loop si sube niveles)
   └─ Push a xpHistory
   ↓
+coinsService.addCoins()
+  ├─ Calcular Tins segun accion
+  ├─ Detectar daily streak → bonus Tins
+  └─ Push a coinsHistory
+  ↓
 achievementsService.unlockAchievements()
   ├─ Verificar condiciones de achievements
   ├─ Desbloquear nuevos achievements
-  ├─ Otorgar XP por achievements
+  ├─ Otorgar XP + Tins por achievements
   └─ Posible nueva subida de nivel
   ↓
 user.save() → MongoDB
