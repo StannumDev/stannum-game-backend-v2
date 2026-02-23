@@ -118,6 +118,36 @@ const xpEventSchema = new Schema({
   }
 }, { _id: false });
 
+const coinsEventSchema = new Schema({
+  type: {
+    type: String,
+    enum: [
+      'LESSON_COMPLETED',
+      'INSTRUCTION_GRADED',
+      'DAILY_STREAK',
+      'STREAK_BONUS',
+      'ACHIEVEMENT_UNLOCKED',
+      'MODULE_COMPLETED',
+      'PROGRAM_COMPLETED',
+      'FAVORITE_RECEIVED',
+    ],
+    required: true,
+  },
+  coins: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  meta: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+}, { _id: false });
+
 const dailyStreakSchema = new Schema({
   count: {
     type: Number,
@@ -145,6 +175,11 @@ const achievementSchema = new Schema({
     default: Date.now,
   },
   xpReward: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  coinsReward: {
     type: Number,
     default: 0,
     min: 0
@@ -271,6 +306,8 @@ const programSchema = new Schema({
       },
     },
   ],
+  coinsRewardedModules: [{ type: String }],
+  coinsRewardedProgram: { type: Boolean, default: false },
   lastWatchedLesson: {
     lessonId: {
       type: String,
@@ -375,6 +412,10 @@ const userSchema = new Schema(
       type: String,
       minlength: [8, "Password must be at least 8 characters long"],
     },
+    passwordChangedAt: {
+      type: Date,
+      default: null,
+    },
     role: {
       type: String,
       enum: {
@@ -450,6 +491,8 @@ const userSchema = new Schema(
     level: { type: levelSchema, default: () => ({ currentLevel: 1, experienceTotal: 0, experienceCurrentLevel: 0, experienceNextLevel: 150, progress: 0 }) },
     dailyStreak: { type: dailyStreakSchema, default: () => ({}) },
     xpHistory: { type: [xpEventSchema], default: [] },
+    coins: { type: Number, default: 0, min: 0 },
+    coinsHistory: { type: [coinsEventSchema], default: [] },
     achievements: [achievementSchema],
     unlockedCovers: [unlockedCoverSchema],
     programs: {
@@ -579,6 +622,7 @@ userSchema.methods.getUserSidebarDetails = function () {
     id: this._id,
     username: this.username,
     profilePhoto: this.profilePhotoUrl,
+    coins: this.coins || 0,
   };
 };
 
@@ -625,6 +669,8 @@ userSchema.methods.getFullUserDetails = function () {
       timezone: tz,
     },
     xpHistory: this.xpHistory,
+    coins: this.coins || 0,
+    coinsHistory: this.coinsHistory,
     unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
     favorites: this.favorites,
@@ -682,6 +728,7 @@ userSchema.methods.getPublicUserDetails = function () {
     dailyStreak: {
       count: effectiveCount,
     },
+    coins: this.coins || 0,
     unlockedCovers: this.unlockedCovers,
   };
 };
@@ -796,6 +843,9 @@ userSchema.methods.getFavoriteAssistants = function() {
 userSchema.index({ 'favorites.assistants': 1 });
 userSchema.index({ 'favorites.prompts': 1 });
 userSchema.index({ 'level.experienceTotal': -1, status: 1 });
+userSchema.index({ 'programs.tia.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tmd.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia_summer.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
 userSchema.index({
   username: 'text',
   'profile.name': 'text',

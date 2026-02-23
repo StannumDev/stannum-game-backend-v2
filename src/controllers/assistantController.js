@@ -8,7 +8,7 @@ const getAllAssistants = async (req, res) => {
     try {
         const { search, category, difficulty, tags, platform, sortBy = 'popular', favoritesOnly, stannumVerifiedOnly, page = 1, limit = 20 } = req.query;
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
         const filters = {
             status: true,
             visibility: 'published'
@@ -420,6 +420,21 @@ const toggleFavorite = async (req, res) => {
             session.endSession();
         }
 
+        if (resultIsFavorited) {
+            const authorId = assistant.author;
+            if (authorId && authorId.toString() !== userId) {
+                try {
+                    const { grantCoinsAtomic } = require('../services/coinsService');
+                    const coinsCfg = require('../config/coinsConfig');
+                    await grantCoinsAtomic(authorId, 'FAVORITE_RECEIVED', coinsCfg.FAVORITE_RECEIVED, {
+                        contentType: 'assistant', contentId: id, fromUserId: userId,
+                    });
+                } catch (err) {
+                    console.error('[Coins] Error granting favorite coins to assistant author:', err.message);
+                }
+            }
+        }
+
         return res.json({
             success: true,
             data: {
@@ -439,7 +454,7 @@ const getUserAssistants = async (req, res) => {
         const { userId } = req.params;
         const { page = 1, limit = 20 } = req.query;
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
 
         const assistants = await Assistant.find({
             author: userId,
@@ -483,7 +498,7 @@ const getMyAssistants = async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
 
         const assistants = await Assistant.find({
             author: req.userAuth.id,

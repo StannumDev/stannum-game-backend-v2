@@ -24,6 +24,13 @@ const validateJWT = async (req = request, res = response, next) => {
     if (!user) return res.status(401).json(getError("JWT_INVALID_TOKEN"));
     if (!user.status) return res.status(401).json(getError("AUTH_ACCOUNT_DISABLED"));
 
+    if (user.passwordChangedAt) {
+      const tokenIssuedAt = decodedToken.iat * 1000;
+      if (tokenIssuedAt < new Date(user.passwordChangedAt).getTime()) {
+        return res.status(401).json(getError("JWT_EXPIRED_TOKEN"));
+      }
+    }
+
     req.userAuth = user;
     next();
   } catch (error) {

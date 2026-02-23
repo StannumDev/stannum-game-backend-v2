@@ -42,6 +42,17 @@ const corsOptions = {
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) return next();
+
+  console.error(`CSRF blocked: origin=${origin}, method=${req.method}, url=${req.originalUrl}`);
+  return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
+});
+
 app.use(cookieParser(process.env.SECRET));
 app.use(express.json({ limit: '1mb' }));
 app.use(globalLimiter);

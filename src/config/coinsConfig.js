@@ -1,0 +1,15 @@
+module.exports = {
+    LESSON_COMPLETED: 5,
+    INSTRUCTION_GRADED: {
+        BELOW_70: 10,
+        FROM_70: 15,
+        FROM_90: 20,
+        PERFECT: 25,
+    },
+    DAILY_STREAK: 3,
+    STREAK_BONUS_7: 10,
+    STREAK_BONUS_30: 50,
+    MODULE_COMPLETED: 30,
+    PROGRAM_COMPLETED: 100,
+    FAVORITE_RECEIVED: 2,
+};

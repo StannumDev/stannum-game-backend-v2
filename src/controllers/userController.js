@@ -37,7 +37,7 @@ const getUserDetailsByUsername = async (req, res) => {
     try {
         const { username } = req.params;
         const user = await User.findOne({ username: username.toLowerCase().trim() });
-        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+        if (!user) return res.status(404).json(getError("USER_PROFILE_NOT_FOUND"));
 
         const isOwner = req.userAuth.id.toString() === user._id.toString();
         const userDetails = isOwner ? user.getFullUserDetails() : user.getPublicUserDetails();
@@ -73,9 +73,8 @@ const getTutorialStatus = async (req, res) => {
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
     
         const tutorial = user.preferences?.tutorials?.find((t) => t.name === tutorialName);
-        if (!tutorial) return res.status(404).json(getError("VALIDATION_TUTORIAL_NOT_FOUND"));
-    
-        return res.status(200).json({ success: true, tutorial });
+
+        return res.status(200).json({ success: true, tutorial: tutorial || { name: tutorialName, isCompleted: false, completedAt: null } });
       
     } catch (error) {
         console.error(error);
@@ -94,16 +93,11 @@ const markTutorialAsCompleted = async (req, res) => {
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const tutorial = user.preferences.tutorials.find(t => t.name === tutorialName);
-        if (!tutorial) return res.status(404).json(getError("VALIDATION_TUTORIAL_NOT_FOUND"));
-
-        if (tutorial.isCompleted) {
-            return res.status(400).json(getError("TUTORIAL_ALREADY_COMPLETED"));
+        if (tutorial?.isCompleted) {
+            return res.status(200).json({ success: true, message: "Tutorial already completed." });
         }
 
-        tutorial.isCompleted = true;
-        tutorial.completedAt = new Date();
-
-        await user.save();
+        await user.markTutorialAsCompleted(tutorialName);
         return res.status(200).json({ success: true, message: "Tutorial marked as completed." });
     } catch (error) {
         console.error("Error marking tutorial as completed:", error);

@@ -99,6 +99,9 @@ const deletePhoto = async (req, res) => {
 
 const uploadGoogleProfilePhoto = async (googlePictureUrl, userId) => {
     try {
+        if (!googlePictureUrl.startsWith('https://')) {
+            throw new Error("Invalid Google profile photo URL: must start with https://");
+        }
         const adjustedUrl = adjustGooglePictureUrl(googlePictureUrl, 1000);
         const imageBuffer = await downloadImage(adjustedUrl);
 

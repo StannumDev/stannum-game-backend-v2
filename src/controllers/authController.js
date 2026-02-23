@@ -295,7 +295,11 @@ const verifyRecoveryOtp = async (req, res) => {
     if (!user.otp || !user.otp.recoveryOtp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
     if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
     const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
-    if (user.otp.recoveryOtp !== hashedOtp) return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    const otpBuffer = Buffer.from(user.otp.recoveryOtp, 'hex');
+    const hashedBuffer = Buffer.from(hashedOtp, 'hex');
+    if (otpBuffer.length !== hashedBuffer.length || !crypto.timingSafeEqual(otpBuffer, hashedBuffer)) {
+      return res.status(400).json(getError("AUTH_INVALID_OTP"));
+    }
 
     user.otp.recoveryOtp = null;
     user.otp.recoveryVerified = true;
@@ -333,6 +337,7 @@ const resetPassword = async (req, res) => {
 
     const hashedPassword = await bcryptjs.hash(password, 10);
     user.password = hashedPassword;
+    user.passwordChangedAt = new Date();
     user.otp = {
       recoveryOtp: null,
       otpExpiresAt: null,
@@ -360,6 +365,7 @@ const googleAuth = async (req, res) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      timeout: 5000,
     });
 
     const { email, name, picture } = response.data;

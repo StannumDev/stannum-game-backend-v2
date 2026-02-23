@@ -1,6 +1,36 @@
 const achievementsConfig = require('../config/achievementsConfig');
 const { nextLevelTarget, computeLevelProgress } = require('../helpers/experienceHelper');
 const xpCfg = require('../config/xpConfig');
+const { grantCoins } = require('./coinsService');
+
+const enrichCommunityStats = async (user) => {
+    try {
+        const Prompt = require('../models/promptModel');
+        const Assistant = require('../models/assistantModel');
+        const userId = user._id || user.id;
+
+        const [promptsCount, assistantsCount, promptFavorites, assistantFavorites] = await Promise.all([
+            Prompt.countDocuments({ author: userId, status: true }),
+            Assistant.countDocuments({ author: userId, status: true }),
+            Prompt.aggregate([
+                { $match: { author: userId, status: true } },
+                { $group: { _id: null, total: { $sum: '$metrics.favoritesCount' } } }
+            ]),
+            Assistant.aggregate([
+                { $match: { author: userId, status: true } },
+                { $group: { _id: null, total: { $sum: '$metrics.favoritesCount' } } }
+            ]),
+        ]);
+
+        user._communityStats = {
+            promptsCount,
+            assistantsCount,
+            totalFavoritesReceived: (promptFavorites[0]?.total || 0) + (assistantFavorites[0]?.total || 0),
+        };
+    } catch {
+        user._communityStats = { promptsCount: 0, assistantsCount: 0, totalFavoritesReceived: 0 };
+    }
+};
 
 const checkAndAddAchievements = async (user) => {
     if (!user) throw new Error("USER_NOT_FOUND");
@@ -12,7 +42,7 @@ const checkAndAddAchievements = async (user) => {
     for (const achievement of lockedAchievements) {
         try {
             if (achievement.condition(user)) {
-                const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0 };
+                const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0, coinsReward: achievement.coinsReward || 0 };
                 user.achievements.push(newAchievement);
                 newlyUnlocked.push(newAchievement);
             }
@@ -26,6 +56,8 @@ const checkAndAddAchievements = async (user) => {
 
 const unlockAchievements = async (user, save = false) => {
     if (!user) throw new Error('USER_NOT_FOUND');
+
+    await enrichCommunityStats(user);
 
     let newlyUnlocked = [];
     let iterations = 0;
@@ -41,6 +73,9 @@ const unlockAchievements = async (user, save = false) => {
             if (ach.xpReward) {
                 user.level.experienceTotal += ach.xpReward;
                 user.xpHistory.push({ type: 'ACHIEVEMENT_UNLOCKED', xp: ach.xpReward, meta: { achievementId: ach.achievementId } });
+            }
+            if (ach.coinsReward) {
+                grantCoins(user, 'ACHIEVEMENT_UNLOCKED', ach.coinsReward, { achievementId: ach.achievementId });
             }
         }
 
