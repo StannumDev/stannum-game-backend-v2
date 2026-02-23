@@ -28,7 +28,7 @@ const createProductKey = async () => {
             return;
         } catch (err) {
             console.error("❌ Error creando clave:", err);
-            return;
+            continue;
         }
     }
     console.error("❌ No se pudo generar un código único después de", MAX_KEY_RETRIES, "intentos");

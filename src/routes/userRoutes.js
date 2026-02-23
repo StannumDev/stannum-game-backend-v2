@@ -3,7 +3,7 @@ const { check, query: queryValidator } = require("express-validator");
 
 const { validateJWT } = require("../middlewares/validateJWT");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { searchLimiter } = require("../middlewares/rateLimiter");
+const { searchLimiter, sensitiveOperationLimiter } = require("../middlewares/rateLimiter");
 const userController = require("../controllers/userController");
 
 const router = Router();
@@ -75,6 +75,7 @@ router.put(
         check("socialLinks.*.url", "URL is required and must be valid.").optional().trim().isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage("URL must be a valid URL starting with http:// or https://.").isLength({ max: 500 }).withMessage("URL must be less than 500 characters."),
         fieldsValidate,
     ],
+    sensitiveOperationLimiter,
     userController.editUser
 );
 

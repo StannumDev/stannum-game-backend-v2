@@ -79,7 +79,7 @@ const getAllPrompts = async (req, res) => {
             ];
         }
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
         const query = Prompt.find(filters).populate('author', 'username profile.name preferences.hasProfilePhoto').sort(sortConfig);
         const skip = (pageNum - 1) * limitNum;
         const prompts = await query.skip(skip).limit(limitNum);
@@ -398,6 +398,21 @@ const toggleFavorite = async (req, res) => {
             session.endSession();
         }
 
+        if (resultIsFavorited) {
+            const authorId = prompt.author;
+            if (authorId && authorId.toString() !== userId) {
+                try {
+                    const { grantCoinsAtomic } = require('../services/coinsService');
+                    const coinsCfg = require('../config/coinsConfig');
+                    await grantCoinsAtomic(authorId, 'FAVORITE_RECEIVED', coinsCfg.FAVORITE_RECEIVED, {
+                        contentType: 'prompt', contentId: id, fromUserId: userId,
+                    });
+                } catch (err) {
+                    console.error('[Coins] Error granting favorite coins to prompt author:', err.message);
+                }
+            }
+        }
+
         return res.json({
             success: true,
             data: {
@@ -417,7 +432,7 @@ const getUserPrompts = async (req, res) => {
         const { userId } = req.params;
         const { page = 1, limit = 20 } = req.query;
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
 
         const prompts = await Prompt.find({
             author: userId,
@@ -461,7 +476,7 @@ const getMyPrompts = async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
 
         const prompts = await Prompt.find({
             author: req.userAuth.id,

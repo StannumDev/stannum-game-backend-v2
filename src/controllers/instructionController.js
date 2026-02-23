@@ -87,6 +87,10 @@ const getPresignedUrl = async (req, res) => {
     const ext = path.extname(fileName).toLowerCase();
     if (config.acceptedFormats && !config.acceptedFormats.includes(ext)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
 
+    if (!/^[\w\-. ]+$/.test(path.basename(fileName))) {
+      return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
+    }
+
     const mimeToExt = { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "application/pdf": [".pdf"] };
     const expectedMimes = Object.entries(mimeToExt).filter(([, exts]) => config.acceptedFormats?.some(f => exts.includes(f))).map(([mime]) => mime);
     if (expectedMimes.length > 0 && !expectedMimes.includes(contentType)) return res.status(400).json(getError("INSTRUCTION_INVALID_FORMAT"));
@@ -137,6 +141,9 @@ const submitInstruction = async (req, res) => {
     if (req.body.s3Key) {
       const expectedPrefix = `instructions/${userId}/${instructionId}/`;
       if (!req.body.s3Key.startsWith(expectedPrefix)) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
+      if (req.body.s3Key.includes('..') || !/^instructions\/[a-f0-9A-F]+\/[a-f0-9A-F]+\/\d+\.\w+$/.test(req.body.s3Key)) {
+        return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
+      }
       const maxBytes = (config.maxFileSizeMB || 15) * 1024 * 1024;
       try {
         const head = await s3Client.send(new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: req.body.s3Key }));

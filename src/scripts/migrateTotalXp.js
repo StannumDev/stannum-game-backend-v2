@@ -1,8 +1,3 @@
-/**
- * Migration: Compute totalXp per program from xpHistory for all existing users.
- *
- * Run with: node --env-file=.env src/scripts/migrateTotalXp.js
- */
 const mongoose = require("mongoose");
 const User = require("../models/userModel");
 

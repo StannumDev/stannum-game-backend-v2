@@ -8,7 +8,7 @@ const rateLimitHandler = (req, res) => {
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500,
+    max: 3000,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
@@ -21,7 +21,7 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => req.body?.username?.toLowerCase() || req.body?.email?.toLowerCase() || req.ip,
 });
 
 const searchLimiter = rateLimit({
@@ -30,7 +30,7 @@ const searchLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => req.uid || req.ip,
 });
 
 const otpLimiter = rateLimit({
@@ -57,12 +57,12 @@ const validationLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => req.body?.email?.toLowerCase() || req.body?.username?.toLowerCase() || req.ip,
 });
 
 const refreshLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 60,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
@@ -75,7 +75,25 @@ const contentCreationLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => req.uid || req.ip,
 });
 
-module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter };
+const sensitiveOperationLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.uid || req.ip,
+});
+
+const passwordLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.body?.username?.toLowerCase() || req.body?.email?.toLowerCase() || req.ip,
+});
+
+module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter };

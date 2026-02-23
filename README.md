@@ -156,7 +156,7 @@ Ver [API Reference completa](./docs/api-reference.md) para lista exhaustiva.
 - ✅ Access tokens JWT de corta duración (15 min)
 - ✅ Refresh tokens opacos (7 días) con rotación y hash HMAC-SHA256
 - ✅ Logout server-side (invalidación de refresh token)
-- ✅ Rate limiting (1000 req/hora, 5 OTP/15min)
+- ✅ Rate limiting (1000 req/hora general, 20 req/hora para creación de contenido, 5 OTP/15min)
 - ✅ CORS por whitelist
 - ✅ express-validator en todas las rutas
 - ✅ Google reCAPTCHA v3

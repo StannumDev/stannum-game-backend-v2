@@ -611,6 +611,15 @@
         "techMessage": "Failed to generate a unique username.",
         "friendlyMessage": "Ocurrió un error al generar el nombre de usuario. Por favor, inténtalo nuevamente o contacta al soporte."
     },
+    "USER_PROFILE_NOT_FOUND": {
+        "success": false,
+        "code": "USER_002",
+        "type": "error",
+        "showAlert": false,
+        "title": "Perfil no encontrado",
+        "techMessage": "The requested user profile does not exist.",
+        "friendlyMessage": "Este perfil no existe."
+    },
     "PROMPT_NOT_FOUND": {
         "success": false,
         "code": "PROMPT_001",

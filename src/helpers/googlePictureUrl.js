@@ -12,7 +12,7 @@ const adjustGooglePictureUrl = (originalUrl, size = 1000) => {
 
 const downloadImage = async (url) => {
     try {
-        const response = await axios.get(url, { responseType: "arraybuffer" });
+        const response = await axios.get(url, { responseType: "arraybuffer", timeout: 10000 });
         return Buffer.from(response.data, "binary");
     } catch (error) {
         console.error("Error downloading image from Google:", error);

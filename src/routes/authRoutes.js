@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { authLimiter, otpLimiter, validationLimiter, refreshLimiter } = require("../middlewares/rateLimiter");
+const { authLimiter, otpLimiter, validationLimiter, refreshLimiter, passwordLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
 const { resolveUserByRefreshToken } = require("../middlewares/resolveUserByRefreshToken");
 
@@ -88,6 +88,7 @@ router.post(
     fieldsValidate,
   ],
   otpLimiter,
+  passwordLimiter,
   authController.sendPasswordRecoveryEmail
 );
 
@@ -111,6 +112,7 @@ router.post(
     fieldsValidate,
   ],
   otpLimiter,
+  passwordLimiter,
   authController.resetPassword
 );
 
