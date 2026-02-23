@@ -31,7 +31,7 @@ Documentación del sistema de autenticación de STANNUM Game, basado en access t
 ### Access Token (JWT)
 - **Tipo:** JSON Web Token firmado con HMAC-SHA256
 - **Secret:** `SECRET` (variable de entorno)
-- **Expiración:** 15 minutos (configurable via `ACCESS_TOKEN_EXPIRY`)
+- **Expiración:** Configurable via `ACCESS_TOKEN_EXPIRY` (fallback: `20s`). En produccion se configura a `15m`.
 - **Payload:** `{ id: userId }`
 - **Transporte:** Header `Authorization: Bearer {token}`
 - **Almacenamiento (frontend):** Cookie `token` (expires: 1 día, secure en prod, sameSite: Strict)
@@ -121,7 +121,7 @@ El archivo `src/lib/api.ts` implementa un cliente Axios centralizado con:
 |----------|-------------|---------|
 | `SECRET` | Secret para firmar access tokens JWT | `MiSecretJWT_2025` |
 | `REFRESH_SECRET` | Secret para hashear refresh tokens (HMAC-SHA256) | `MiRefreshSecret_2025` |
-| `ACCESS_TOKEN_EXPIRY` | Duración del access token | `15m` (default) |
+| `ACCESS_TOKEN_EXPIRY` | Duracion del access token | `15m` (fallback: `20s`) |
 
 ## Códigos de Error
 
