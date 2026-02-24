@@ -92,7 +92,7 @@ const markTutorialAsCompleted = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const tutorial = user.preferences.tutorials.find(t => t.name === tutorialName);
+        const tutorial = user.preferences?.tutorials?.find(t => t.name === tutorialName);
         if (tutorial?.isCompleted) {
             return res.status(200).json({ success: true, message: "Tutorial already completed." });
         }
@@ -162,7 +162,7 @@ const searchUsers = async (req, res) => {
         const users = await User.find({
             $text: { $search: query },
             _id: { $ne: userId }
-        }).limit(100);
+        }).select('username profilePhoto profile.name enterprise.name enterprise.jobPosition').limit(50);
 
         if (!users.length) return res.status(200).json({ success: true, data: [] });
 

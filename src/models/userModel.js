@@ -99,7 +99,8 @@ const xpEventSchema = new Schema({
       'LESSON_COMPLETED',
       'INSTRUCTION_GRADED',
       'ACHIEVEMENT_UNLOCKED',
-      'DAILY_STREAK_BONUS'
+      'DAILY_STREAK_BONUS',
+      'CHEST_OPENED'
     ],
     required: true
   },
@@ -130,13 +131,14 @@ const coinsEventSchema = new Schema({
       'MODULE_COMPLETED',
       'PROGRAM_COMPLETED',
       'FAVORITE_RECEIVED',
+      'STORE_PURCHASE',
+      'CHEST_OPENED',
     ],
     required: true,
   },
   coins: {
     type: Number,
     required: true,
-    min: 0,
   },
   date: {
     type: Date,
@@ -306,6 +308,10 @@ const programSchema = new Schema({
       },
     },
   ],
+  chestsOpened: [{
+    chestId: { type: String, required: true },
+    openedAt: { type: Date, default: Date.now },
+  }],
   coinsRewardedModules: [{ type: String }],
   coinsRewardedProgram: { type: Boolean, default: false },
   lastWatchedLesson: {
@@ -494,6 +500,7 @@ const userSchema = new Schema(
     coins: { type: Number, default: 0, min: 0 },
     coinsHistory: { type: [coinsEventSchema], default: [] },
     achievements: [achievementSchema],
+    equippedCoverId: { type: String, default: 'default' },
     unlockedCovers: [unlockedCoverSchema],
     programs: {
       tia_summer: {
@@ -503,6 +510,7 @@ const userSchema = new Schema(
           acquiredAt: null,
           instructions: [],
           lessonsCompleted: [],
+          chestsOpened: [],
           lastWatchedLesson: null,
           tests: [],
           productKey: null,
@@ -515,6 +523,7 @@ const userSchema = new Schema(
           acquiredAt: null,
           instructions: [],
           lessonsCompleted: [],
+          chestsOpened: [],
           lastWatchedLesson: null,
           tests: [],
           productKey: null,
@@ -527,6 +536,7 @@ const userSchema = new Schema(
           acquiredAt: null,
           instructions: [],
           lessonsCompleted: [],
+          chestsOpened: [],
           lastWatchedLesson: null,
           tests: [],
           productKey: null,
@@ -671,6 +681,7 @@ userSchema.methods.getFullUserDetails = function () {
     xpHistory: this.xpHistory,
     coins: this.coins || 0,
     coinsHistory: this.coinsHistory,
+    equippedCoverId: this.equippedCoverId || 'default',
     unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
     favorites: this.favorites,
@@ -729,6 +740,7 @@ userSchema.methods.getPublicUserDetails = function () {
       count: effectiveCount,
     },
     coins: this.coins || 0,
+    equippedCoverId: this.equippedCoverId || 'default',
     unlockedCovers: this.unlockedCovers,
   };
 };

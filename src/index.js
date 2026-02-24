@@ -14,6 +14,8 @@ const productKeyRouter = require("./routes/productKeyRoutes");
 const rankingRouter = require("./routes/rankingRoutes");
 const promptRouter = require("./routes/promptRoutes");
 const assistantRouter = require("./routes/assistantRoutes");
+const storeRouter = require("./routes/storeRoutes");
+const chestRouter = require("./routes/chestRoutes");
 
 const app = express();
 
@@ -22,6 +24,9 @@ const PORT = process.env.PORT || 4000;
 let allowedOrigins = [];
 try {
   allowedOrigins = JSON.parse(process.env.ALLOWED_ORIGINS || "[]");
+  if (process.env.NODE_ENV === 'production') {
+    allowedOrigins = allowedOrigins.filter(o => !o.includes('localhost'));
+  }
 } catch (err) {
   console.error("ALLOWED_ORIGINS no es un JSON válido:", err.message);
   process.exit(1);
@@ -47,10 +52,23 @@ app.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
 
   const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) return next();
+  if (origin) {
+    if (allowedOrigins.includes(origin)) return next();
+    console.error(`CSRF blocked: origin=${origin}, method=${req.method}, url=${req.originalUrl}`);
+    return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
+  }
 
-  console.error(`CSRF blocked: origin=${origin}, method=${req.method}, url=${req.originalUrl}`);
-  return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
+  const referer = req.headers.referer;
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (allowedOrigins.includes(refererOrigin)) return next();
+    } catch {}
+    console.error(`CSRF blocked: referer=${referer}, method=${req.method}, url=${req.originalUrl}`);
+    return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
+  }
+
+  return next();
 });
 
 app.use(cookieParser(process.env.SECRET));
@@ -66,6 +84,8 @@ app.use("/api/product-key", productKeyRouter);
 app.use("/api/ranking", rankingRouter);
 app.use("/api/prompt", promptRouter);
 app.use("/api/assistant", assistantRouter);
+app.use("/api/store", storeRouter);
+app.use("/api/chest", chestRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {

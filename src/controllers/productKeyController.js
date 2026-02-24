@@ -135,17 +135,21 @@ const generateAndSendProductKeyMake = async (req, res) => {
         let code;
         for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
             const candidate = generateProductCode();
-            const existingKey = await ProductKey.findOne({ code: candidate });
-            if (!existingKey) { code = candidate; break; }
+            try {
+                await ProductKey.create({
+                    code: candidate,
+                    email: email.toLowerCase().trim(),
+                    product,
+                    team,
+                });
+                code = candidate;
+                break;
+            } catch (err) {
+                if (err.code === 11000) continue;
+                throw err;
+            }
         }
         if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-
-        await ProductKey.create({
-            code,
-            email: email.toLowerCase().trim(),
-            product,
-            team,
-        });
 
         let transporter;
         try {
@@ -239,17 +243,21 @@ const generateAndSendProductKey = async (req, res) => {
         let code;
         for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
             const candidate = generateProductCode();
-            const existingKey = await ProductKey.findOne({ code: candidate });
-            if (!existingKey) { code = candidate; break; }
+            try {
+                await ProductKey.create({
+                    code: candidate,
+                    email: email.toLowerCase().trim(),
+                    product,
+                    team,
+                });
+                code = candidate;
+                break;
+            } catch (err) {
+                if (err.code === 11000) continue;
+                throw err;
+            }
         }
         if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-
-        await ProductKey.create({
-            code,
-            email: email.toLowerCase().trim(),
-            product,
-            team,
-        });
 
         let transporter;
         try {
@@ -326,17 +334,21 @@ const generateProductKey = async (req, res) => {
         let code;
         for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
             const candidate = generateProductCode();
-            const existingKey = await ProductKey.findOne({ code: candidate });
-            if (!existingKey) { code = candidate; break; }
+            try {
+                await ProductKey.create({
+                    code: candidate,
+                    email: email.toLowerCase().trim(),
+                    product,
+                    team,
+                });
+                code = candidate;
+                break;
+            } catch (err) {
+                if (err.code === 11000) continue;
+                throw err;
+            }
         }
         if (!code) return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
-
-        await ProductKey.create({
-            code,
-            email: email.toLowerCase().trim(),
-            product,
-            team,
-        });
 
         return res.status(201).json({
             success: true,
@@ -356,11 +368,7 @@ const checkProductKeyStatus = async (req, res) => {
             .populate("usedBy", "profile.name email");
 
         if (!productKey) {
-            return res.status(404).json({
-                success: false,
-                code: "PRODUCT_KEY_NOT_FOUND",
-                message: "Código no encontrado"
-            });
+            return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
         }
 
         return res.status(200).json({

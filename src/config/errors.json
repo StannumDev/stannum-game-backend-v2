@@ -1034,6 +1034,51 @@
         "techMessage": "Admin role is required to access this resource.",
         "friendlyMessage": "No tienes permisos de administrador para acceder a este recurso."
     },
+    "STORE_INSUFFICIENT_TINS": {
+        "success": false,
+        "code": "STORE_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Tins insuficientes",
+        "techMessage": "The user does not have enough Tins to complete this purchase.",
+        "friendlyMessage": "No tenés suficientes Tins para esta compra."
+    },
+    "STORE_COVER_NOT_FOUND": {
+        "success": false,
+        "code": "STORE_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Portada no encontrada",
+        "techMessage": "The specified cover does not exist in the store.",
+        "friendlyMessage": "La portada que buscás no existe."
+    },
+    "STORE_COVER_ALREADY_OWNED": {
+        "success": false,
+        "code": "STORE_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Ya tenés esta portada",
+        "techMessage": "The user already owns this cover.",
+        "friendlyMessage": "Ya desbloqueaste esta portada."
+    },
+    "STORE_COVER_NOT_OWNED": {
+        "success": false,
+        "code": "STORE_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Portada no desbloqueada",
+        "techMessage": "The user does not own this cover.",
+        "friendlyMessage": "No tenés esta portada desbloqueada."
+    },
+    "STORE_COVER_ID_REQUIRED": {
+        "success": false,
+        "code": "STORE_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de validación",
+        "techMessage": "The cover ID is required.",
+        "friendlyMessage": "Debés seleccionar una portada."
+    },
     "SERVER_INTERNAL_ERROR": {
         "success": false,
         "code": "SERVER_001",
@@ -1042,5 +1087,32 @@
         "title": "Error del servidor",
         "techMessage": "An unexpected error occurred on the server.",
         "friendlyMessage": "Ocurrió un error inesperado en el servidor. Por favor, inténtalo nuevamente o contacta al soporte."
+    },
+    "CHEST_NOT_FOUND": {
+        "success": false,
+        "code": "CHEST_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Cofre no encontrado",
+        "techMessage": "The specified chest does not exist.",
+        "friendlyMessage": "El cofre que buscás no existe."
+    },
+    "CHEST_ALREADY_OPENED": {
+        "success": false,
+        "code": "CHEST_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cofre ya abierto",
+        "techMessage": "This chest has already been opened.",
+        "friendlyMessage": "Este cofre ya fue abierto."
+    },
+    "CHEST_PREREQUISITE_NOT_MET": {
+        "success": false,
+        "code": "CHEST_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cofre bloqueado",
+        "techMessage": "The prerequisite activity has not been completed.",
+        "friendlyMessage": "Completá la actividad anterior para abrir este cofre."
     }
 }
