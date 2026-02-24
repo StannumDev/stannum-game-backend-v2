@@ -12,4 +12,8 @@ module.exports = {
     MODULE_COMPLETED: 30,
     PROGRAM_COMPLETED: 100,
     FAVORITE_RECEIVED: 2,
+    STORE: {
+        MYSTERY_BOX: 400,
+        RETRY_INSTRUCTION: 200,
+    },
 };

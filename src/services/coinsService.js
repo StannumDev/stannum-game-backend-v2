@@ -42,4 +42,26 @@ const computeInstructionCoins = (score) => {
     return coinsCfg.INSTRUCTION_GRADED.BELOW_70;
 };
 
-module.exports = { grantCoins, grantCoinsAtomic, trimCoinsHistory, computeInstructionCoins };
+const deductCoinsAtomic = async (userId, type, amount, meta = {}) => {
+    if (!userId || amount <= 0) return { coinsDeducted: 0 };
+
+    const User = require('../models/userModel');
+    const result = await User.findOneAndUpdate(
+        { _id: userId, coins: { $gte: amount } },
+        {
+            $inc: { coins: -amount },
+            $push: {
+                coinsHistory: {
+                    $each: [{ type, coins: -amount, date: new Date(), meta }],
+                    $slice: -COINS_HISTORY_MAX,
+                },
+            },
+        },
+        { new: true }
+    );
+
+    if (!result) return { coinsDeducted: 0 };
+    return { coinsDeducted: amount };
+};
+
+module.exports = { grantCoins, grantCoinsAtomic, deductCoinsAtomic, trimCoinsHistory, computeInstructionCoins };

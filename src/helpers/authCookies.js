@@ -2,7 +2,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 const BASE_OPTIONS = {
   httpOnly: true,
-  secure: IS_PRODUCTION,
+  secure: IS_PRODUCTION || process.env.FORCE_SECURE_COOKIES === 'true',
   sameSite: "lax",
   path: "/",
   ...(process.env.COOKIE_DOMAIN && { domain: process.env.COOKIE_DOMAIN }),

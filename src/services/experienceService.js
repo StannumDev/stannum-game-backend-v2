@@ -27,6 +27,10 @@ const addExperience = async (user, type, payload) => {
         grantCoins(user, 'LESSON_COMPLETED', coinsCfg.LESSON_COMPLETED, { programId, lessonId });
     }
 
+    if (type === 'CHEST_OPENED') {
+        gained = payload.xpReward || 0;
+    }
+
     if (type === 'INSTRUCTION_GRADED') {
         const { programId, instructionId } = payload;
         const userProg = user.programs?.[programId];

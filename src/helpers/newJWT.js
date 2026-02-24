@@ -6,7 +6,7 @@ const newJWT = async (id = "", role = "USER") => {
   const payload = { id, role };
   try {
     const token = await new Promise((resolve, reject) => {
-      jwt.sign(payload, process.env.SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "20s" }, (error, token) => {
+      jwt.sign(payload, process.env.SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m" }, (error, token) => {
         if (error) {
           console.error("JWT Generation Error:", error.message);
           reject(getError("JWT_GENERATION_FAILED"));

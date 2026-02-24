@@ -17,6 +17,21 @@ const s3Client = new S3Client({
 
 const VALID_PROGRAMS = ['tia', 'tia_summer', 'tmd'];
 
+const MAX_GRADING_RETRIES = 3;
+const gradeWithRetry = async (userId, programName, instructionId, attempt = 1) => {
+    try {
+        await gradeWithAI(userId, programName, instructionId);
+    } catch (err) {
+        console.error(`[AI Grading] Attempt ${attempt}/${MAX_GRADING_RETRIES} failed for ${instructionId}:`, err.message);
+        if (attempt < MAX_GRADING_RETRIES) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+            await new Promise(r => setTimeout(r, delay));
+            return gradeWithRetry(userId, programName, instructionId, attempt + 1);
+        }
+        console.error(`[AI Grading] All ${MAX_GRADING_RETRIES} retries exhausted for ${instructionId}.`);
+    }
+};
+
 const startInstruction = async (req, res) => {
   try {
     const { programName, instructionId } = req.params;
@@ -34,12 +49,12 @@ const startInstruction = async (req, res) => {
     if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     if (config.afterLessonId) {
-      const afterLessonCompleted = program.lessonsCompleted.some(l => l.lessonId === config.afterLessonId);
+      const afterLessonCompleted = (program.lessonsCompleted || []).some(l => l.lessonId === config.afterLessonId);
       if (!afterLessonCompleted) return res.status(403).json(getError("INSTRUCTION_NOT_AVAILABLE"));
     }
 
     if (config.requiredActivityId) {
-      const requiredInstr = program.instructions.find(i => i.instructionId === config.requiredActivityId);
+      const requiredInstr = (program.instructions || []).find(i => i.instructionId === config.requiredActivityId);
       const isCompleted = requiredInstr && ["SUBMITTED", "GRADED"].includes(requiredInstr.status);
       if (!isCompleted) return res.status(403).json(getError("INSTRUCTION_NOT_AVAILABLE"));
     }
@@ -165,7 +180,7 @@ const submitInstruction = async (req, res) => {
 
     await user.save();
 
-    gradeWithAI(userId, programName, instructionId).catch(err => {
+    gradeWithRetry(userId, programName, instructionId).catch(err => {
       console.error(`[AI Grading] Error en background para ${instructionId}:`, err.message);
     });
 
@@ -195,7 +210,7 @@ const retryGrading = async (req, res) => {
     instruction.status = "SUBMITTED";
     await user.save();
 
-    gradeWithAI(userId, programName, instructionId).catch(err => {
+    gradeWithRetry(userId, programName, instructionId).catch(err => {
       console.error(`[AI Grading] Error en retry para ${instructionId}:`, err.message);
     });
 

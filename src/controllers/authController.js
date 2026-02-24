@@ -203,7 +203,7 @@ const sendPasswordRecoveryEmail = async (req , res) => {
       ],
     });
 
-    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    if (!user) return res.status(200).json({ success: true, message: "Si el usuario existe, recibirá un correo." });
 
     const otp = crypto.randomInt(100000, 1000000).toString();
     const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
