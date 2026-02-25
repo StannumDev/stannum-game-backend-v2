@@ -24,6 +24,13 @@ const chests = [
         afterItemId: 'TIAM02L10',
         rewards: { xp: 200, coins: 10, coverId: null },
     },
+    {
+        id: 'TIAM02C02',
+        programId: 'tia',
+        moduleId: 'TIAM02',
+        afterItemId: 'TIAM02L11',
+        rewards: { xp: 200, coins: 10, coverId: null },
+    },
 ];
 
 const chestsMap = Object.fromEntries(chests.map(c => [c.id, c]));
