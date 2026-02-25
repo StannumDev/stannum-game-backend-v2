@@ -63,6 +63,8 @@ src/
 │   ├── achievementsConfig.js   # 19 achievements con condiciones
 │   ├── coinsConfig.js          # Economia de Tins (moneda virtual)
 │   ├── xpConfig.js             # Tabla de XP por nivel (30 niveles)
+│   ├── chestsConfig.js         # Cofres por modulo (recompensas XP, Tins, portadas)
+│   ├── coversConfig.js         # Portadas de perfil (nombre, precio, rareza, imageKey)
 │   ├── errors.json             # Codigos de error estandarizados
 │   ├── grading_examples.json   # Ejemplos para AI grading
 │   ├── lessons_catalog.json    # Catalogo de lecciones
@@ -83,7 +85,9 @@ src/
 │   ├── rankingRoutes.js        # /api/ranking/*
 │   ├── promptRoutes.js         # /api/prompt/*
 │   ├── assistantRoutes.js      # /api/assistant/*
-│   └── profilePhotoRoutes.js   # /api/profile-photo/*
+│   ├── profilePhotoRoutes.js   # /api/profile-photo/*
+│   ├── chestRoutes.js          # /api/chest/*
+│   └── storeRoutes.js          # /api/store/*
 │
 ├── controllers/             # Request handlers (logica de cada endpoint)
 │   ├── authController.js       # Login, register, Google OAuth, OTP, password reset
@@ -94,7 +98,9 @@ src/
 │   ├── rankingController.js     # Rankings individuales y por equipo
 │   ├── promptController.js      # CRUD prompts, likes, favorites, copy
 │   ├── assistantController.js   # CRUD assistants, likes, favorites, clicks
-│   └── profilePhotoController.js # Upload/delete foto de perfil (S3)
+│   ├── profilePhotoController.js # Upload/delete foto de perfil (S3)
+│   ├── chestController.js       # Abrir cofres (validacion, recompensas)
+│   └── storeController.js       # Portadas: listar, comprar, equipar
 │
 ├── services/                # Logica de negocio core
 │   ├── experienceService.js    # Calculo y asignacion de XP + niveles
@@ -285,14 +291,30 @@ MAKE_API_KEY=tu_api_key
 | POST | `/profile-photo/upload` | Subir foto de perfil (S3 presigned) | Si |
 | DELETE | `/profile-photo/delete` | Eliminar foto de perfil | Si |
 
+### Cofres (`/api/chest`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/chest/:programId/:chestId/open` | Abrir cofre (otorga XP, Tins, portada opcional) | Si |
+
+### Tienda (`/api/store`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| GET | `/store/covers` | Listar portadas con estado de propiedad | Si |
+| POST | `/store/covers/purchase` | Comprar portada con Tins | Si |
+| PUT | `/store/covers/equip` | Equipar portada en perfil | Si |
+
 Ver [API Reference completa](./docs/api-reference.md) para detalles de request/response bodies.
 
 ## Sistemas Principales
 
 ### 1. Sistema de Gamificacion
 
-- **XP:** 30 niveles con curva exponencial. Se gana al completar lecciones e instrucciones.
-- **Tins:** Moneda virtual. Se gana con lecciones (5), instrucciones (10-25 segun score), modulos (30), programas (100).
+- **XP:** 30 niveles con curva exponencial. Se gana al completar lecciones, instrucciones y abrir cofres.
+- **Tins:** Moneda virtual. Se gana con lecciones (5), instrucciones (10-25 segun score), modulos (30), programas (100), cofres (10-15). Se gastan en la Tienda de portadas.
+- **Cofres:** Nodos de recompensa en el PathMap. Se desbloquean al completar la actividad previa (`afterItemId`). Otorgan XP, Tins y opcionalmente una portada. Operacion atomica anti double-open.
+- **Tienda de Portadas:** 6 portadas cosmeticas (common a legendary, 0-1000 Tins). Compra atomica anti-overspend. Equip/unequip de portada activa.
 - **Achievements:** 19 logros verificados en backend. Se evaluan en cada accion relevante.
 - **Daily Streaks:** Dias consecutivos con actividad. Bonus de XP creciente (cap 7 dias).
 - **Rankings:** Individual global, individual por programa, por equipos.
@@ -350,11 +372,12 @@ Modelo principal (~860 lineas). Incluye:
 - Perfil (nombre, pais, empresa, aboutMe, socialLinks)
 - Nivel y XP (currentLevel, experienceTotal, xpHistory)
 - Achievements desbloqueados
-- Programas inscritos con progreso (lecciones, instrucciones, modulos)
+- Programas inscritos con progreso (lecciones, instrucciones, modulos, chestsOpened)
 - Daily streaks
 - Preferencias y tutorials completados
 - Favoritos (prompts, assistants)
 - Equipo(s) por programa
+- Portadas (unlockedCovers, equippedCoverId)
 - Transform `toJSON` que excluye password, otp y refreshToken
 
 ### ProductKey (`productKeyModel.js`)
