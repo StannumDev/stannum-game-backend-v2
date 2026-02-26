@@ -1,7 +1,11 @@
 const User = require('../models/userModel');
 const { covers, coversMap } = require('../config/coversConfig');
+const coinsCfg = require('../config/coinsConfig');
 const { deductCoinsAtomic } = require('../services/coinsService');
 const { getError } = require('../helpers/getError');
+const { localTodayString } = require('../helpers/experienceHelper');
+
+const RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const getCovers = async (req, res) => {
     try {
@@ -80,4 +84,127 @@ const equipCover = async (req, res) => {
     }
 };
 
-module.exports = { getCovers, purchaseCover, equipCover };
+const purchaseShield = async (req, res) => {
+    try {
+        const userId = req.userAuth.id;
+        const price = coinsCfg.STORE.STREAK_SHIELD;
+
+        const user = await User.findById(userId).select('coins dailyStreak');
+        if (!user) return res.status(404).json(getError('AUTH_USER_NOT_FOUND'));
+
+        if ((user.dailyStreak?.shields || 0) >= coinsCfg.STREAK_SHIELD_MAX) {
+            return res.status(400).json(getError('STORE_SHIELD_MAX_REACHED'));
+        }
+
+        if (user.coins < price) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        const result = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                coins: { $gte: price },
+                'dailyStreak.shields': { $not: { $gte: coinsCfg.STREAK_SHIELD_MAX } },
+            },
+            {
+                $inc: { coins: -price },
+                $set: { 'dailyStreak.shields': 1 },
+                $push: {
+                    coinsHistory: {
+                        $each: [{
+                            type: 'STREAK_SHIELD_PURCHASE',
+                            coins: -price,
+                            date: new Date(),
+                            meta: { itemId: 'streak_shield' },
+                        }],
+                        $slice: -1000,
+                    },
+                },
+            },
+            { new: true }
+        );
+
+        if (!result) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        return res.status(200).json({
+            success: true,
+            message: 'Escudo de racha comprado.',
+            shields: result.dailyStreak?.shields || 0,
+            coinsSpent: price,
+            coinsRemaining: result.coins,
+        });
+    } catch (error) {
+        console.error('Error al comprar escudo:', error);
+        return res.status(500).json(getError('SERVER_INTERNAL_ERROR'));
+    }
+};
+
+const recoverStreak = async (req, res) => {
+    try {
+        const userId = req.userAuth.id;
+        const price = coinsCfg.STORE.STREAK_RECOVERY;
+
+        const user = await User.findById(userId).select('coins dailyStreak');
+        if (!user) return res.status(404).json(getError('AUTH_USER_NOT_FOUND'));
+
+        const { lostCount, lostAt } = user.dailyStreak || {};
+        if (!lostCount || !lostAt) {
+            return res.status(400).json(getError('STREAK_RECOVERY_NOT_AVAILABLE'));
+        }
+
+        const elapsed = Date.now() - new Date(lostAt).getTime();
+        if (elapsed > RECOVERY_WINDOW_MS) {
+            user.dailyStreak.lostCount = null;
+            user.dailyStreak.lostAt = null;
+            await user.save();
+            return res.status(400).json(getError('STREAK_RECOVERY_EXPIRED'));
+        }
+
+        if (user.coins < price) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        const tz = user.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
+        const today = localTodayString(tz);
+
+        const result = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                coins: { $gte: price },
+                'dailyStreak.lostCount': lostCount,
+            },
+            {
+                $inc: { coins: -price },
+                $set: {
+                    'dailyStreak.count': lostCount,
+                    'dailyStreak.lastActivityLocalDate': today,
+                    'dailyStreak.lostCount': null,
+                    'dailyStreak.lostAt': null,
+                },
+                $push: {
+                    coinsHistory: {
+                        $each: [{
+                            type: 'STREAK_RECOVERY',
+                            coins: -price,
+                            date: new Date(),
+                            meta: { recoveredCount: lostCount },
+                        }],
+                        $slice: -1000,
+                    },
+                },
+            },
+            { new: true }
+        );
+
+        if (!result) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        return res.status(200).json({
+            success: true,
+            message: 'Racha recuperada.',
+            restoredCount: lostCount,
+            coinsSpent: price,
+            coinsRemaining: result.coins,
+        });
+    } catch (error) {
+        console.error('Error al recuperar racha:', error);
+        return res.status(500).json(getError('SERVER_INTERNAL_ERROR'));
+    }
+};
+
+module.exports = { getCovers, purchaseCover, equipCover, purchaseShield, recoverStreak };

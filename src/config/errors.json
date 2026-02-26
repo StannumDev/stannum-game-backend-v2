@@ -1079,6 +1079,33 @@
         "techMessage": "The cover ID is required.",
         "friendlyMessage": "Debés seleccionar una portada."
     },
+    "STORE_SHIELD_MAX_REACHED": {
+        "success": false,
+        "code": "STORE_006",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Límite de escudos alcanzado",
+        "techMessage": "The user already owns the maximum number of streak shields.",
+        "friendlyMessage": "Ya tenés el máximo de escudos de racha."
+    },
+    "STREAK_RECOVERY_NOT_AVAILABLE": {
+        "success": false,
+        "code": "STREAK_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Recuperación no disponible",
+        "techMessage": "No streak loss data found for this user.",
+        "friendlyMessage": "No tenés una racha perdida para recuperar."
+    },
+    "STREAK_RECOVERY_EXPIRED": {
+        "success": false,
+        "code": "STREAK_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Ventana de recuperación expirada",
+        "techMessage": "The 24h recovery window has expired.",
+        "friendlyMessage": "Pasaron más de 24 horas desde que perdiste tu racha. Ya no podés recuperarla."
+    },
     "SERVER_INTERNAL_ERROR": {
         "success": false,
         "code": "SERVER_001",

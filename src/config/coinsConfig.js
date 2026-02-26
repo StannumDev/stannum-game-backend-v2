@@ -6,7 +6,8 @@ module.exports = {
         FROM_90: 20,
         PERFECT: 25,
     },
-    DAILY_STREAK: 3,
+    DAILY_STREAK_PER_DAY: [0, 0, 1, 2, 3, 4, 5],
+    DAILY_STREAK_CAP_DAY: 7,
     STREAK_BONUS_7: 10,
     STREAK_BONUS_30: 50,
     MODULE_COMPLETED: 30,
@@ -15,5 +16,8 @@ module.exports = {
     STORE: {
         MYSTERY_BOX: 400,
         RETRY_INSTRUCTION: 200,
+        STREAK_SHIELD: 25,
+        STREAK_RECOVERY: 30,
     },
+    STREAK_SHIELD_MAX: 1,
 };

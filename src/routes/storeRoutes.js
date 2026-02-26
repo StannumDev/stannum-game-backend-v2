@@ -36,4 +36,16 @@ router.put(
     storeController.equipCover
 );
 
+router.post(
+    '/items/streak-shield/purchase',
+    [validateJWT, sensitiveOperationLimiter],
+    storeController.purchaseShield
+);
+
+router.post(
+    '/streak/recover',
+    [validateJWT, sensitiveOperationLimiter],
+    storeController.recoverStreak
+);
+
 module.exports = router;
