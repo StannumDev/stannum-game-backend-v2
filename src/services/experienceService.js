@@ -1,4 +1,4 @@
-const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
+const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, daysBetweenLocalDates, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
 const { resolveLessonInfo } = require('../helpers/resolveLessonInfo');
 const xpCfg = require('../config/xpConfig');
 const coinsCfg = require('../config/coinsConfig');
@@ -50,19 +50,56 @@ const addExperience = async (user, type, payload) => {
     const today = localTodayString(tz);
     const last = user.dailyStreak?.lastActivityLocalDate;
     let streakBonus = 0;
+    let shieldsConsumed = 0;
 
     if (!last || !isSameLocalDay(last, today)) {
-        const newCount = isConsecutiveLocalDay(last, today) ? (user.dailyStreak?.count || 0) + 1 : 1;
-        const capped = Math.min(newCount, xpCfg.STREAK.CAP_DAY);
-        streakBonus = xpCfg.STREAK.DAILY_BONUS_PER_DAY[capped - 1] || 0;
+        let newCount;
+
+        if (isConsecutiveLocalDay(last, today)) {
+            newCount = (user.dailyStreak?.count || 0) + 1;
+        } else if (last) {
+            const daysMissed = daysBetweenLocalDates(last, today) - 1;
+            const hasShield = (user.dailyStreak?.shields || 0) >= 1;
+            const previousCount = user.dailyStreak?.count || 0;
+
+            if (hasShield && daysMissed >= 1) {
+                user.dailyStreak.shields = 0;
+                shieldsConsumed = 1;
+            }
+
+            if (daysMissed === 1 && hasShield) {
+                newCount = previousCount + 1;
+            } else if (daysMissed >= 1) {
+                if (previousCount > 0) {
+                    user.dailyStreak.lostCount = previousCount;
+                    user.dailyStreak.lostAt = new Date();
+                }
+                newCount = 1;
+            } else {
+                newCount = 1;
+            }
+        } else {
+            newCount = 1;
+        }
 
         if (!user.dailyStreak) user.dailyStreak = {};
         user.dailyStreak.count = newCount;
         user.dailyStreak.lastActivityLocalDate = today;
 
+        if ((shieldsConsumed > 0 && newCount > 1) || isConsecutiveLocalDay(last, today)) {
+            user.dailyStreak.lostCount = null;
+            user.dailyStreak.lostAt = null;
+        }
+
+        const capped = Math.min(newCount, xpCfg.STREAK.CAP_DAY);
+        streakBonus = xpCfg.STREAK.DAILY_BONUS_PER_DAY[capped - 1] || 0;
+
         if (streakBonus > 0) user.xpHistory.push({ type: 'DAILY_STREAK_BONUS', xp: streakBonus, meta: { day: newCount } });
 
-        grantCoins(user, 'DAILY_STREAK', coinsCfg.DAILY_STREAK, { day: newCount });
+        const coinsCapped = Math.min(newCount, coinsCfg.DAILY_STREAK_CAP_DAY);
+        const dailyCoins = coinsCfg.DAILY_STREAK_PER_DAY[coinsCapped - 1] || 0;
+        if (dailyCoins > 0) grantCoins(user, 'DAILY_STREAK', dailyCoins, { day: newCount });
+
         if (newCount === 7) grantCoins(user, 'STREAK_BONUS', coinsCfg.STREAK_BONUS_7, { milestone: 7 });
         if (newCount === 30) grantCoins(user, 'STREAK_BONUS', coinsCfg.STREAK_BONUS_30, { milestone: 30 });
     }
@@ -114,7 +151,7 @@ const addExperience = async (user, type, payload) => {
     trimCoinsHistory(user);
 
     const coinsGained = (user.coins || 0) - coinsBefore;
-    return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked, coinsTotal: user.coins, coinsGained };
+    return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked, coinsTotal: user.coins, coinsGained, shieldsConsumed };
 };
 
 module.exports = { addExperience };

@@ -49,6 +49,13 @@ const computeInstructionXP = ({ rewardXP = 0, score = 0, timeTakenSec = 0, estim
     return clamp(xp, xpCfg.INSTRUCTION.MIN_XP, xpCfg.INSTRUCTION.MAX_XP);
 };
 
+const daysBetweenLocalDates = (a, b) => {
+    if (!a || !b) return Infinity;
+    const dateA = new Date(a + 'T00:00:00Z');
+    const dateB = new Date(b + 'T00:00:00Z');
+    return Math.round((dateB.getTime() - dateA.getTime()) / (1000 * 60 * 60 * 24));
+};
+
 const computeLevelProgress = (level) => {
     const { experienceTotal, experienceCurrentLevel, experienceNextLevel } = level;
     if (experienceTotal <= experienceCurrentLevel) return 0;
@@ -62,6 +69,7 @@ module.exports = {
     localTodayString,
     isSameLocalDay,
     isConsecutiveLocalDay,
+    daysBetweenLocalDates,
     computeLessonXP,
     computeInstructionXP,
     computeLevelProgress

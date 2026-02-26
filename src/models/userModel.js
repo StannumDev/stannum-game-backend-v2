@@ -1,5 +1,5 @@
 const { censor } = require('../helpers/profanityChecker');
-const { localTodayString, isSameLocalDay, isConsecutiveLocalDay } = require('../helpers/experienceHelper');
+const { localTodayString, isSameLocalDay, isConsecutiveLocalDay, daysBetweenLocalDates } = require('../helpers/experienceHelper');
 const { Schema, model } = require("mongoose");
 
 const tutorialSchema = new Schema({
@@ -133,6 +133,8 @@ const coinsEventSchema = new Schema({
       'FAVORITE_RECEIVED',
       'STORE_PURCHASE',
       'CHEST_OPENED',
+      'STREAK_SHIELD_PURCHASE',
+      'STREAK_RECOVERY',
     ],
     required: true,
   },
@@ -163,6 +165,20 @@ const dailyStreakSchema = new Schema({
   timezone: {
     type: String,
     default: 'America/Argentina/Buenos_Aires'
+  },
+  shields: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 1
+  },
+  lostCount: {
+    type: Number,
+    default: null
+  },
+  lostAt: {
+    type: Date,
+    default: null
   }
 }, { _id: false });
 
@@ -653,7 +669,13 @@ userSchema.methods.getFullUserDetails = function () {
   const today = localTodayString(tz);
   const last = this.dailyStreak?.lastActivityLocalDate;
 
-  const isStreakAlive = last && (isSameLocalDay(last, today) || isConsecutiveLocalDay(last, today));
+  const hasShield = (this.dailyStreak?.shields || 0) >= 1;
+  const daysMissed = last ? daysBetweenLocalDates(last, today) - 1 : Infinity;
+  const isStreakAlive = last && (
+    isSameLocalDay(last, today) ||
+    isConsecutiveLocalDay(last, today) ||
+    (hasShield && daysMissed === 1)
+  );
   const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
 
   return {
@@ -677,6 +699,14 @@ userSchema.methods.getFullUserDetails = function () {
       count: effectiveCount,
       lastActivityLocalDate: this.dailyStreak?.lastActivityLocalDate,
       timezone: tz,
+      shields: this.dailyStreak?.shields || 0,
+      lostCount: this.dailyStreak?.lostCount ?? null,
+      lostAt: this.dailyStreak?.lostAt ?? null,
+      recoveryAvailable: !!(
+        this.dailyStreak?.lostCount &&
+        this.dailyStreak?.lostAt &&
+        (Date.now() - new Date(this.dailyStreak.lostAt).getTime()) < 24 * 60 * 60 * 1000
+      ),
     },
     xpHistory: this.xpHistory,
     coins: this.coins || 0,
@@ -693,7 +723,13 @@ userSchema.methods.getPublicUserDetails = function () {
   const today = localTodayString(tz);
   const last = this.dailyStreak?.lastActivityLocalDate;
 
-  const isStreakAlive = last && (isSameLocalDay(last, today) || isConsecutiveLocalDay(last, today));
+  const hasShield = (this.dailyStreak?.shields || 0) >= 1;
+  const daysMissed = last ? daysBetweenLocalDates(last, today) - 1 : Infinity;
+  const isStreakAlive = last && (
+    isSameLocalDay(last, today) ||
+    isConsecutiveLocalDay(last, today) ||
+    (hasShield && daysMissed === 1)
+  );
   const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
 
   const sanitizeProgram = (prog) => {
