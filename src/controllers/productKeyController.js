@@ -2,8 +2,7 @@ const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 
 const ProductKey = require("../models/productKeyModel");
-const User = require("../models/userModel");
-const { unlockAchievements } = require("../services/achievementsService");
+const { activateProgramForUser } = require("../services/programActivationService");
 const { getError } = require("../helpers/getError");
 
 const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -72,26 +71,8 @@ const activateProductKey = async (req, res) => {
                 throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_KEY_ALREADY_USED" };
             }
 
-            const user = await User.findById(userId).session(session);
-            if (!user) throw { statusCode: 404, errorKey: "AUTH_USER_NOT_FOUND" };
-
-            const alreadyHasProduct = user.programs?.[key.product]?.isPurchased;
-            if (alreadyHasProduct) throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_ALREADY_OWNED" };
-
-            user.programs[key.product].isPurchased = true;
-            user.programs[key.product].acquiredAt = new Date();
-
-            const alreadyInTeam = user.teams.some(t => t.programName === key.product);
-            if (!alreadyInTeam && key.team && key.team !== 'no_team') {
-                user.teams.push({
-                    programName: key.product,
-                    teamName: key.team,
-                    role: 'member',
-                });
-            }
-
-            const { newlyUnlocked } = await unlockAchievements(user);
-            await user.save({ session });
+            const { newlyUnlocked, alreadyOwned } = await activateProgramForUser(userId, key.product, key.team, session);
+            if (alreadyOwned) throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_ALREADY_OWNED" };
 
             result = { newlyUnlocked };
         });

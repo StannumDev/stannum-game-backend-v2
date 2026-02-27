@@ -1141,5 +1141,140 @@
         "title": "Cofre bloqueado",
         "techMessage": "The prerequisite activity has not been completed.",
         "friendlyMessage": "Completá la actividad anterior para abrir este cofre."
+    },
+    "PAYMENT_PROGRAM_NOT_PURCHASABLE": {
+        "success": false,
+        "code": "PAYMENT_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa no disponible",
+        "techMessage": "This program is not available for purchase.",
+        "friendlyMessage": "Este programa no está disponible para compra."
+    },
+    "PAYMENT_PROGRAM_ALREADY_OWNED": {
+        "success": false,
+        "code": "PAYMENT_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa ya adquirido",
+        "techMessage": "User already owns this program.",
+        "friendlyMessage": "Ya tenés este programa en tu biblioteca."
+    },
+    "PAYMENT_ORDER_NOT_FOUND": {
+        "success": false,
+        "code": "PAYMENT_003",
+        "type": "error",
+        "showAlert": true,
+        "title": "Orden no encontrada",
+        "techMessage": "Order not found or does not belong to the user.",
+        "friendlyMessage": "No se encontró la orden solicitada."
+    },
+    "PAYMENT_PREFERENCE_FAILED": {
+        "success": false,
+        "code": "PAYMENT_004",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error de pago",
+        "techMessage": "Failed to create Mercado Pago preference.",
+        "friendlyMessage": "No pudimos procesar tu solicitud de pago. Intentá de nuevo."
+    },
+    "PAYMENT_VERIFICATION_FAILED": {
+        "success": false,
+        "code": "PAYMENT_005",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error de verificación",
+        "techMessage": "Failed to verify payment with Mercado Pago.",
+        "friendlyMessage": "No pudimos verificar tu pago. Si el cobro se realizó, el programa se activará automáticamente."
+    },
+    "PAYMENT_WEBHOOK_INVALID_SIGNATURE": {
+        "success": false,
+        "code": "PAYMENT_006",
+        "type": "error",
+        "showAlert": false,
+        "title": "Firma inválida",
+        "techMessage": "Webhook HMAC signature verification failed.",
+        "friendlyMessage": "Solicitud no autorizada."
+    },
+    "PAYMENT_COUPON_NOT_FOUND": {
+        "success": false,
+        "code": "PAYMENT_007",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cupón inválido",
+        "techMessage": "Coupon code not found.",
+        "friendlyMessage": "El código de cupón no existe."
+    },
+    "PAYMENT_COUPON_EXPIRED": {
+        "success": false,
+        "code": "PAYMENT_008",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cupón vencido",
+        "techMessage": "Coupon has expired or is not yet valid.",
+        "friendlyMessage": "Este cupón ya no está vigente."
+    },
+    "PAYMENT_COUPON_MAX_USES": {
+        "success": false,
+        "code": "PAYMENT_009",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cupón agotado",
+        "techMessage": "Coupon has reached its maximum usage limit.",
+        "friendlyMessage": "Este cupón ya alcanzó su límite de usos."
+    },
+    "PAYMENT_COUPON_MAX_USES_PER_USER": {
+        "success": false,
+        "code": "PAYMENT_010",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cupón ya utilizado",
+        "techMessage": "User has reached the maximum uses for this coupon.",
+        "friendlyMessage": "Ya usaste este cupón el máximo de veces permitido."
+    },
+    "PAYMENT_COUPON_NOT_APPLICABLE": {
+        "success": false,
+        "code": "PAYMENT_011",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cupón no aplicable",
+        "techMessage": "Coupon is not applicable to this program.",
+        "friendlyMessage": "Este cupón no aplica para este programa."
+    },
+    "PAYMENT_COUPON_MIN_AMOUNT": {
+        "success": false,
+        "code": "PAYMENT_012",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Monto insuficiente",
+        "techMessage": "Order amount does not meet coupon minimum.",
+        "friendlyMessage": "El monto de la compra no alcanza el mínimo requerido por el cupón."
+    },
+    "PAYMENT_CANCEL_NOT_ALLOWED": {
+        "success": false,
+        "code": "PAYMENT_013",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No se puede cancelar",
+        "techMessage": "Only pending orders can be cancelled.",
+        "friendlyMessage": "Solo se pueden cancelar órdenes pendientes."
+    },
+    "PAYMENT_RESEND_NOT_ALLOWED": {
+        "success": false,
+        "code": "PAYMENT_014",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No se puede reenviar",
+        "techMessage": "Email can only be resent for approved gift orders with email delivery.",
+        "friendlyMessage": "Solo se puede reenviar el correo para compras de regalo aprobadas."
+    },
+    "PAYMENT_INVALID_PROGRAM": {
+        "success": false,
+        "code": "PAYMENT_015",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa inválido",
+        "techMessage": "Invalid program ID.",
+        "friendlyMessage": "El programa seleccionado no es válido."
     }
 }
