@@ -172,6 +172,10 @@ const dailyStreakSchema = new Schema({
     min: 0,
     max: 1
   },
+  shieldCoveredDate: {
+    type: String,
+    default: null
+  },
   lostCount: {
     type: Number,
     default: null
@@ -668,13 +672,12 @@ userSchema.methods.getFullUserDetails = function () {
   const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
   const today = localTodayString(tz);
   const last = this.dailyStreak?.lastActivityLocalDate;
+  const coveredDate = this.dailyStreak?.shieldCoveredDate;
+  const effectiveLast = (coveredDate && (!last || coveredDate > last)) ? coveredDate : last;
 
-  const hasShield = (this.dailyStreak?.shields || 0) >= 1;
-  const daysMissed = last ? daysBetweenLocalDates(last, today) - 1 : Infinity;
-  const isStreakAlive = last && (
-    isSameLocalDay(last, today) ||
-    isConsecutiveLocalDay(last, today) ||
-    (hasShield && daysMissed === 1)
+  const isStreakAlive = effectiveLast && (
+    isSameLocalDay(effectiveLast, today) ||
+    isConsecutiveLocalDay(effectiveLast, today)
   );
   const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
 
@@ -700,6 +703,7 @@ userSchema.methods.getFullUserDetails = function () {
       lastActivityLocalDate: this.dailyStreak?.lastActivityLocalDate,
       timezone: tz,
       shields: this.dailyStreak?.shields || 0,
+      shieldCoveredDate: coveredDate || null,
       lostCount: this.dailyStreak?.lostCount ?? null,
       lostAt: this.dailyStreak?.lostAt ?? null,
       recoveryAvailable: !!(
@@ -722,13 +726,12 @@ userSchema.methods.getPublicUserDetails = function () {
   const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
   const today = localTodayString(tz);
   const last = this.dailyStreak?.lastActivityLocalDate;
+  const coveredDate = this.dailyStreak?.shieldCoveredDate;
+  const effectiveLast = (coveredDate && (!last || coveredDate > last)) ? coveredDate : last;
 
-  const hasShield = (this.dailyStreak?.shields || 0) >= 1;
-  const daysMissed = last ? daysBetweenLocalDates(last, today) - 1 : Infinity;
-  const isStreakAlive = last && (
-    isSameLocalDay(last, today) ||
-    isConsecutiveLocalDay(last, today) ||
-    (hasShield && daysMissed === 1)
+  const isStreakAlive = effectiveLast && (
+    isSameLocalDay(effectiveLast, today) ||
+    isConsecutiveLocalDay(effectiveLast, today)
   );
   const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
 

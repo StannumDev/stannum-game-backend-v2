@@ -49,27 +49,20 @@ const addExperience = async (user, type, payload) => {
     const tz = user.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
     const today = localTodayString(tz);
     const last = user.dailyStreak?.lastActivityLocalDate;
+    const coveredDate = user.dailyStreak?.shieldCoveredDate;
+    const effectiveLast = (coveredDate && (!last || coveredDate > last)) ? coveredDate : last;
     let streakBonus = 0;
-    let shieldsConsumed = 0;
 
-    if (!last || !isSameLocalDay(last, today)) {
+    if (!effectiveLast || !isSameLocalDay(effectiveLast, today)) {
         let newCount;
 
-        if (isConsecutiveLocalDay(last, today)) {
+        if (isConsecutiveLocalDay(effectiveLast, today)) {
             newCount = (user.dailyStreak?.count || 0) + 1;
-        } else if (last) {
-            const daysMissed = daysBetweenLocalDates(last, today) - 1;
-            const hasShield = (user.dailyStreak?.shields || 0) >= 1;
+        } else if (effectiveLast) {
+            const daysMissed = daysBetweenLocalDates(effectiveLast, today) - 1;
             const previousCount = user.dailyStreak?.count || 0;
 
-            if (hasShield && daysMissed >= 1) {
-                user.dailyStreak.shields = 0;
-                shieldsConsumed = 1;
-            }
-
-            if (daysMissed === 1 && hasShield) {
-                newCount = previousCount + 1;
-            } else if (daysMissed >= 1) {
+            if (daysMissed >= 1) {
                 if (previousCount > 0) {
                     user.dailyStreak.lostCount = previousCount;
                     user.dailyStreak.lostAt = new Date();
@@ -85,8 +78,9 @@ const addExperience = async (user, type, payload) => {
         if (!user.dailyStreak) user.dailyStreak = {};
         user.dailyStreak.count = newCount;
         user.dailyStreak.lastActivityLocalDate = today;
+        user.dailyStreak.shieldCoveredDate = null;
 
-        if ((shieldsConsumed > 0 && newCount > 1) || isConsecutiveLocalDay(last, today)) {
+        if (isConsecutiveLocalDay(effectiveLast, today)) {
             user.dailyStreak.lostCount = null;
             user.dailyStreak.lostAt = null;
         }
@@ -151,7 +145,7 @@ const addExperience = async (user, type, payload) => {
     trimCoinsHistory(user);
 
     const coinsGained = (user.coins || 0) - coinsBefore;
-    return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked, coinsTotal: user.coins, coinsGained, shieldsConsumed };
+    return { gained, streakBonus, totalGain, achievementsUnlocked: newlyUnlocked, coinsTotal: user.coins, coinsGained };
 };
 
 module.exports = { addExperience };

@@ -1,7 +1,7 @@
 module.exports = {
   tia: {
     priceARS: 50000,
-    purchasable: true,
+    purchasable: false,
     keysQuantity: 1,
     name: "Transformación con IA",
   },
@@ -13,7 +13,7 @@ module.exports = {
   },
   tia_summer: {
     priceARS: 250000,
-    purchasable: true,
+    purchasable: false,
     keysQuantity: 1,
     name: "Transformación con IA - Summer",
   },

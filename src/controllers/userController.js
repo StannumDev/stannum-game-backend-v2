@@ -2,16 +2,27 @@ const Fuse = require("fuse.js");
 const User = require("../models/userModel");
 
 const { unlockAchievements } = require("../services/achievementsService");
+const { applyShieldIfNeeded } = require("../services/streakService");
 const { getError } = require("../helpers/getError");
 
 const getUserByToken = async (req, res) => {
     try {
         const userId = req.userAuth.id;
+
+        const shieldResult = await applyShieldIfNeeded(userId);
+
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const userDetails = user.getFullUserDetails();
-        return res.status(200).json({ success: true, data: userDetails });
+        return res.status(200).json({
+            success: true,
+            data: userDetails,
+            ...(shieldResult.shieldConsumed && {
+                shieldConsumed: true,
+                streakSaved: shieldResult.streakSaved,
+            }),
+        });
     } catch (error) {
         console.error("Error fetching user details by token:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -36,10 +47,16 @@ const getUserSidebarDetails = async (req, res) => {
 const getUserDetailsByUsername = async (req, res) => {
     try {
         const { username } = req.params;
-        const user = await User.findOne({ username: username.toLowerCase().trim() });
+        let user = await User.findOne({ username: username.toLowerCase().trim() });
         if (!user) return res.status(404).json(getError("USER_PROFILE_NOT_FOUND"));
 
         const isOwner = req.userAuth.id.toString() === user._id.toString();
+
+        if (isOwner) {
+            await applyShieldIfNeeded(user._id);
+            user = await User.findById(user._id);
+        }
+
         const userDetails = isOwner ? user.getFullUserDetails() : user.getPublicUserDetails();
 
         const hasAnyProgram = user.programs?.tmd?.isPurchased || user.programs?.tia?.isPurchased || user.programs?.tia_summer?.isPurchased;
