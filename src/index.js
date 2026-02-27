@@ -16,6 +16,9 @@ const promptRouter = require("./routes/promptRoutes");
 const assistantRouter = require("./routes/assistantRoutes");
 const storeRouter = require("./routes/storeRoutes");
 const chestRouter = require("./routes/chestRoutes");
+const webhookRouter = require("./routes/webhookRoutes");
+const paymentRouter = require("./routes/paymentRoutes");
+const { reconcilePayments } = require("./services/paymentService");
 
 const app = express();
 
@@ -46,6 +49,7 @@ const corsOptions = {
 
 app.set('trust proxy', 1);
 app.use(helmet());
+app.use("/api/webhooks", webhookRouter);
 app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
@@ -86,6 +90,7 @@ app.use("/api/prompt", promptRouter);
 app.use("/api/assistant", assistantRouter);
 app.use("/api/store", storeRouter);
 app.use("/api/chest", chestRouter);
+app.use("/api/payment", paymentRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
@@ -119,6 +124,9 @@ mongoose.connect(process.env.DB_URL)
     const server = app.listen(PORT, () => {
       console.log(`API Rest escuchando el puerto ${PORT}`);
     });
+
+    reconcilePayments();
+    setInterval(reconcilePayments, 15 * 60 * 1000);
 
     const gracefulShutdown = (signal) => {
       console.log(`${signal} recibido. Cerrando servidor...`);

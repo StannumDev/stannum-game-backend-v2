@@ -96,4 +96,13 @@ const passwordLimiter = rateLimit({
     keyGenerator: (req) => req.body?.username?.toLowerCase() || req.body?.email?.toLowerCase() || req.ip,
 });
 
-module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter };
+const paymentLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id || req.ip,
+});
+
+module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter, paymentLimiter };
