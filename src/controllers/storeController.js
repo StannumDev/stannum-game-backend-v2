@@ -176,6 +176,7 @@ const recoverStreak = async (req, res) => {
                     'dailyStreak.lastActivityLocalDate': today,
                     'dailyStreak.lostCount': null,
                     'dailyStreak.lostAt': null,
+                    'dailyStreak.shieldCoveredDate': null,
                 },
                 $push: {
                     coinsHistory: {
