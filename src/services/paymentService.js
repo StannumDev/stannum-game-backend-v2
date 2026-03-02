@@ -131,6 +131,26 @@ const fulfillOrder = async (order) => {
   }
 
   try {
+    // Increment coupon FIRST (before fulfillment) to prevent over-use on crash/retry
+    if (claimed.couponId && !claimed.couponCounted) {
+      const couponUpdated = await Coupon.findOneAndUpdate(
+        {
+          _id: claimed.couponId,
+          $or: [
+            { maxUses: null },
+            { $expr: { $lt: ["$currentUses", "$maxUses"] } },
+          ],
+        },
+        { $inc: { currentUses: 1 } }
+      );
+      if (!couponUpdated) {
+        // Coupon maxUses reached (concurrent race). Log but still fulfill — user already paid.
+        console.warn(`[Payment] Coupon ${claimed.couponId} maxUses exceeded for order ${claimed._id} (race condition)`);
+      }
+      claimed.couponCounted = true;
+      await claimed.save();
+    }
+
     const user = await User.findById(claimed.userId);
     if (!user) {
       console.error(`[Payment] User not found for order ${claimed._id}`);
@@ -141,10 +161,12 @@ const fulfillOrder = async (order) => {
     if (claimed.type === "self") {
       await activateProgramForUser(claimed.userId, claimed.programId, "no_team");
     } else if (claimed.type === "gift") {
-      // Skip key creation if order already has keys (partial retry)
+      // HIGH-04 fix: Save keys to DB immediately after creation to prevent orphans.
+      // If this save succeeds but email fails, retries will find the keys linked.
       if (!claimed.productKeys || claimed.productKeys.length === 0) {
         const keyIds = await createProductKeysForOrder(claimed, user.email);
         claimed.productKeys = keyIds;
+        await claimed.save(); // Persist keys immediately
       }
 
       if (claimed.giftDelivery === "email" && claimed.giftEmail) {
@@ -154,22 +176,9 @@ const fulfillOrder = async (order) => {
         } catch (err) {
           console.error(`[Payment] Failed to send gift email for order ${claimed._id}:`, err.message);
           claimed.giftEmailSent = false;
+          claimed.giftEmailRetries = (claimed.giftEmailRetries || 0) + 1;
         }
       }
-    }
-
-    // Fix #3: atomic coupon increment with maxUses guard
-    if (claimed.couponId) {
-      await Coupon.findOneAndUpdate(
-        {
-          _id: claimed.couponId,
-          $or: [
-            { maxUses: null },
-            { $expr: { $lt: ["$currentUses", "$maxUses"] } },
-          ],
-        },
-        { $inc: { currentUses: 1 } }
-      );
     }
 
     await claimed.save();
@@ -319,6 +328,7 @@ const reconcilePayments = async () => {
   }
 
   try {
+    const MAX_GIFT_EMAIL_RETRIES = 5;
     const failedEmails = await Order.find({
       status: "approved",
       type: "gift",
@@ -326,6 +336,10 @@ const reconcilePayments = async () => {
       giftEmailSent: false,
       fulfilledAt: { $ne: null },
       productKeys: { $not: { $size: 0 } },
+      $or: [
+        { giftEmailRetries: { $exists: false } },
+        { giftEmailRetries: { $lt: MAX_GIFT_EMAIL_RETRIES } },
+      ],
     });
 
     for (const order of failedEmails) {
@@ -335,7 +349,13 @@ const reconcilePayments = async () => {
         await order.save();
         console.log(`[Reconciliation] Resent gift email for order ${order._id}`);
       } catch (err) {
-        console.error(`[Reconciliation] Email retry failed for order ${order._id}:`, err.message);
+        order.giftEmailRetries = (order.giftEmailRetries || 0) + 1;
+        await order.save().catch(() => {});
+        if (order.giftEmailRetries >= MAX_GIFT_EMAIL_RETRIES) {
+          console.error(`[Reconciliation] Gift email permanently failed for order ${order._id} after ${MAX_GIFT_EMAIL_RETRIES} retries`);
+        } else {
+          console.error(`[Reconciliation] Email retry ${order.giftEmailRetries}/${MAX_GIFT_EMAIL_RETRIES} failed for order ${order._id}:`, err.message);
+        }
       }
     }
   } catch (err) {

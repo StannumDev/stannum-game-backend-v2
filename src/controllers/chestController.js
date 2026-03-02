@@ -4,6 +4,7 @@ const { coversMap } = require('../config/coversConfig');
 const { addExperience } = require('../services/experienceService');
 const { grantCoins, trimCoinsHistory } = require('../services/coinsService');
 const { getError } = require('../helpers/getError');
+const { hasAccess } = require('../utils/accessControl');
 
 const openChest = async (req, res) => {
     try {
@@ -19,7 +20,7 @@ const openChest = async (req, res) => {
 
         const userProgram = user.programs[programId];
         if (!userProgram) return res.status(404).json(getError('VALIDATION_PROGRAM_NOT_FOUND'));
-        if (!userProgram.isPurchased) return res.status(403).json(getError('PROGRAM_NOT_PURCHASED'));
+        if (!hasAccess(userProgram)) return res.status(403).json(getError('PROGRAM_NOT_PURCHASED'));
 
         // Validate prerequisite: afterItemId must be completed
         const afterItemId = chest.afterItemId;

@@ -6,6 +6,7 @@ const { getError } = require("../helpers/getError");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 const { programs } = require("../config/programs");
 const { gradeWithAI } = require("../services/aiGradingService");
+const { hasAccess } = require("../utils/accessControl");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -46,7 +47,7 @@ const startInstruction = async (req, res) => {
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
     const program = user.programs?.[programName];
-    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+    if (!program || !hasAccess(program)) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     if (config.afterLessonId) {
       const afterLessonCompleted = (program.lessonsCompleted || []).some(l => l.lessonId === config.afterLessonId);
@@ -93,7 +94,7 @@ const getPresignedUrl = async (req, res) => {
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
     const program = user.programs?.[programName];
-    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+    if (!program || !hasAccess(program)) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     const instruction = program.instructions.find(i => i.instructionId === instructionId);
     if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
@@ -139,7 +140,7 @@ const submitInstruction = async (req, res) => {
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
     const program = user.programs?.[programName];
-    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+    if (!program || !hasAccess(program)) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     const instructionIndex = program.instructions.findIndex(i => i.instructionId === instructionId);
     if (instructionIndex === -1) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
@@ -156,7 +157,7 @@ const submitInstruction = async (req, res) => {
     if (req.body.s3Key) {
       const expectedPrefix = `instructions/${userId}/${instructionId}/`;
       if (!req.body.s3Key.startsWith(expectedPrefix)) return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
-      if (req.body.s3Key.includes('..') || !/^instructions\/[a-f0-9A-F]+\/[a-f0-9A-F]+\/\d+\.\w+$/.test(req.body.s3Key)) {
+      if (req.body.s3Key.includes('..') || !/^instructions\/[a-f0-9]+\/[a-zA-Z0-9]+\/\d+\.\w+$/.test(req.body.s3Key)) {
         return res.status(400).json(getError("INSTRUCTION_FILE_REQUIRED"));
       }
       const maxBytes = (config.maxFileSizeMB || 15) * 1024 * 1024;
@@ -200,7 +201,7 @@ const retryGrading = async (req, res) => {
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
     const program = user.programs?.[programName];
-    if (!program || !program.isPurchased) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
+    if (!program || !hasAccess(program)) return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
 
     const instruction = program.instructions.find(i => i.instructionId === instructionId);
     if (!instruction) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));

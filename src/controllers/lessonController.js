@@ -2,6 +2,9 @@ const User = require("../models/userModel");
 const { addExperience } = require("../services/experienceService");
 const { getError } = require("../helpers/getError");
 const { programs } = require("../config/programs");
+const { isValidProgram } = require("../config/programRegistry");
+const { hasAccess } = require("../utils/accessControl");
+const { getPlaybackId: getMuxPlaybackId } = require("../config/muxPlaybackIds");
 
 const markLessonAsCompleted = async (req, res) => {
     try {
@@ -14,12 +17,11 @@ const markLessonAsCompleted = async (req, res) => {
         if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
         if (!lessonId) return res.status(400).json(getError("VALIDATION_LESSON_ID_REQUIRED"));
 
-        const validPrograms = ['tia', 'tia_summer', 'tmd'];
-        if (!validPrograms.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+        if (!isValidProgram(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
         const userProgram = user.programs[programName];
         if (!userProgram) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
-        if (!userProgram.isPurchased) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
+        if (!hasAccess(userProgram)) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
 
         const isAlreadyCompleted = userProgram.lessonsCompleted?.some(l => l.lessonId === lessonId);
         if (isAlreadyCompleted) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
@@ -95,7 +97,7 @@ const updateLastWatched = async (req, res) => {
 
         const userProgram = user.programs[programName];
         if (!userProgram) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
-        if (!userProgram.isPurchased) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
+        if (!hasAccess(userProgram)) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
 
         userProgram.lastWatchedLesson = {
             lessonId,
@@ -112,4 +114,27 @@ const updateLastWatched = async (req, res) => {
 };
 
 
-module.exports = { markLessonAsCompleted, updateLastWatched };
+const getPlaybackId = async (req, res) => {
+    try {
+        const { programName, lessonId } = req.params;
+        const userId = req.userAuth.id;
+
+        if (!isValidProgram(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+
+        const user = await User.findById(userId).select(`programs.${programName}`).lean();
+        if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+
+        const userProgram = user.programs?.[programName];
+        if (!hasAccess(userProgram)) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
+
+        const playbackId = getMuxPlaybackId(lessonId);
+        if (!playbackId) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));
+
+        return res.status(200).json({ success: true, playbackId });
+    } catch (error) {
+        console.error("Error getting playback ID:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { markLessonAsCompleted, updateLastWatched, getPlaybackId };

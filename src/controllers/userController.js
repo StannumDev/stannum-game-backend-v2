@@ -4,6 +4,8 @@ const User = require("../models/userModel");
 const { unlockAchievements } = require("../services/achievementsService");
 const { applyShieldIfNeeded } = require("../services/streakService");
 const { getError } = require("../helpers/getError");
+const { hasAnyAccess, buildAccessQuery } = require("../utils/accessControl");
+const { RANKABLE_PROGRAMS } = require("../config/programRegistry");
 
 const getUserByToken = async (req, res) => {
     try {
@@ -59,16 +61,11 @@ const getUserDetailsByUsername = async (req, res) => {
 
         const userDetails = isOwner ? user.getFullUserDetails() : user.getPublicUserDetails();
 
-        const hasAnyProgram = user.programs?.tmd?.isPurchased || user.programs?.tia?.isPurchased || user.programs?.tia_summer?.isPurchased;
-        if (hasAnyProgram) {
+        if (hasAnyAccess(user.programs)) {
             const usersAbove = await User.countDocuments({
                 'level.experienceTotal': { $gt: user.level?.experienceTotal ?? 0 },
                 status: true,
-                $or: [
-                    { "programs.tmd.isPurchased": true },
-                    { "programs.tia.isPurchased": true },
-                    { "programs.tia_summer.isPurchased": true }
-                ]
+                $or: buildAccessQuery(RANKABLE_PROGRAMS),
             });
             userDetails.rankingPosition = usersAbove + 1;
         }

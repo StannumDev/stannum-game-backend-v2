@@ -1276,5 +1276,86 @@
         "title": "Programa inválido",
         "techMessage": "Invalid program ID.",
         "friendlyMessage": "El programa seleccionado no es válido."
+    },
+    "SUBSCRIPTION_INVALID_PROGRAM": {
+        "success": false,
+        "code": "SUB_001",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Programa no válido",
+        "techMessage": "Program is not a subscription program.",
+        "friendlyMessage": "Este programa no ofrece suscripción."
+    },
+    "SUBSCRIPTION_NOT_AVAILABLE": {
+        "success": false,
+        "code": "SUB_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No disponible",
+        "techMessage": "Subscription is not available for this program.",
+        "friendlyMessage": "La suscripción no está disponible para este programa."
+    },
+    "SUBSCRIPTION_PLAN_NOT_CONFIGURED": {
+        "success": false,
+        "code": "SUB_003",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error de configuración",
+        "techMessage": "MP Plan ID not configured for this program.",
+        "friendlyMessage": "Hubo un error de configuración. Contactá a soporte."
+    },
+    "SUBSCRIPTION_ALREADY_ACTIVE": {
+        "success": false,
+        "code": "SUB_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Suscripción activa",
+        "techMessage": "User already has an active subscription or owns this program.",
+        "friendlyMessage": "Ya tenés acceso a este programa."
+    },
+    "SUBSCRIPTION_PENDING_EXISTS": {
+        "success": false,
+        "code": "SUB_005",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Suscripción en proceso",
+        "techMessage": "A pending subscription already exists.",
+        "friendlyMessage": "Ya hay una suscripción en proceso. Esperá unos minutos."
+    },
+    "SUBSCRIPTION_MP_ERROR": {
+        "success": false,
+        "code": "SUB_006",
+        "type": "error",
+        "showAlert": true,
+        "title": "Error de pago",
+        "techMessage": "Mercado Pago API error.",
+        "friendlyMessage": "No pudimos procesar tu suscripción. Revisá los datos de tu tarjeta."
+    },
+    "SUBSCRIPTION_NOT_FOUND": {
+        "success": false,
+        "code": "SUB_007",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Sin suscripción",
+        "techMessage": "No active subscription found.",
+        "friendlyMessage": "No se encontró una suscripción activa para este programa."
+    },
+    "SUBSCRIPTION_CANNOT_CANCEL": {
+        "success": false,
+        "code": "SUB_008",
+        "type": "warning",
+        "showAlert": true,
+        "title": "No se puede cancelar",
+        "techMessage": "Subscription is not in a cancellable state.",
+        "friendlyMessage": "Esta suscripción no puede cancelarse en su estado actual."
+    },
+    "SUBSCRIPTION_INVALID_CANCEL_TOKEN": {
+        "success": false,
+        "code": "SUB_009",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Enlace inválido",
+        "techMessage": "Cancel token is invalid, expired, or already used.",
+        "friendlyMessage": "El enlace de cancelación es inválido, expiró o ya fue utilizado."
     }
 }
