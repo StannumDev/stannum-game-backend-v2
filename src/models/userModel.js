@@ -377,6 +377,26 @@ const programSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "ProductKey",
   },
+  // Subscription fields (for subscription-type programs)
+  subscription: {
+    status: {
+      type: String,
+      enum: ['pending', 'active', 'paused', 'cancelled', 'expired', null],
+      default: null,
+    },
+    mpSubscriptionId: { type: String, default: null },
+    priceARS: { type: Number, default: null },
+    currentPeriodEnd: { type: Date, default: null },
+    subscribedAt: { type: Date, default: null },
+    cancelledAt: { type: Date, default: null },
+    lastPaymentAt: { type: Date, default: null },
+    lastWebhookAt: { type: Date, default: null },
+    pendingExpiresAt: { type: Date, default: null },
+    previousSubscriptionIds: [{ type: String }],
+  },
+  // Denormalized flag for efficient Mongo queries (rankings, etc.)
+  // Updated by accessControl whenever subscription/purchase state changes
+  hasAccessFlag: { type: Boolean, default: false },
 }, { _id: false });
 
 const enterpriseSchema = new Schema({
@@ -561,7 +581,33 @@ const userSchema = new Schema(
           tests: [],
           productKey: null,
         }),
-      }
+      },
+      trenno_ia: {
+        type: programSchema,
+        default: () => ({
+          isPurchased: false,
+          acquiredAt: null,
+          instructions: [],
+          lessonsCompleted: [],
+          chestsOpened: [],
+          lastWatchedLesson: null,
+          tests: [],
+          productKey: null,
+          subscription: {
+            status: null,
+            mpSubscriptionId: null,
+            priceARS: null,
+            currentPeriodEnd: null,
+            subscribedAt: null,
+            cancelledAt: null,
+            lastPaymentAt: null,
+            lastWebhookAt: null,
+            pendingExpiresAt: null,
+            previousSubscriptionIds: [],
+          },
+          hasAccessFlag: false,
+        }),
+      },
     },
     preferences: {
       tutorials: {
@@ -638,7 +684,7 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
-userSchema.index({ 'programs.tia.isPurchased': 1, 'programs.tmd.isPurchased': 1, 'programs.tia_summer.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia.hasAccessFlag': 1, 'programs.tmd.hasAccessFlag': 1, 'programs.tia_summer.hasAccessFlag': 1, 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 
 userSchema.virtual("profilePhotoUrl").get(function () {
   if (this.preferences?.hasProfilePhoto) {
@@ -648,11 +694,17 @@ userSchema.virtual("profilePhotoUrl").get(function () {
 });
 
 userSchema.methods.getUserSidebarDetails = function () {
+  const { SUBSCRIPTION_PROGRAMS } = require('../config/programRegistry');
+  const hasActiveSubscription = SUBSCRIPTION_PROGRAMS.some(pid => {
+    const sub = this.programs?.[pid]?.subscription;
+    return sub && ['active', 'paused', 'cancelled'].includes(sub.status);
+  });
   return {
     id: this._id,
     username: this.username,
     profilePhoto: this.profilePhotoUrl,
     coins: this.coins || 0,
+    hasActiveSubscription,
   };
 };
 
@@ -737,11 +789,12 @@ userSchema.methods.getPublicUserDetails = function () {
 
   const sanitizeProgram = (prog) => {
     if (!prog) return prog;
-    return {
+    const result = {
       isPurchased: prog.isPurchased,
       acquiredAt: prog.acquiredAt,
       totalXp: prog.totalXp || 0,
       lessonsCompleted: prog.lessonsCompleted,
+      hasAccessFlag: prog.hasAccessFlag || false,
       instructions: (prog.instructions || []).map(i => ({
         instructionId: i.instructionId,
         status: i.status,
@@ -749,6 +802,17 @@ userSchema.methods.getPublicUserDetails = function () {
         observations: i.observations,
       })),
     };
+    // Include subscription info (sanitized — no mpSubscriptionId for public)
+    if (prog.subscription?.status) {
+      result.subscription = {
+        status: prog.subscription.status,
+        priceARS: prog.subscription.priceARS,
+        currentPeriodEnd: prog.subscription.currentPeriodEnd,
+        subscribedAt: prog.subscription.subscribedAt,
+        cancelledAt: prog.subscription.cancelledAt,
+      };
+    }
+    return result;
   };
 
   return {
@@ -774,6 +838,7 @@ userSchema.methods.getPublicUserDetails = function () {
       tia: sanitizeProgram(this.programs?.tia),
       tmd: sanitizeProgram(this.programs?.tmd),
       tia_summer: sanitizeProgram(this.programs?.tia_summer),
+      trenno_ia: sanitizeProgram(this.programs?.trenno_ia),
     },
     dailyStreak: {
       count: effectiveCount,
@@ -894,9 +959,11 @@ userSchema.methods.getFavoriteAssistants = function() {
 userSchema.index({ 'favorites.assistants': 1 });
 userSchema.index({ 'favorites.prompts': 1 });
 userSchema.index({ 'level.experienceTotal': -1, status: 1 });
-userSchema.index({ 'programs.tia.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
-userSchema.index({ 'programs.tmd.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
-userSchema.index({ 'programs.tia_summer.isPurchased': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tmd.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia_summer.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.trenno_ia.subscription.status': 1, 'programs.trenno_ia.subscription.currentPeriodEnd': 1 });
 userSchema.index({
   username: 'text',
   'profile.name': 'text',

@@ -1,17 +1,15 @@
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 const { censor } = require("../helpers/profanityChecker");
+const { RANKABLE_PROGRAMS, isRankableProgram } = require("../config/programRegistry");
+const { buildAccessQuery, buildProgramAccessQuery } = require("../utils/accessControl");
 
 const getIndividualRanking = async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
 
     const users = await User.find({
-      $or: [
-        { "programs.tmd.isPurchased": true },
-        { "programs.tia.isPurchased": true },
-        { "programs.tia_summer.isPurchased": true }
-      ],
+      $or: buildAccessQuery(RANKABLE_PROGRAMS),
       status: true
     })
     .sort({ 'level.experienceTotal': -1 })
@@ -33,13 +31,12 @@ const getTeamRanking = async (req, res) => {
     const { programName } = req.params;
     if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
 
-    const validPrograms = ['tia', 'tia_summer', 'tmd'];
-    if (!validPrograms.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+    if (!isRankableProgram(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
     const teamRanking = await User.aggregate([
       {
         $match: {
-          [`programs.${programName}.isPurchased`]: true,
+          ...buildProgramAccessQuery(programName),
           status: true,
           'teams': { $elemMatch: { programName, teamName: { $exists: true, $ne: null, $ne: '' } } }
         }
@@ -115,13 +112,12 @@ const getProgramIndividualRanking = async (req, res) => {
     const programName = req.params.programName?.toLowerCase();
     if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
 
-    const validPrograms = ['tia', 'tia_summer', 'tmd'];
-    if (!validPrograms.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+    if (!isRankableProgram(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
 
     const users = await User.find({
-      [`programs.${programName}.isPurchased`]: true,
+      ...buildProgramAccessQuery(programName),
       status: true
     })
     .sort({ [`programs.${programName}.totalXp`]: -1 })

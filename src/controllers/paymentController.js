@@ -28,14 +28,22 @@ const validateCoupon = async (couponCode, programId, originalAmount, userId) => 
     throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MIN_AMOUNT" };
   }
 
-  if (coupon.maxUses !== null && coupon.currentUses >= coupon.maxUses) {
-    throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
+  // CRIT-02 fix: Count pending+approved orders to prevent concurrent double-spend.
+  // Using Order count instead of coupon.currentUses avoids the read-then-write race.
+  if (coupon.maxUses !== null) {
+    const globalUsageCount = await Order.countDocuments({
+      couponId: coupon._id,
+      status: { $in: ["approved", "pending"] },
+    });
+    if (globalUsageCount >= coupon.maxUses) {
+      throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
+    }
   }
 
   const userUsageCount = await Order.countDocuments({
     userId,
     couponId: coupon._id,
-    status: "approved",
+    status: { $in: ["approved", "pending"] },
   });
   if (userUsageCount >= coupon.maxUsesPerUser) {
     throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES_PER_USER" };
@@ -67,7 +75,8 @@ const createPreference = async (req, res) => {
     if (type === "self") {
       const user = await User.findById(userId);
       if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-      if (user.programs?.[programId]?.isPurchased) {
+      const { hasAccess } = require("../utils/accessControl");
+      if (hasAccess(user.programs?.[programId])) {
         return res.status(400).json(getError("PAYMENT_PROGRAM_ALREADY_OWNED"));
       }
     }

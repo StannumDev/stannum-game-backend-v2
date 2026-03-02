@@ -18,7 +18,12 @@ const storeRouter = require("./routes/storeRoutes");
 const chestRouter = require("./routes/chestRoutes");
 const webhookRouter = require("./routes/webhookRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
+const subscriptionRouter = require("./routes/subscriptionRoutes");
+const cron = require("node-cron");
 const { reconcilePayments } = require("./services/paymentService");
+const { expireCancelledSubscriptions, retryFailedDemoTransfers } = require("./services/subscriptionService");
+const { sendPreRenewalNotifications, retryFailedEmails } = require("./services/subscriptionEmailService");
+const { reconcileHot, reconcileCold, checkWebhookHealth } = require("./services/subscriptionReconciliationService");
 
 const app = express();
 
@@ -91,6 +96,7 @@ app.use("/api/assistant", assistantRouter);
 app.use("/api/store", storeRouter);
 app.use("/api/chest", chestRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/subscription", subscriptionRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
@@ -125,8 +131,40 @@ mongoose.connect(process.env.DB_URL)
       console.log(`API Rest escuchando el puerto ${PORT}`);
     });
 
-    reconcilePayments();
-    setInterval(reconcilePayments, 15 * 60 * 1000);
+    // ─── Cron jobs (node-cron with America/Argentina/Buenos_Aires timezone) ───
+    const cronOpts = { timezone: 'America/Argentina/Buenos_Aires' };
+
+    const runCron = (name, fn) => {
+      const start = Date.now();
+      fn()
+        .then(() => console.info(`[Cron] ${name} completed in ${Date.now() - start}ms`))
+        .catch(err => console.error(`[Cron] ${name} failed:`, err.message));
+    };
+
+    // Payment reconciliation — every 15 min
+    runCron('reconcilePayments', reconcilePayments);
+    cron.schedule('*/15 * * * *', () => runCron('reconcilePayments', reconcilePayments), cronOpts);
+
+    // Expire cancelled subscriptions — every 30 min
+    runCron('expireCancelledSubscriptions', expireCancelledSubscriptions);
+    cron.schedule('*/30 * * * *', () => runCron('expireCancelledSubscriptions', expireCancelledSubscriptions), cronOpts);
+
+    // Pre-renewal email notifications — daily at 10:00 AM
+    cron.schedule('0 10 * * *', () => runCron('sendPreRenewalNotifications', sendPreRenewalNotifications), cronOpts);
+
+    // Subscription reconciliation — hot every 6h (at :05 past), cold daily at 4:00 AM
+    runCron('reconcileHot', reconcileHot);
+    cron.schedule('5 */6 * * *', () => runCron('reconcileHot', reconcileHot), cronOpts);
+    cron.schedule('0 4 * * *', () => runCron('reconcileCold', reconcileCold), cronOpts);
+
+    // Webhook health check — every 12h (at :10 past)
+    cron.schedule('10 */12 * * *', () => runCron('checkWebhookHealth', checkWebhookHealth), cronOpts);
+
+    // Retry failed demo transfers — every 1h
+    cron.schedule('30 * * * *', () => runCron('retryFailedDemoTransfers', retryFailedDemoTransfers), cronOpts);
+
+    // Retry failed subscription emails — every 2h (at :45 past)
+    cron.schedule('45 */2 * * *', () => runCron('retryFailedEmails', retryFailedEmails), cronOpts);
 
     const gracefulShutdown = (signal) => {
       console.log(`${signal} recibido. Cerrando servidor...`);

@@ -14,7 +14,7 @@ const chests = [
         programId: 'tia',
         moduleId: 'TIAM01',
         afterItemId: 'TIAM01I01',
-        rewards: { xp: 300, coins: 15, coverId: 'circuits' },
+        rewards: { xp: 300, coins: 15, coverId: 'horizon' },
     },
     // TIA - Módulo 2: IA en la Vida Cotidiana
     {
@@ -30,6 +30,21 @@ const chests = [
         moduleId: 'TIAM02',
         afterItemId: 'TIAM02L11',
         rewards: { xp: 200, coins: 10, coverId: null },
+    },
+    // TIA SUMMER - Módulo 2: Personalización de ChatGPT
+    {
+        id: 'TIASM02C01',
+        programId: 'tia_summer',
+        moduleId: 'TIASM02',
+        afterItemId: 'TIASM02L01',
+        rewards: { xp: 200, coins: 10, coverId: null },
+    },
+    {
+        id: 'TIASM02C02',
+        programId: 'tia_summer',
+        moduleId: 'TIASM02',
+        afterItemId: 'TIASM02L14',
+        rewards: { xp: 500, coins: 25, coverId: 'summer_2026' },
     },
 ];
 

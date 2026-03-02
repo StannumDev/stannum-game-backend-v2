@@ -1,20 +1,38 @@
 module.exports = {
   tia: {
+    type: "purchase",
     priceARS: 50000,
     purchasable: false,
     keysQuantity: 1,
     name: "Transformación con IA",
   },
   tmd: {
+    type: "purchase",
     priceARS: 0,
     purchasable: false,
     keysQuantity: 0,
     name: "Transformación Digital",
   },
   tia_summer: {
+    type: "purchase",
     priceARS: 250000,
-    purchasable: false,
+    purchasable: true,
     keysQuantity: 1,
     name: "Transformación con IA - Summer",
+  },
+  trenno_ia: {
+    type: "subscription",
+    currentMonthlyPriceARS: 30000,
+    purchasable: true,
+    keysQuantity: 0,
+    name: "Trenno IA",
+  },
+  demo_trenno: {
+    type: "demo",
+    priceARS: 0,
+    purchasable: false,
+    keysQuantity: 0,
+    name: "Trenno IA — Demo",
+    fullProgramId: "trenno_ia",
   },
 };

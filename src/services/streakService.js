@@ -5,6 +5,7 @@ const {
     isConsecutiveLocalDay,
     daysBetweenLocalDates,
 } = require('../helpers/experienceHelper');
+const { hasAnyAccess } = require('../utils/accessControl');
 
 /**
  * Eagerly consumes a streak shield if the user has a gap since their
@@ -14,8 +15,11 @@ const {
  * @returns {{ shieldConsumed: boolean, streakSaved: boolean }}
  */
 const applyShieldIfNeeded = async (userId) => {
-    const user = await User.findById(userId).select('dailyStreak');
+    const user = await User.findById(userId).select('dailyStreak programs');
     if (!user?.dailyStreak) return { shieldConsumed: false, streakSaved: false };
+
+    // Streak freeze: if user has no access to any program, skip evaluation entirely
+    if (!hasAnyAccess(user.programs)) return { shieldConsumed: false, streakSaved: false };
 
     const { shields = 0, lastActivityLocalDate: last, shieldCoveredDate } = user.dailyStreak;
     const tz = user.dailyStreak.timezone || 'America/Argentina/Buenos_Aires';

@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose");
+const { PURCHASE_PROGRAMS } = require("../config/programRegistry");
 
 const orderSchema = new Schema(
   {
@@ -10,7 +11,7 @@ const orderSchema = new Schema(
     programId: {
       type: String,
       enum: {
-        values: ["tmd", "tia", "tia_summer"],
+        values: PURCHASE_PROGRAMS,
         message: "Programa inválido",
       },
       required: [true, "El programa es obligatorio"],
@@ -105,6 +106,14 @@ const orderSchema = new Schema(
       default: null,
     },
     giftEmailSent: {
+      type: Boolean,
+      default: false,
+    },
+    giftEmailRetries: {
+      type: Number,
+      default: 0,
+    },
+    couponCounted: {
       type: Boolean,
       default: false,
     },

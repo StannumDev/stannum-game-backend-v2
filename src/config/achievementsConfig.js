@@ -1,4 +1,5 @@
 const { programs } = require('../config/programs');
+const { hasAccess } = require('../utils/accessControl');
 
 module.exports = [
     {
@@ -7,7 +8,7 @@ module.exports = [
         xpReward: 50,
         coinsReward: 10,
         condition: (user) => {
-            return Object.values(user.programs || {}).some(p => p.isPurchased);
+            return Object.values(user.programs || {}).some(p => hasAccess(p));
         }
     },
     {
@@ -236,7 +237,7 @@ module.exports = [
         description: "Únete a Trenno IA comprando el programa",
         xpReward: 100,
         coinsReward: 15,
-        condition: (user) => !!user.programs?.tia?.isPurchased
+        condition: (user) => hasAccess(user.programs?.tia)
     },
     {
         id: "trenno_ia_first_module_completed",
@@ -287,7 +288,7 @@ module.exports = [
         description: "Participaste del programa exclusivo TRENNO IA SUMMER 2026",
         xpReward: 100,
         coinsReward: 15,
-        condition: (user) => !!user.programs?.tia_summer?.isPurchased
+        condition: (user) => hasAccess(user.programs?.tia_summer)
     },
     {
         id: "trenno_ia_summer_halfway",

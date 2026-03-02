@@ -30,4 +30,15 @@ router.patch(
     lessonController.updateLastWatched
 );
 
+router.get(
+    "/playback/:programName/:lessonId",
+    [
+        validateJWT,
+        check("programName").trim().escape().not().isEmpty().isLength({ min: 2, max: 50 }).matches(/^[a-zA-Z0-9_-]+$/),
+        check("lessonId").trim().escape().not().isEmpty(),
+        fieldsValidate,
+    ],
+    lessonController.getPlaybackId
+);
+
 module.exports = router;
