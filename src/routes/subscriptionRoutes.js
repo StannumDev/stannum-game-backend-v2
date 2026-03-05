@@ -4,7 +4,7 @@ const { check } = require('express-validator');
 const { validateJWT } = require('../middlewares/validateJWT');
 const { isAdmin } = require('../middlewares/isAdmin');
 const { fieldsValidate } = require('../middlewares/fieldsValidate');
-const { paymentLimiter } = require('../middlewares/rateLimiter');
+const { paymentLimiter, sensitiveOperationLimiter } = require('../middlewares/rateLimiter');
 const subscriptionController = require('../controllers/subscriptionController');
 
 const router = Router();
@@ -26,6 +26,7 @@ router.post(
   '/cancel',
   [
     validateJWT,
+    sensitiveOperationLimiter,
     check('programId', 'El programa es obligatorio.').trim().notEmpty(),
     fieldsValidate,
   ],

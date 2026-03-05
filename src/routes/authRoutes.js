@@ -16,12 +16,12 @@ router.get(
 
 router.post(
   "/",
+  authLimiter,
   [
     check("username", "Username is required.").trim().escape().not().isEmpty().withMessage("Username cannot be empty."),
     check("password", "Password is required.").trim().not().isEmpty().withMessage("Password cannot be empty."),
     fieldsValidate,
   ],
-  authLimiter,
   authController.login
 );
 
@@ -37,6 +37,7 @@ router.post(
 
 router.post(
   "/validate-recaptcha",
+  validationLimiter,
   [
     check("token", "ReCAPTCHA token is required.").trim().escape().not().isEmpty().withMessage("ReCAPTCHA token cannot be empty."),
     fieldsValidate,
@@ -56,6 +57,7 @@ router.post(
 
 router.post(
   "/register",
+  authLimiter,
   [
     check("email", "Email is required and must be valid.").trim().escape().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
     check("username", "Username is required.").trim().escape().customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("Username cannot be empty.").isLength({ min: 6, max: 25 }).withMessage("Username must be between 6 and 25 characters.").matches(/^[a-zA-Z0-9._]+$/).withMessage("Username can only contain lowercase letters, numbers, dots, and underscores."),
@@ -77,7 +79,6 @@ router.post(
     check("aboutme", "About me is required.").trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')).not().isEmpty().withMessage("About me cannot be empty.").isLength({ max: 2600 }).withMessage("About me must be less than 2600 characters."),
     fieldsValidate,
   ],
-  authLimiter,
   authController.createUser
 );
 

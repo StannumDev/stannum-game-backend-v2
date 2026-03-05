@@ -298,11 +298,17 @@ const verifyRecoveryOtp = async (req, res) => {
     const otpBuffer = Buffer.from(user.otp.recoveryOtp, 'hex');
     const hashedBuffer = Buffer.from(hashedOtp, 'hex');
     if (otpBuffer.length !== hashedBuffer.length || !crypto.timingSafeEqual(otpBuffer, hashedBuffer)) {
-      return res.status(400).json(getError("AUTH_INVALID_OTP"));
+      user.otp.attempts = (user.otp.attempts || 0) + 1;
+      if (user.otp.attempts >= 5) {
+        user.otp = { recoveryOtp: null, otpExpiresAt: null, recoveryVerified: false, attempts: 0 };
+      }
+      await user.save();
+      return res.status(400).json(getError(user.otp.attempts >= 5 ? "AUTH_OTP_MAX_ATTEMPTS" : "AUTH_INVALID_OTP"));
     }
 
     user.otp.recoveryOtp = null;
     user.otp.recoveryVerified = true;
+    user.otp.attempts = 0;
     await user.save();
 
     return res.status(200).json({ success: true, message: "OTP validado con éxito." });
@@ -319,30 +325,37 @@ const resetPassword = async (req, res) => {
     if (!otp) return res.status(400).json(getError("VALIDATION_OTP_REQUIRED"));
     if (!password) return res.status(400).json(getError("VALIDATION_PASSWORD_REQUIRED"));
 
-    const user = await User.findOne({
-      $or: [
-        { username: username.toLowerCase().trim() },
-        { email: username.toLowerCase().trim() },
-      ],
-    });
-
-    if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
-    if (!user.otp?.recoveryVerified) return res.status(400).json(getError("AUTH_OTP_MISSING"));
-    if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
-
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json(getError("VALIDATION_PASSWORD_INVALID"));
     }
 
+    // Atomic claim: only proceed if recoveryVerified is true and OTP hasn't expired
+    const user = await User.findOneAndUpdate(
+      {
+        $or: [
+          { username: username.toLowerCase().trim() },
+          { email: username.toLowerCase().trim() },
+        ],
+        'otp.recoveryVerified': true,
+        'otp.otpExpiresAt': { $gt: new Date() },
+      },
+      {
+        $set: {
+          'otp.recoveryOtp': null,
+          'otp.otpExpiresAt': null,
+          'otp.recoveryVerified': false,
+          'otp.attempts': 0,
+        },
+      },
+      { new: false }
+    );
+
+    if (!user) return res.status(400).json(getError("AUTH_OTP_MISSING"));
+
     const hashedPassword = await bcryptjs.hash(password, 10);
     user.password = hashedPassword;
     user.passwordChangedAt = new Date();
-    user.otp = {
-      recoveryOtp: null,
-      otpExpiresAt: null,
-      recoveryVerified: false,
-    };
     user.refreshToken = { token: null, expiresAt: null };
     if (!user.preferences) user.preferences = {};
     user.preferences.allowPasswordLogin = true;
@@ -368,9 +381,10 @@ const googleAuth = async (req, res) => {
       timeout: 5000,
     });
 
-    const { email, name, picture } = response.data;
+    const { email, name, picture, verified_email } = response.data;
 
     if (!email) return res.status(400).json(getError("AUTH_EMAIL_REQUIRED"));
+    if (verified_email !== true) return res.status(400).json(getError("AUTH_GOOGLE_EMAIL_NOT_VERIFIED"));
 
     let user = await User.findOne({ email: email.toLowerCase() });
 

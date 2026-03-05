@@ -36,9 +36,12 @@ const handleMercadoPagoWebhook = async (req, res) => {
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("[Webhook] Error processing MP notification:", err.message);
-    // Still return 200 to prevent MP from retrying on our internal errors
-    // (the handlers themselves are idempotent, so retries are safe but wasteful)
-    return res.status(200).json({ received: true });
+    // Non-retryable business logic errors (already processed, invalid state, etc.) → 200
+    if (err.retryable === false) {
+      return res.status(200).json({ received: true });
+    }
+    // All other errors (DB, network, unexpected) → 500 so MP retries
+    return res.status(500).json({ error: "processing_failed" });
   }
 };
 

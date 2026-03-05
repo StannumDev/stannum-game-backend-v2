@@ -28,14 +28,14 @@ const validateCoupon = async (couponCode, programId, originalAmount, userId) => 
     throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MIN_AMOUNT" };
   }
 
-  // CRIT-02 fix: Count pending+approved orders to prevent concurrent double-spend.
-  // Using Order count instead of coupon.currentUses avoids the read-then-write race.
+  // Atomic coupon usage: increment currentUses only if under maxUses
   if (coupon.maxUses !== null) {
-    const globalUsageCount = await Order.countDocuments({
-      couponId: coupon._id,
-      status: { $in: ["approved", "pending"] },
-    });
-    if (globalUsageCount >= coupon.maxUses) {
+    const updated = await Coupon.findOneAndUpdate(
+      { _id: coupon._id, currentUses: { $lt: coupon.maxUses } },
+      { $inc: { currentUses: 1 } },
+      { new: true }
+    );
+    if (!updated) {
       throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
     }
   }
@@ -67,7 +67,7 @@ const createPreference = async (req, res) => {
     const { programId, type = "self", giftDelivery, giftEmail, couponCode } = req.body;
 
     const pricing = programPricing[programId];
-    if (!pricing) return res.status(400).json(getError("PAYMENT_INVALID_PROGRAM"));
+    if (!pricing || pricing.type !== 'purchase') return res.status(400).json(getError("PAYMENT_INVALID_PROGRAM"));
     if (!pricing.purchasable || pricing.priceARS <= 0) {
       return res.status(400).json(getError("PAYMENT_PROGRAM_NOT_PURCHASABLE"));
     }

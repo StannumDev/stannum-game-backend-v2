@@ -350,6 +350,24 @@
         "techMessage": "The recovery OTP has expired.",
         "friendlyMessage": "El código de recuperación ha expirado. Solicita uno nuevo."
     },
+    "AUTH_OTP_MAX_ATTEMPTS": {
+        "success": false,
+        "code": "AUTH_011",
+        "type": "error",
+        "showAlert": true,
+        "title": "Demasiados intentos",
+        "techMessage": "Maximum OTP verification attempts exceeded.",
+        "friendlyMessage": "Has superado el máximo de intentos. Solicita un nuevo código de recuperación."
+    },
+    "AUTH_GOOGLE_EMAIL_NOT_VERIFIED": {
+        "success": false,
+        "code": "AUTH_012",
+        "type": "error",
+        "showAlert": true,
+        "title": "Email no verificado",
+        "techMessage": "Google account email is not verified.",
+        "friendlyMessage": "Tu cuenta de Google no tiene el email verificado. Verificá tu email en Google e intentá de nuevo."
+    },
     "AUTH_OTP_MISSING": {
         "success": false,
         "code": "AUTH_011",

@@ -214,6 +214,13 @@ async function createSubscription(userId, programId, payerEmail) {
   let previousSubIds = lockResult.programs?.[programId]?.subscription?.previousSubscriptionIds || [];
   if (oldMpSubId && oldMpSubId !== mpResponse.id) {
     previousSubIds = [...previousSubIds, oldMpSubId].slice(-5); // cap to last 5
+    // Cancel old preapproval on MP to prevent orphans (best-effort, don't block on failure)
+    try {
+      await axios.put(`${MP_API}/preapproval/${oldMpSubId}`, { status: 'cancelled' }, { headers: mpHeaders(), timeout: 10000 });
+      console.info(`[Subscription] Cancelled old MP preapproval ${oldMpSubId} for user ${userId}`);
+    } catch (cancelErr) {
+      console.error(`[Subscription] Failed to cancel old MP preapproval ${oldMpSubId}:`, cancelErr.message);
+    }
   }
 
   try {
