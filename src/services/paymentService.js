@@ -263,6 +263,7 @@ const reconcilePayments = async () => {
   const now = new Date();
   console.log(`[Reconciliation] Running at ${now.toISOString()}`);
 
+  try { // outer try/finally to always reset isReconciling
   try {
     const expired = await Order.updateMany(
       { status: "pending", expiresAt: { $lte: now } },
@@ -362,7 +363,9 @@ const reconcilePayments = async () => {
     console.error("[Reconciliation] Error retrying gift emails:", err.message);
   }
 
-  isReconciling = false;
+  } finally {
+    isReconciling = false;
+  }
 };
 
 module.exports = {

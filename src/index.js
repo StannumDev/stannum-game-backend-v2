@@ -53,7 +53,15 @@ const corsOptions = {
 };
 
 app.set('trust proxy', 1);
-app.use(helmet());
+app.use(helmet({
+  permissionsPolicy: {
+    features: {
+      camera: ["'none'"],
+      microphone: ["'none'"],
+      geolocation: ["'none'"],
+    },
+  },
+}));
 app.use("/api/webhooks", webhookRouter);
 app.use(cors(corsOptions));
 
@@ -77,7 +85,8 @@ app.use((req, res, next) => {
     return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
   }
 
-  return next();
+  console.error(`CSRF blocked: no origin/referer, method=${req.method}, url=${req.originalUrl}`);
+  return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
 });
 
 app.use(cookieParser(process.env.SECRET));

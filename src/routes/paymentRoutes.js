@@ -4,7 +4,7 @@ const { check } = require("express-validator");
 const { validateJWT } = require("../middlewares/validateJWT");
 const { isAdmin } = require("../middlewares/isAdmin");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { paymentLimiter } = require("../middlewares/rateLimiter");
+const { paymentLimiter, sensitiveOperationLimiter } = require("../middlewares/rateLimiter");
 const paymentController = require("../controllers/paymentController");
 
 const router = Router();
@@ -23,7 +23,7 @@ router.post(
 
 router.post(
   "/verify",
-  [validateJWT],
+  [validateJWT, paymentLimiter],
   paymentController.verifyPayment
 );
 
@@ -47,7 +47,7 @@ router.post(
 
 router.post(
   "/order/:orderId/resend-email",
-  [validateJWT],
+  [validateJWT, sensitiveOperationLimiter],
   paymentController.resendGiftEmail
 );
 
@@ -55,6 +55,7 @@ router.post(
   "/apply-coupon",
   [
     validateJWT,
+    sensitiveOperationLimiter,
     check("programId", "El programa es obligatorio.").trim().notEmpty(),
     check("couponCode", "El código de cupón es obligatorio.").trim().notEmpty(),
     fieldsValidate,

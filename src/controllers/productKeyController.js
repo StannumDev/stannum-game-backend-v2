@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 const ProductKey = require("../models/productKeyModel");
 const { activateProgramForUser } = require("../services/programActivationService");
@@ -10,7 +11,7 @@ const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 const generateProductCode = () => {
     const segment = () =>
     Array.from({ length: 4 }, () =>
-        Math.floor(Math.random() * 36).toString(36).toUpperCase()
+        crypto.randomInt(36).toString(36).toUpperCase()
     ).join("");
     return `${segment()}-${segment()}-${segment()}-${segment()}`;
 };
@@ -148,18 +149,21 @@ const generateAndSendProductKeyMake = async (req, res) => {
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
 
+        const safeGuideLink = guideLink ? escapeHtml(guideLink) : '';
+        const safeWhatsappLink = whatsappLink ? escapeHtml(whatsappLink) : '';
+
         const guideSection = guideLink ? `
                         <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
                             <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Guía del Participante</h3>
                             <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Descargá tu guía completa para prepararte antes del entrenamiento. Incluye todo lo que necesitás saber para aprovechar al máximo la experiencia.</p>
-                            <a href="${guideLink}" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
+                            <a href="${safeGuideLink}" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
                         </div>` : '';
 
         const whatsappSection = whatsappLink ? `
                         <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
                             <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad del Entrenamiento</h3>
                             <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia. Conectá, compartí y entrená con otros líderes y emprendedores de alto rendimiento.</p>
-                            <a href="${whatsappLink}" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
+                            <a href="${safeWhatsappLink}" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
                         </div>` : '';
 
         const preparationSection = (guideLink || whatsappLink) ? `

@@ -133,7 +133,7 @@ orderSchema.index({ userId: 1, programId: 1 }, {
   partialFilterExpression: { status: "pending" },
 });
 
-orderSchema.index({ mpPaymentId: 1 }, { sparse: true });
+orderSchema.index({ mpPaymentId: 1 }, { unique: true, sparse: true });
 orderSchema.index({ status: 1, expiresAt: 1 });
 orderSchema.index({ userId: 1, createdAt: -1 });
 
