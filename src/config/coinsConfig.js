@@ -20,4 +20,5 @@ module.exports = {
         STREAK_RECOVERY: 30,
     },
     STREAK_SHIELD_MAX: 1,
+    STREAK_RECOVERY_WINDOW_MS: 48 * 60 * 60 * 1000,
 };

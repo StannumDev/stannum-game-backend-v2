@@ -5,7 +5,7 @@ const { deductCoinsAtomic } = require('../services/coinsService');
 const { getError } = require('../helpers/getError');
 const { localTodayString } = require('../helpers/experienceHelper');
 
-const RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const RECOVERY_WINDOW_MS = coinsCfg.STREAK_RECOVERY_WINDOW_MS;
 
 const getCovers = async (req, res) => {
     try {
@@ -152,9 +152,10 @@ const recoverStreak = async (req, res) => {
 
         const elapsed = Date.now() - new Date(lostAt).getTime();
         if (elapsed > RECOVERY_WINDOW_MS) {
-            user.dailyStreak.lostCount = null;
-            user.dailyStreak.lostAt = null;
-            await user.save();
+            await User.updateOne(
+                { _id: userId },
+                { $set: { 'dailyStreak.lostCount': null, 'dailyStreak.lostAt': null } }
+            );
             return res.status(400).json(getError('STREAK_RECOVERY_EXPIRED'));
         }
 
