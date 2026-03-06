@@ -1,5 +1,6 @@
 const { censor } = require('../helpers/profanityChecker');
 const { localTodayString, isSameLocalDay, isConsecutiveLocalDay, daysBetweenLocalDates } = require('../helpers/experienceHelper');
+const coinsCfg = require('../config/coinsConfig');
 const { Schema, model } = require("mongoose");
 
 const tutorialSchema = new Schema({
@@ -761,8 +762,11 @@ userSchema.methods.getFullUserDetails = function () {
       recoveryAvailable: !!(
         this.dailyStreak?.lostCount &&
         this.dailyStreak?.lostAt &&
-        (Date.now() - new Date(this.dailyStreak.lostAt).getTime()) < 24 * 60 * 60 * 1000
+        (Date.now() - new Date(this.dailyStreak.lostAt).getTime()) < coinsCfg.STREAK_RECOVERY_WINDOW_MS
       ),
+      recoveryExpiresAt: (this.dailyStreak?.lostCount && this.dailyStreak?.lostAt)
+        ? new Date(new Date(this.dailyStreak.lostAt).getTime() + coinsCfg.STREAK_RECOVERY_WINDOW_MS).toISOString()
+        : null,
     },
     xpHistory: this.xpHistory,
     coins: this.coins || 0,

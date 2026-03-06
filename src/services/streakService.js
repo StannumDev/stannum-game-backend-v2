@@ -4,6 +4,7 @@ const {
     isSameLocalDay,
     isConsecutiveLocalDay,
     daysBetweenLocalDates,
+    computeActualLostAt,
 } = require('../helpers/experienceHelper');
 const { hasAnyAccess } = require('../utils/accessControl');
 
@@ -68,7 +69,7 @@ const applyShieldIfNeeded = async (userId) => {
 
         if (previousCount > 0) {
             update.$set['dailyStreak.lostCount'] = previousCount;
-            update.$set['dailyStreak.lostAt'] = new Date();
+            update.$set['dailyStreak.lostAt'] = computeActualLostAt(effectiveLast, tz);
         }
 
         const result = await User.findOneAndUpdate(

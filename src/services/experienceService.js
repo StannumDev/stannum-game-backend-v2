@@ -1,4 +1,4 @@
-const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, daysBetweenLocalDates, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
+const { nextLevelTarget, localTodayString, isSameLocalDay, isConsecutiveLocalDay, daysBetweenLocalDates, computeActualLostAt, computeInstructionXP, computeLessonXP, computeLevelProgress } = require('../helpers/experienceHelper');
 const { resolveLessonInfo } = require('../helpers/resolveLessonInfo');
 const xpCfg = require('../config/xpConfig');
 const coinsCfg = require('../config/coinsConfig');
@@ -65,7 +65,7 @@ const addExperience = async (user, type, payload) => {
             if (daysMissed >= 1) {
                 if (previousCount > 0) {
                     user.dailyStreak.lostCount = previousCount;
-                    user.dailyStreak.lostAt = new Date();
+                    user.dailyStreak.lostAt = computeActualLostAt(effectiveLast, tz);
                 }
                 newCount = 1;
             } else {

@@ -1121,8 +1121,8 @@
         "type": "warning",
         "showAlert": true,
         "title": "Ventana de recuperación expirada",
-        "techMessage": "The 24h recovery window has expired.",
-        "friendlyMessage": "Pasaron más de 24 horas desde que perdiste tu racha. Ya no podés recuperarla."
+        "techMessage": "The 48h recovery window has expired.",
+        "friendlyMessage": "Pasaron más de 48 horas desde que perdiste tu racha. Ya no podés recuperarla."
     },
     "SERVER_INTERNAL_ERROR": {
         "success": false,

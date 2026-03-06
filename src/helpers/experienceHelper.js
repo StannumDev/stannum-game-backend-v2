@@ -49,6 +49,31 @@ const computeInstructionXP = ({ rewardXP = 0, score = 0, timeTakenSec = 0, estim
     return clamp(xp, xpCfg.INSTRUCTION.MIN_XP, xpCfg.INSTRUCTION.MAX_XP);
 };
 
+/**
+ * Given the last effective local date (YYYY-MM-DD) and the user's timezone,
+ * returns the Date when the streak was actually lost: midnight after the
+ * grace day (effectiveLast + 2 days) in the user's timezone.
+ */
+const computeActualLostAt = (effectiveLastLocalDate, tz = 'America/Argentina/Buenos_Aires') => {
+    // effectiveLast + 1 = grace day, effectiveLast + 2 = loss moment (midnight)
+    const lossDate = new Date(effectiveLastLocalDate + 'T00:00:00Z');
+    lossDate.setUTCDate(lossDate.getUTCDate() + 2);
+
+    // Get the TZ offset at the loss date using Intl (server-TZ-independent)
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(lossDate);
+    const get = (type) => parts.find(p => p.type === type)?.value || '0';
+    const tzHour = parseInt(get('hour'), 10);
+    const tzMinute = parseInt(get('minute'), 10);
+    // lossDate is midnight UTC; the TZ shows what time it is there at that moment
+    // Offset = TZ_time - UTC_time. Midnight in TZ = midnight UTC - offset
+    const offsetMs = ((tzHour >= 12 ? tzHour - 24 : tzHour) * 60 + tzMinute) * 60 * 1000;
+
+    return new Date(lossDate.getTime() - offsetMs);
+};
+
 const daysBetweenLocalDates = (a, b) => {
     if (!a || !b) return Infinity;
     const dateA = new Date(a + 'T00:00:00Z');
@@ -70,6 +95,7 @@ module.exports = {
     isSameLocalDay,
     isConsecutiveLocalDay,
     daysBetweenLocalDates,
+    computeActualLostAt,
     computeLessonXP,
     computeInstructionXP,
     computeLevelProgress
