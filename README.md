@@ -68,13 +68,23 @@ src/
 │   ├── errors.json             # Codigos de error estandarizados
 │   ├── grading_examples.json   # Ejemplos para AI grading
 │   ├── lessons_catalog.json    # Catalogo de lecciones
-│   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER)
+│   ├── programRegistry.js      # Registro de programas (valid, subscription, purchase, demo)
+│   ├── programPricing.js       # Precios de compra y suscripcion
+│   ├── muxPlaybackIds.js       # IDs de playback de Mux
+│   ├── demoMapping.js          # Mapeo demo → programa completo
+│   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER, TRENNO_IA)
 │
 ├── models/                  # Schemas MongoDB (Mongoose)
 │   ├── userModel.js            # User: perfil, nivel, XP, achievements, programas, streaks
 │   ├── productKeyModel.js      # Product keys para activar programas
 │   ├── promptModel.js          # Prompts de comunidad
-│   └── assistantModel.js       # Assistants/GPTs de comunidad
+│   ├── assistantModel.js       # Assistants/GPTs de comunidad
+│   ├── orderModel.js           # Ordenes de compra (Mercado Pago)
+│   ├── couponModel.js          # Cupones de descuento
+│   ├── subscriptionPaymentModel.js  # Pagos de suscripcion
+│   ├── subscriptionAuditLogModel.js # Audit log de suscripciones
+│   ├── cancelTokenModel.js     # Tokens de cancelacion
+│   └── failedEmailModel.js     # Emails fallidos (retry)
 │
 ├── routes/                  # Definicion de endpoints
 │   ├── authRoutes.js           # /api/auth/*
@@ -87,7 +97,10 @@ src/
 │   ├── assistantRoutes.js      # /api/assistant/*
 │   ├── profilePhotoRoutes.js   # /api/profile-photo/*
 │   ├── chestRoutes.js          # /api/chest/*
-│   └── storeRoutes.js          # /api/store/*
+│   ├── storeRoutes.js          # /api/store/*
+│   ├── paymentRoutes.js        # /api/payment/*
+│   ├── subscriptionRoutes.js   # /api/subscription/*
+│   └── webhookRoutes.js        # /api/webhooks/*
 │
 ├── controllers/             # Request handlers (logica de cada endpoint)
 │   ├── authController.js       # Login, register, Google OAuth, OTP, password reset
@@ -100,13 +113,23 @@ src/
 │   ├── assistantController.js   # CRUD assistants, likes, favorites, clicks
 │   ├── profilePhotoController.js # Upload/delete foto de perfil (S3)
 │   ├── chestController.js       # Abrir cofres (validacion, recompensas)
-│   └── storeController.js       # Portadas: listar, comprar, equipar
+│   ├── storeController.js       # Portadas: listar, comprar, equipar. Streak shield y recovery
+│   ├── paymentController.js     # Mercado Pago: preferencias, verificacion, ordenes, cupones
+│   ├── subscriptionController.js # Suscripciones: crear, cancelar, estado, historial
+│   └── webhookController.js     # Webhook handler de Mercado Pago
 │
 ├── services/                # Logica de negocio core
 │   ├── experienceService.js    # Calculo y asignacion de XP + niveles
 │   ├── coinsService.js         # Calculo y asignacion de Tins
 │   ├── achievementsService.js  # Evaluacion y desbloqueo de logros
-│   └── aiGradingService.js     # Calificacion con OpenAI GPT-4o
+│   ├── aiGradingService.js     # Calificacion con OpenAI GPT-4o
+│   ├── paymentService.js       # Mercado Pago: pagos unicos, ordenes, cupones
+│   ├── subscriptionService.js  # Suscripciones: creacion, cancelacion, state machine
+│   ├── subscriptionEmailService.js      # Emails de renovacion y notificaciones
+│   ├── subscriptionReconciliationService.js # Reconciliacion con Mercado Pago
+│   ├── streakService.js        # Gestion de daily streaks
+│   ├── programActivationService.js # Activacion de programas (product keys, compras)
+│   └── demoTransferService.js  # Transferencia de progreso demo → programa completo
 │
 ├── middlewares/             # Middlewares Express
 │   ├── validateJWT.js          # Verificacion de access token
@@ -114,7 +137,8 @@ src/
 │   ├── fieldsValidate.js       # Validacion de campos (express-validator)
 │   ├── rateLimiter.js          # 10 rate limiters configurados
 │   ├── validateAPIKey.js       # Validacion de API key (Make.com)
-│   └── isAdmin.js              # Verificacion de rol admin
+│   ├── isAdmin.js              # Verificacion de rol admin
+│   └── webhookVerify.js        # Verificacion de firma de webhook Mercado Pago
 │
 ├── helpers/                 # Funciones utilitarias
 │   ├── newJWT.js               # Generar access token JWT
@@ -180,6 +204,11 @@ COOKIE_DOMAIN=.stannumgame.com
 
 # Make.com (integracion externa)
 MAKE_API_KEY=tu_api_key
+
+# Mercado Pago (pagos y suscripciones)
+MP_ACCESS_TOKEN=APP_USR-...
+MP_NOTIFICATION_URL=https://api.tudominio.com/api/webhooks/mercadopago
+FRONTEND_URL=http://localhost:3000
 ```
 
 ## Endpoints
@@ -217,6 +246,7 @@ MAKE_API_KEY=tu_api_key
 |--------|------|-------------|------|
 | POST | `/lesson/complete/:programName/:lessonId` | Completar leccion (XP + Tins + achievements) | Si |
 | PATCH | `/lesson/lastwatched/:programName/:lessonId` | Guardar progreso de video | Si |
+| GET | `/lesson/playback/:programName/:lessonId` | Obtener playback ID de Mux | Si |
 
 ### Instrucciones (`/api/instruction`)
 
@@ -233,8 +263,10 @@ MAKE_API_KEY=tu_api_key
 |--------|------|-------------|------|
 | GET | `/product-key/:code` | Verificar product key | Si |
 | POST | `/product-key/activate` | Activar product key | Si |
-| GET | `/product-key/keys` | Listar todas las keys (ADMIN) | Si (Admin) |
-| POST | `/product-key/create` | Crear product keys (ADMIN) | Si (Admin) |
+| POST | `/product-key/generate-and-send` | Generar y enviar key por email | API Key |
+| POST | `/product-key/generate-and-send-make` | Generar y enviar desde Make.com | API Key |
+| POST | `/product-key/generate` | Generar key sin enviar | API Key |
+| GET | `/product-key/check/:code` | Verificar estado de key | API Key |
 
 ### Rankings (`/api/ranking`)
 
@@ -288,8 +320,11 @@ MAKE_API_KEY=tu_api_key
 
 | Metodo | Ruta | Descripcion | Auth |
 |--------|------|-------------|------|
-| POST | `/profile-photo/upload` | Subir foto de perfil (S3 presigned) | Si |
-| DELETE | `/profile-photo/delete` | Eliminar foto de perfil | Si |
+| POST | `/profile-photo/presign-photo` | Obtener URL presignada para subir foto | Si |
+| POST | `/profile-photo/confirm-photo` | Confirmar subida y procesar foto | Si |
+| GET | `/profile-photo/get-photo` | Obtener foto propia | Si |
+| GET | `/profile-photo/get-photo/:username` | Obtener foto por username | Si |
+| DELETE | `/profile-photo/delete-photo` | Eliminar foto de perfil | Si |
 
 ### Cofres (`/api/chest`)
 
@@ -304,6 +339,41 @@ MAKE_API_KEY=tu_api_key
 | GET | `/store/covers` | Listar portadas con estado de propiedad | Si |
 | POST | `/store/covers/purchase` | Comprar portada con Tins | Si |
 | PUT | `/store/covers/equip` | Equipar portada en perfil | Si |
+| POST | `/store/items/streak-shield/purchase` | Comprar escudo de racha con Tins | Si |
+| POST | `/store/streak/recover` | Recuperar racha perdida con Tins | Si |
+
+### Pagos (`/api/payment`) - Mercado Pago
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/payment/create-preference` | Crear preferencia de pago (compra unica) | Si |
+| POST | `/payment/verify` | Verificar pago completado | Si |
+| GET | `/payment/order/:orderId` | Obtener detalle de orden | Si |
+| GET | `/payment/my-orders` | Historial de ordenes del usuario | Si |
+| POST | `/payment/order/:orderId/cancel` | Cancelar orden | Si |
+| POST | `/payment/order/:orderId/resend-email` | Reenviar email de regalo | Si |
+| POST | `/payment/apply-coupon` | Aplicar cupon de descuento | Si |
+| POST | `/payment/coupon` | Crear cupon (ADMIN) | Si (Admin) |
+| GET | `/payment/coupons` | Listar cupones (ADMIN) | Si (Admin) |
+| PUT | `/payment/coupon/:id` | Actualizar cupon (ADMIN) | Si (Admin) |
+
+### Suscripciones (`/api/subscription`) - Mercado Pago
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/subscription/create` | Crear suscripcion (retorna init_point de MP) | Si |
+| POST | `/subscription/cancel` | Cancelar suscripcion | Si |
+| GET | `/subscription/status/:programId` | Estado de suscripcion | Si |
+| GET | `/subscription/payments/:programId` | Historial de pagos de suscripcion | Si |
+| GET | `/subscription/health` | Health stats de suscripciones (ADMIN) | Si (Admin) |
+| POST | `/subscription/admin/:userId/:programId/cancel` | Cancelar suscripcion de usuario (ADMIN) | Si (Admin) |
+| GET | `/subscription/admin/:userId/:programId/history` | Historial de pagos de usuario (ADMIN) | Si (Admin) |
+
+### Webhooks (`/api/webhooks`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/webhooks/mercadopago` | Webhook de notificaciones de Mercado Pago | Firma MP |
 
 Ver [API Reference completa](./docs/api-reference.md) para detalles de request/response bodies.
 
@@ -323,7 +393,7 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 
 ### 2. Sistema Educativo
 
-- **Programas:** TIA, TMD, TIA_SUMMER
+- **Programas:** TIA, TMD, TIA_SUMMER, TRENNO_IA (suscripcion), DEMO_TRENNO (demo)
 - **Estructura:** Program → Section → Module → Lesson/Instruction
 - **Progreso:** Tracking completo por leccion e instruccion
 - **Modulos bloqueados:** Se desbloquean al completar el modulo anterior
@@ -349,6 +419,30 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 - **Password recovery:** OTP por email (6 digitos, 10 min de expiracion)
 
 [Documentacion completa](./docs/systems/authentication.md)
+
+### 5. Pagos y Suscripciones (Mercado Pago)
+
+- **Compra unica:** Crear preferencia de pago → redirect a MP → webhook confirma → activar programa
+- **Suscripciones:** Crear suscripcion mensual → redirect a MP → webhook confirma → acceso activo
+- **Cupones:** Descuentos porcentuales o fijos, con limite de usos y fecha de expiracion
+- **Ordenes:** Tracking completo de compras, regalos, cancelaciones
+- **Reconciliacion:** Sincronizacion periodica con MP para detectar pagos/cancelaciones perdidas
+- **Transferencia demo:** Al adquirir programa completo, se transfiere progreso del demo
+
+### 6. Tareas Programadas (node-cron)
+
+Todas las tareas corren en timezone `America/Argentina/Buenos_Aires`:
+
+| Frecuencia | Tarea | Descripcion |
+|------------|-------|-------------|
+| Cada 15 min | reconcilePayments | Reconciliar pagos con Mercado Pago |
+| Cada 30 min | expireCancelledSubscriptions | Expirar suscripciones canceladas |
+| Diario 10:00 AM | sendPreRenewalNotifications | Emails de pre-renovacion |
+| Cada 6 horas (:05) | reconcileHot | Reconciliacion hot de suscripciones |
+| Diario 4:00 AM | reconcileCold | Reconciliacion cold de suscripciones |
+| Cada 12 horas (:10) | checkWebhookHealth | Health check de webhooks |
+| Cada 1 hora (:30) | retryFailedDemoTransfers | Reintentar transferencias de demo fallidas |
+| Cada 2 horas (:45) | retryFailedEmails | Reintentar emails fallidos |
 
 ## Seguridad
 
@@ -389,6 +483,21 @@ Prompts de comunidad con metricas (likes, copies, views, favorites), visibilidad
 ### Assistant (`assistantModel.js`)
 Assistants/GPTs de comunidad con metricas y plataforma.
 
+### Order (`orderModel.js`)
+Ordenes de compra via Mercado Pago. Incluye comprador, producto, monto, estado, datos de regalo.
+
+### Coupon (`couponModel.js`)
+Cupones de descuento con tipo (porcentaje/fijo), limite de usos, fecha de expiracion, programas aplicables.
+
+### SubscriptionPayment (`subscriptionPaymentModel.js`)
+Registro de cada pago de suscripcion recibido via webhook de Mercado Pago.
+
+### SubscriptionAuditLog (`subscriptionAuditLogModel.js`)
+Audit trail de cambios de estado en suscripciones (creacion, cancelacion, expiracion, etc).
+
+### FailedEmail (`failedEmailModel.js`)
+Emails que fallaron al enviarse, con datos para retry automatico.
+
 ## Documentacion Adicional
 
 - [API Reference](./docs/api-reference.md) - Request/response completos de cada endpoint
@@ -400,6 +509,7 @@ Assistants/GPTs de comunidad con metricas y plataforma.
 - [Rankings](./docs/systems/rankings.md)
 - [Equipos y Product Keys](./docs/systems/teams-productkeys.md)
 - [Perfiles de Usuario](./docs/systems/user-profiles.md)
+- [Pagos y Suscripciones](./docs/systems/payments.md)
 
 ## Frontend
 

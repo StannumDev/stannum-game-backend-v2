@@ -7,7 +7,8 @@ El sistema de rankings de STANNUM Game permite competencia sana entre estudiante
 STANNUM Game tiene dos tipos de rankings:
 
 1. **Ranking Individual (Global)** - Top usuarios por XP total
-2. **Ranking por Equipos** - Equipos de un programa ordenados por XP acumulado
+2. **Ranking Individual por Programa** - Top usuarios por XP de un programa específico
+3. **Ranking por Equipos** - Equipos de un programa ordenados por XP acumulado
 
 **Funcionalidades:**
 - ✅ Ranking individual por experienceTotal
@@ -38,6 +39,7 @@ STANNUM Game tiene dos tipos de rankings:
 - `tia`
 - `tia_summer`
 - `tmd`
+- `trenno_ia`
 
 **Orden:**
 - Por `level.experienceTotal` descendente (mayor a menor)
@@ -45,11 +47,15 @@ STANNUM Game tiene dos tipos de rankings:
 ### Query MongoDB
 
 ```javascript
+// Usa buildAccessQuery(RANKABLE_PROGRAMS) de src/utils/accessControl.js
+// RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'trenno_ia']
+// Incluye usuarios con isPurchased: true O subscription activa
 const users = await User.find({
   $or: [
-    { "programs.tmd.isPurchased": true },
-    { "programs.tia.isPurchased": true },
-    { "programs.tia_summer.isPurchased": true }
+    { "programs.tmd.hasAccessFlag": true },
+    { "programs.tia.hasAccessFlag": true },
+    { "programs.tia_summer.hasAccessFlag": true },
+    { "programs.trenno_ia.hasAccessFlag": true }
   ],
   status: true
 })
@@ -57,6 +63,8 @@ const users = await User.find({
 .limit(limit)
 .select('level profile username enterprise profilePhotoUrl');
 ```
+
+**Nota:** `hasAccessFlag` es un campo denormalizado que es `true` cuando el usuario tiene acceso al programa (ya sea por compra con product key, compra con Mercado Pago, o suscripción activa).
 
 ### Formato de Respuesta
 
@@ -136,14 +144,49 @@ const censor = (text) => {
 
 ---
 
-## 👥 2. RANKING POR EQUIPOS
+## 🏅 2. RANKING INDIVIDUAL POR PROGRAMA
+
+### Endpoint
+
+**GET** `/api/ranking/individual/:programName`
+
+**Params:**
+- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
+
+**Query params:**
+- `limit`: Cantidad de usuarios a retornar (default: 10, max: 1000)
+
+### Criterios
+
+**Usuarios incluidos:**
+- Que tengan acceso al programa específico (`hasAccessFlag: true`)
+- Que estén activos (`status: true`)
+
+**Orden:**
+- Por `programs.[programName].totalXp` descendente (XP específico del programa)
+
+### Diferencia con Ranking Global
+
+| | Ranking Global | Ranking por Programa |
+|---|---|---|
+| **Endpoint** | `/ranking/individual` | `/ranking/individual/:programName` |
+| **Ordena por** | `level.experienceTotal` (XP total) | `programs.[prog].totalXp` (XP del programa) |
+| **Usuarios** | Todos con al menos 1 programa | Solo con el programa específico |
+
+### Formato de Respuesta
+
+Mismo formato que el ranking individual global, pero los `points` reflejan el XP del programa específico.
+
+---
+
+## 👥 3. RANKING POR EQUIPOS
 
 ### Endpoint
 
 **GET** `/api/ranking/team/:programName`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd`
+- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
 
 ### Criterios
 
@@ -246,7 +289,7 @@ const teamRanking = Object.values(teams)
 
 ---
 
-## 📐 3. MODELO DE DATOS - TEAMS
+## 📐 4. MODELO DE DATOS - TEAMS
 
 ### Schema en User Model
 
@@ -327,7 +370,7 @@ if (key.team && key.team !== 'no_team') {
 
 ---
 
-## 🎯 4. CASOS DE USO
+## 🎯 5. CASOS DE USO
 
 ### Caso 1: Ranking Individual Global
 
@@ -417,7 +460,7 @@ if (myPosition === 0) {
 
 ---
 
-## 📊 5. FLUJOS COMPLETOS
+## 📊 6. FLUJOS COMPLETOS
 
 ### Flujo: Obtener Ranking Individual
 
@@ -456,7 +499,7 @@ GET /api/ranking/team/tia
 validateJWT middleware
   ↓
 rankingController.getTeamRanking()
-  ├─ Validar programName (tia, tia_summer, tmd)
+  ├─ Validar programName (tia, tia_summer, tmd, trenno_ia)
   ├─ Query usuarios con programa comprado
   └─ Filtrar por teams
   ↓
@@ -476,7 +519,7 @@ Frontend renderiza ranking de equipos
 
 ---
 
-## 🔒 6. SEGURIDAD Y PRIVACIDAD
+## 🔒 7. SEGURIDAD Y PRIVACIDAD
 
 ### Censura de Datos Personales
 
@@ -523,9 +566,10 @@ Frontend renderiza ranking de equipos
 ```javascript
 // En userSchema
 user.index({ 'level.experienceTotal': -1 });
-user.index({ 'programs.tia.isPurchased': 1 });
-user.index({ 'programs.tia_summer.isPurchased': 1 });
-user.index({ 'programs.tmd.isPurchased': 1 });
+user.index({ 'programs.tia.hasAccessFlag': 1 });
+user.index({ 'programs.tia_summer.hasAccessFlag': 1 });
+user.index({ 'programs.tmd.hasAccessFlag': 1 });
+user.index({ 'programs.trenno_ia.hasAccessFlag': 1 });
 ```
 
 **Optimización de Query:**
@@ -565,7 +609,7 @@ await redis.set(cacheKey, JSON.stringify(ranking), 'EX', 300); // 5 min
 
 ---
 
-## 📊 7. MÉTRICAS Y ANALYTICS
+## 📊 8. MÉTRICAS Y ANALYTICS
 
 ### Estadísticas Útiles (No Implementadas)
 
