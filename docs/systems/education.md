@@ -6,7 +6,7 @@ El sistema educativo de STANNUM Game está diseñado para ofrecer una experienci
 
 El sistema se estructura en 4 niveles jerárquicos:
 
-1. **Programs** - Cursos completos (TIA, TMD, TIA_SUMMER)
+1. **Programs** - Cursos completos (TIA, TMD, TIA_SUMMER, TRENNO_IA, DEMO_TRENNO)
 2. **Sections** - Agrupaciones temáticas de módulos (actualmente no implementadas en código, solo conceptuales)
 3. **Modules** - Unidades de aprendizaje con lecciones e instrucciones
 4. **Activities** - Lecciones (videos) e Instrucciones (tareas prácticas)
@@ -21,11 +21,13 @@ El sistema se estructura en 4 niveles jerárquicos:
 
 ### Lista de Programas
 
-| ID | Nombre | Descripción |
-|-----|---------|-------------|
-| **tia** | TRENNO IA | Programa principal sobre inteligencia artificial |
-| **tia_summer** | TRENNO IA SUMMER | Versión especial del programa TIA |
-| **tmd** | TRENNO MARKETING DIGITAL | Programa de marketing digital |
+| ID | Nombre | Tipo | Descripción |
+|-----|---------|------|-------------|
+| **tia** | TRENNO IA | Compra única | Programa principal sobre inteligencia artificial |
+| **tia_summer** | TRENNO IA SUMMER | Compra única | Versión especial del programa TIA |
+| **tmd** | TRENNO MARKETING DIGITAL | Compra única | Programa de marketing digital |
+| **trenno_ia** | TRENNO IA (Suscripción) | Suscripción mensual | Programa IA accesible por suscripción |
+| **demo_trenno** | DEMO TRENNO | Demo gratuito | Demo de trenno_ia con contenido limitado |
 
 ### Estructura de un Programa
 
@@ -156,8 +158,20 @@ lastWatchedLesson: {
 }
 ```
 
-**Endpoint:**
-- `PATCH /api/lesson/lastwatched/:programName/:lessonId`
+**Endpoints:**
+- `PATCH /api/lesson/lastwatched/:programName/:lessonId` - Guardar progreso
+- `GET /api/lesson/playback/:programName/:lessonId` - Obtener Mux playback ID
+
+### Playback (Mux)
+
+**Archivo:** `src/config/muxPlaybackIds.js`
+
+Cada lección tiene un playback ID de Mux para reproducir el video. El endpoint verifica acceso al programa (compra o suscripción) antes de retornar el ID.
+
+```javascript
+GET /api/lesson/playback/:programName/:lessonId
+→ { success: true, playbackId: "abc123..." }
+```
 
 ---
 
@@ -302,6 +316,8 @@ if (config.requiredActivityId) {
 programs: {
   tia: {
     isPurchased: Boolean,
+    hasAccessFlag: Boolean,    // Denormalizado para queries eficientes
+    totalXp: Number,           // XP acumulado en este programa
     acquiredAt: Date,
     instructions: [
       {
@@ -325,6 +341,8 @@ programs: {
         viewedAt: Date
       }
     ],
+    chestsOpened: [String],    // IDs de cofres abiertos
+    coinsRewardedModules: [String],  // Módulos que ya otorgaron Tins
     lastWatchedLesson: {
       lessonId: String,
       viewedAt: Date,
@@ -334,7 +352,22 @@ programs: {
     productKey: ObjectId
   },
   tia_summer: {...},
-  tmd: {...}
+  tmd: {...},
+  trenno_ia: {
+    // Mismos campos que tia, más campos de suscripción:
+    subscription: {
+      status: 'pending' | 'active' | 'paused' | 'cancelled' | 'expired' | null,
+      mpSubscriptionId: String,
+      priceARS: Number,
+      currentPeriodEnd: Date,
+      subscribedAt: Date,
+      cancelledAt: Date,
+      lastPaymentAt: Date,
+      lastWebhookAt: Date,
+      pendingExpiresAt: Date,
+      previousSubscriptionIds: [String]
+    }
+  }
 }
 ```
 
@@ -506,41 +539,50 @@ const progress = (completedLessons / allLessons.length) * 100;
 
 ## 🔐 11. CONTROL DE ACCESO
 
-### Verificación de Compra
+### Verificación de Acceso
 
-Todos los endpoints verifican:
+**Archivo:** `src/utils/accessControl.js`
 
-```javascript
-const program = user.programs?.[programName];
-if (!program || !program.isPurchased) {
-  return res.status(403).json(getError("PROGRAM_NOT_PURCHASED"));
-}
-```
-
-### Product Keys
-
-**Modelo:** `ProductKey`
-
-Permite comprar programas mediante códigos:
+Todos los endpoints verifican acceso al programa usando la función `hasAccess()`:
 
 ```javascript
-{
-  code: "STANNUM-2025-TIA-001",
-  product: "tia",
-  team: "equipo_alpha" || "no_team",
-  used: false,
-  usedBy: null,
-  usedAt: null
-}
+const hasAccess = (userProgram) => {
+  if (!userProgram) return false;
+
+  // Compra única (product key o Mercado Pago)
+  if (userProgram.isPurchased) return true;
+
+  // Suscripción activa
+  if (userProgram.subscription?.status === 'active') return true;
+
+  // Suscripción pausada/cancelada/expirada pero dentro del período pagado
+  if (['paused', 'cancelled', 'expired'].includes(userProgram.subscription?.status)) {
+    return userProgram.subscription.currentPeriodEnd > new Date();
+  }
+
+  return false;
+};
 ```
 
-**Endpoint:** `POST /api/product-key/activate`
+### Métodos de Activación
 
-Al activar:
-1. Marca `isPurchased = true` en `user.programs[product]`
-2. Asigna `acquiredAt = Date.now()`
-3. Marca la key como `used = true`
-4. Agrega usuario al equipo (si corresponde)
+| Método | Programas | Descripción |
+|--------|-----------|-------------|
+| **Product Key** | tia, tia_summer, tmd, trenno_ia | Código único que activa acceso permanente |
+| **Mercado Pago (compra)** | tia, tia_summer, tmd | Pago único que activa acceso permanente |
+| **Mercado Pago (suscripción)** | trenno_ia | Suscripción mensual con acceso mientras esté activa |
+| **Demo gratuito** | demo_trenno | Acceso automático con contenido limitado |
+
+### Transferencia de Demo
+
+**Archivo:** `src/services/demoTransferService.js`
+
+Cuando un usuario con `demo_trenno` compra `trenno_ia`, su progreso se transfiere:
+
+- Lecciones completadas (mapeadas por ID)
+- Instrucciones enviadas (preserva URLs de S3)
+- XP del programa (`totalXp`)
+- Se revoca acceso al demo (`isPurchased = false`, `hasAccessFlag = false`)
 
 ---
 

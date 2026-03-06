@@ -266,7 +266,129 @@ const { newlyUnlocked } = await unlockAchievements(user)
 
 ---
 
-## 📊 5. HISTORIAL DE XP
+## 🎁 5. SISTEMA DE COFRES (CHESTS)
+
+**Archivos:** `src/config/chestsConfig.js` + `src/controllers/chestController.js`
+
+Los cofres son nodos de recompensa en el PathMap de cada programa. Se desbloquean al completar ciertas lecciones o instrucciones.
+
+### Cofres Disponibles
+
+| Chest ID | Programa | Modulo | Despues de | XP | Tins | Cover |
+|----------|----------|--------|------------|-----|------|-------|
+| TIAM01C01 | tia | TIAM01 | TIAM01L03 | 200 | 10 | - |
+| TIAM01C02 | tia | TIAM01 | TIAM01I01 | 300 | 15 | horizon |
+| TIAM02C01 | tia | TIAM02 | TIAM02L10 | 200 | 10 | - |
+| TIAM02C02 | tia | TIAM02 | TIAM02L11 | 200 | 10 | - |
+| TIASM02C01 | tia_summer | TIASM02 | TIASM02L01 | 200 | 10 | - |
+| TIASM02C02 | tia_summer | TIASM02 | TIASM02L14 | 500 | 25 | summer_2026 |
+
+### Endpoint
+
+**POST** `/api/chest/:programId/:chestId/open`
+
+### Recompensas
+
+Al abrir un cofre se otorga:
+- XP (via experienceService)
+- Tins (via coinsService)
+- Cover (si el cofre incluye una, se agrega a `user.unlockedCovers`)
+
+---
+
+## 🎨 6. SISTEMA DE COVERS (PORTADAS)
+
+**Archivo:** `src/config/coversConfig.js`
+
+Las covers son items cosmeticos que los usuarios pueden comprar con Tins y equipar en su perfil.
+
+### Covers Disponibles
+
+| ID | Nombre | Precio (Tins) | Rareza |
+|-------|----------|-------------|----------|
+| default | Clasica | 0 | common |
+| horizon | Horizonte | 200 | uncommon |
+| synthwave | Synthwave | 200 | uncommon |
+| arena | Escenario | 250 | uncommon |
+| rugby | Trinchera | 400 | rare |
+| pit_lane | Pit Lane | 450 | rare |
+| golden_boot | Botin Dorado | 700 | epic |
+| velocity | Velocidad | 750 | epic |
+| void_throne | Trono | 800 | epic |
+| summer_2026 | Summer 2026 | 1000 | legendary |
+| podium | Podio | 1200 | legendary |
+| victory | Victoria | 1500 | legendary |
+
+### Endpoints
+
+| Endpoint | Metodo | Descripcion |
+|----------|--------|-------------|
+| `/api/store/covers` | GET | Lista todas las covers con estado (comprada/equipada) |
+| `/api/store/covers/purchase` | POST | Comprar cover con Tins |
+| `/api/store/covers/equip` | POST | Equipar cover comprada |
+
+### Modelo de Datos
+
+```javascript
+// En userSchema
+equippedCoverId: { type: String, default: 'default' },
+unlockedCovers: [
+  {
+    coverId: String,
+    unlockedAt: Date,
+    source: String  // "purchase", "chest", etc.
+  }
+]
+```
+
+---
+
+## 🛡️ 7. STREAK SHIELD Y RECUPERACION
+
+**Archivo:** `src/services/streakService.js`
+
+### Streak Shield (25 Tins)
+
+Protege la racha diaria si el usuario pierde un dia de actividad.
+
+- Maximo 1 shield activo a la vez
+- Si el usuario tiene shield y pierde un dia, el shield se consume y la racha se mantiene
+- Se registra `shieldCoveredDate` en el dailyStreak
+
+**Endpoint:** `POST /api/store/items/streak-shield/purchase`
+
+### Streak Recovery (30 Tins)
+
+Permite recuperar una racha perdida dentro de las 24 horas.
+
+- Solo disponible si la racha fue perdida hace menos de 24 horas
+- Recupera el conteo de racha previo (`lostCount`)
+- Resetea `lostAt` y `lostCount` despues de la recuperacion
+
+**Endpoint:** `POST /api/store/streak/recover`
+
+---
+
+## 💸 8. GASTO DE TINS
+
+### Mecanismos de Gasto Implementados
+
+| Item | Costo (Tins) | Descripcion |
+|------|-------------|-------------|
+| Covers | 200-1500 | Portadas cosmeticas (variable por rareza) |
+| Streak Shield | 25 | Proteccion de racha (max 1) |
+| Streak Recovery | 30 | Recuperar racha perdida (ventana 24h) |
+
+### Mecanismos Definidos (No Implementados)
+
+| Item | Costo (Tins) | Descripcion |
+|------|-------------|-------------|
+| Mystery Box | 400 | Caja misteriosa |
+| Retry Instruction | 200 | Reintentar instruccion |
+
+---
+
+## 📊 9. HISTORIAL DE XP
 
 Cada entrada en `user.xpHistory` registra:
 
@@ -296,7 +418,7 @@ Esto evita recalcular el XP total a partir de `xpHistory` en cada consulta (ej: 
 
 ---
 
-## 🎮 FLUJO COMPLETO: Completar Lección
+## 🎮 10. FLUJO COMPLETO: Completar Lección
 
 ```
 Usuario completa lección

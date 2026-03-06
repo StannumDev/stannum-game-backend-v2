@@ -8,9 +8,9 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 
 ---
 
-## 📑 Índice
+## Indice
 
-1. [Autenticación](#autenticación)
+1. [Autenticacion](#autenticacion)
 2. [Usuario](#usuario)
 3. [Lecciones](#lecciones)
 4. [Instrucciones](#instrucciones)
@@ -19,10 +19,15 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 7. [Prompts](#prompts-comunidad)
 8. [Assistants](#assistants-comunidad)
 9. [Profile Photo](#profile-photo)
+10. [Cofres](#cofres)
+11. [Tienda](#tienda)
+12. [Pagos](#pagos---mercado-pago)
+13. [Suscripciones](#suscripciones---mercado-pago)
+14. [Webhooks](#webhooks)
 
 ---
 
-## 🔐 Autenticación
+## Autenticacion
 
 ### POST `/auth`
 **Login con username/email y contraseña**
@@ -232,7 +237,7 @@ No requiere `Authorization` header (el access token está expirado).
 
 ---
 
-## 👤 Usuario
+## Usuario
 
 > **Nota:** El modelo User utiliza un transform `toJSON` que excluye automáticamente los campos `password`, `otp` y `refreshToken` de todas las respuestas JSON.
 
@@ -424,7 +429,7 @@ No requiere `Authorization` header (el access token está expirado).
 
 ---
 
-## 🎬 Lecciones
+## Lecciones
 
 ### POST `/lesson/complete/:programName/:lessonId`
 **Completar lección y ganar XP**
@@ -432,7 +437,7 @@ No requiere `Authorization` header (el access token está expirado).
 **Headers:** `Authorization: Bearer {token}`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd`
+- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
 - `lessonId`: ID de la lección (ej: `TIAM01L01`)
 
 **Response 200:**
@@ -451,6 +456,25 @@ No requiere `Authorization` header (el access token está expirado).
       "xpReward": 50
     }
   ]
+}
+```
+
+---
+
+### GET `/lesson/playback/:programName/:lessonId`
+**Obtener playback ID de Mux para reproducir video**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Params:**
+- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia` | `trenno_ia`
+- `lessonId`: ID de la leccion
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "playbackId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
@@ -478,7 +502,7 @@ No requiere `Authorization` header (el access token está expirado).
 
 ---
 
-## 📝 Instrucciones
+## Instrucciones
 
 ### POST `/instruction/start/:programName/:instructionId`
 **Iniciar instrucción**
@@ -577,7 +601,7 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-## 🎟️ Product Keys
+## Product Keys
 
 ### POST `/product-key/activate`
 **Activar código de producto**
@@ -618,42 +642,85 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-### GET `/product-key/keys` (ADMIN)
-**Listar todas las product keys**
+### POST `/product-key/generate-and-send`
+**Generar product key y enviar por email**
 
-**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+**Headers:** `X-API-Key: {api_key}`
 
-**Query params:**
-- `used`: `true` | `false` (opcional)
-- `product`: `tia` | `tia_summer` | `tmd` (opcional)
-- `page`: número de página (default: 1)
-- `limit`: límite por página (default: 50, max: 100)
+**Body:**
+```json
+{
+  "product": "tia",
+  "team": "equipo_alpha",
+  "email": "comprador@example.com",
+  "name": "Juan Perez",
+  "message": "Bienvenido al programa"
+}
+```
+
+**Response 201:**
+```json
+{
+  "success": true,
+  "code": "ABCD-1234-EFGH-5678"
+}
+```
+
+---
+
+### POST `/product-key/generate-and-send-make`
+**Generar y enviar product key desde Make.com**
+
+**Headers:** `X-API-Key: {api_key}`
+
+**Body:** Datos en Base64 (nombre, mensaje)
+
+---
+
+### POST `/product-key/generate`
+**Generar product key sin enviar**
+
+**Headers:** `X-API-Key: {api_key}`
+
+**Body:**
+```json
+{
+  "product": "tia",
+  "team": "equipo_alpha"
+}
+```
+
+**Response 201:**
+```json
+{
+  "success": true,
+  "code": "ABCD-1234-EFGH-5678"
+}
+```
+
+---
+
+### GET `/product-key/check/:code`
+**Verificar estado de product key**
+
+**Headers:** `X-API-Key: {api_key}`
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "code": "ABCD-1234-EFGH-5678",
-      "product": "tia",
-      "team": "equipo_alpha",
-      "used": true,
-      "usedAt": "2025-01-15T10:30:00.000Z",
-      "email": "comprador@example.com"
-    }
-  ],
-  "pagination": {
-    "currentPage": 1,
-    "totalPages": 5,
-    "totalKeys": 250
+  "key": {
+    "code": "ABCD-1234-EFGH-5678",
+    "product": "tia",
+    "team": "equipo_alpha",
+    "used": false
   }
 }
 ```
 
 ---
 
-## 🏆 Rankings
+## Rankings
 
 ### GET `/ranking/individual`
 **Ranking individual (global)**
@@ -690,7 +757,7 @@ await axios.put(presignedUrl, file, {
 **Headers:** `Authorization: Bearer {token}`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd`
+- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
 
 **Response 200:**
 ```json
@@ -719,7 +786,7 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-## 💬 Prompts (Comunidad)
+## Prompts (Comunidad)
 
 ### GET `/prompt`
 **Listar prompts con filtros**
@@ -977,7 +1044,7 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-## 🤖 Assistants (Comunidad)
+## Assistants (Comunidad)
 
 ### GET `/assistant`
 **Listar assistants con filtros**
@@ -1053,30 +1120,85 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-## 📸 Profile Photo
+## Profile Photo
 
-### POST `/profile-photo/upload`
-**Subir foto de perfil**
+### POST `/profile-photo/presign-photo`
+**Obtener URL presignada para subir foto a S3**
 
-**Headers:**
-- `Authorization: Bearer {token}`
-- `Content-Type: multipart/form-data`
+**Headers:** `Authorization: Bearer {token}`
 
-**Body (form-data):**
-- `image`: Archivo de imagen (max 5MB, formatos: jpg, jpeg, png)
+**Body:**
+```json
+{
+  "contentType": "image/png"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "presignedUrl": "https://s3...presigned-url",
+  "s3Key": "profile_photos/userId/timestamp.png"
+}
+```
+
+---
+
+### POST `/profile-photo/confirm-photo`
+**Confirmar subida de foto y procesar**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "s3Key": "profile_photos/userId/timestamp.png"
+}
+```
 
 **Response 200:**
 ```json
 {
   "success": true,
   "message": "Foto de perfil actualizada",
-  "photoUrl": "https://s3.../userId.jpg"
+  "photoUrl": "https://s3.../profile_photos/userId/timestamp.png"
 }
 ```
 
 ---
 
-### DELETE `/profile-photo/delete`
+### GET `/profile-photo/get-photo`
+**Obtener foto de perfil propia**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "photoUrl": "https://s3.../profile_photos/userId/timestamp.png"
+}
+```
+
+---
+
+### GET `/profile-photo/get-photo/:username`
+**Obtener foto de perfil por username**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "photoUrl": "https://s3.../profile_photos/userId/timestamp.png"
+}
+```
+
+---
+
+### DELETE `/profile-photo/delete-photo`
 **Eliminar foto de perfil**
 
 **Headers:** `Authorization: Bearer {token}`
@@ -1091,7 +1213,491 @@ await axios.put(presignedUrl, file, {
 
 ---
 
-## 📌 Notas Generales
+## Cofres
+
+### POST `/chest/:programId/:chestId/open`
+**Abrir cofre y recibir recompensas**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Params:**
+- `programId`: `tia` | `tia_summer` | `tmd` | `trenno_ia` | `trenno_ia`
+- `chestId`: ID del cofre (ej: `M01C01`)
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "rewards": {
+    "xp": 50,
+    "coins": 15,
+    "cover": {
+      "coverId": "cover_neon",
+      "name": "Neon",
+      "rarity": "rare"
+    }
+  },
+  "achievementsUnlocked": []
+}
+```
+
+**Errors:**
+- `400`: Cofre ya abierto
+- `403`: Cofre bloqueado (actividad previa no completada)
+
+---
+
+## Tienda
+
+### GET `/store/covers`
+**Listar portadas disponibles con estado de propiedad**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "covers": [
+    {
+      "coverId": "cover_neon",
+      "name": "Neon",
+      "price": 200,
+      "rarity": "rare",
+      "imageKey": "covers/neon.png",
+      "owned": false,
+      "equipped": false
+    }
+  ],
+  "userCoins": 500
+}
+```
+
+---
+
+### POST `/store/covers/purchase`
+**Comprar portada con Tins**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "coverId": "cover_neon"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Portada comprada exitosamente",
+  "coinsRemaining": 300
+}
+```
+
+**Errors:**
+- `400`: Tins insuficientes
+- `400`: Portada ya comprada
+
+---
+
+### PUT `/store/covers/equip`
+**Equipar portada en perfil**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "coverId": "cover_neon"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Portada equipada"
+}
+```
+
+---
+
+### POST `/store/items/streak-shield/purchase`
+**Comprar escudo de racha con Tins**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "shields": 1,
+  "coinsSpent": 50,
+  "coinsRemaining": 450
+}
+```
+
+---
+
+### POST `/store/streak/recover`
+**Recuperar racha perdida con Tins**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "restoredCount": 5,
+  "coinsSpent": 100,
+  "coinsRemaining": 400
+}
+```
+
+---
+
+## Pagos - Mercado Pago
+
+### POST `/payment/create-preference`
+**Crear preferencia de pago (compra unica)**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "programId": "tia",
+  "isGift": false,
+  "giftEmail": null,
+  "giftName": null,
+  "giftMessage": null,
+  "couponCode": "DESCUENTO20"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "preferenceId": "123456789-abc",
+  "initPoint": "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=...",
+  "orderId": "507f1f77bcf86cd799439011"
+}
+```
+
+---
+
+### POST `/payment/verify`
+**Verificar pago completado**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "paymentId": "12345678",
+  "orderId": "507f1f77bcf86cd799439011"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "status": "approved",
+  "order": {
+    "orderId": "...",
+    "programId": "tia",
+    "amount": 50000,
+    "status": "completed"
+  }
+}
+```
+
+---
+
+### GET `/payment/my-orders`
+**Historial de ordenes del usuario**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "orders": [
+    {
+      "orderId": "...",
+      "programId": "tia",
+      "amount": 50000,
+      "status": "completed",
+      "isGift": false,
+      "createdAt": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET `/payment/order/:orderId`
+**Detalle de una orden**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "order": {
+    "orderId": "...",
+    "programId": "tia",
+    "amount": 50000,
+    "status": "completed",
+    "isGift": false,
+    "giftEmail": null,
+    "couponCode": null,
+    "discount": 0,
+    "createdAt": "...",
+    "completedAt": "..."
+  }
+}
+```
+
+---
+
+### POST `/payment/order/:orderId/cancel`
+**Cancelar orden**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Orden cancelada"
+}
+```
+
+---
+
+### POST `/payment/order/:orderId/resend-email`
+**Reenviar email de regalo**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Email reenviado"
+}
+```
+
+---
+
+### POST `/payment/apply-coupon`
+**Aplicar cupon de descuento**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "programId": "tia",
+  "couponCode": "DESCUENTO20"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "discount": 10000,
+  "finalPrice": 40000,
+  "coupon": {
+    "code": "DESCUENTO20",
+    "type": "percentage",
+    "value": 20
+  }
+}
+```
+
+---
+
+### POST `/payment/coupon` (ADMIN)
+**Crear cupon de descuento**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+**Body:**
+```json
+{
+  "code": "DESCUENTO20",
+  "type": "percentage",
+  "value": 20,
+  "maxUses": 100,
+  "expiresAt": "2025-12-31T23:59:59.000Z",
+  "applicablePrograms": ["tia", "tia_summer"]
+}
+```
+
+---
+
+### GET `/payment/coupons` (ADMIN)
+**Listar todos los cupones**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+---
+
+### PUT `/payment/coupon/:id` (ADMIN)
+**Actualizar cupon**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+---
+
+## Suscripciones - Mercado Pago
+
+### POST `/subscription/create`
+**Crear suscripcion mensual**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "programId": "trenno_ia"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "initPoint": "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=...",
+  "subscriptionId": "mp_subscription_id"
+}
+```
+
+**Nota:** El frontend redirige al usuario a `initPoint`. MP notifica via webhook cuando se confirma.
+
+---
+
+### POST `/subscription/cancel`
+**Cancelar suscripcion**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:**
+```json
+{
+  "programId": "trenno_ia"
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Suscripcion cancelada",
+  "accessUntil": "2025-02-15T00:00:00.000Z"
+}
+```
+
+---
+
+### GET `/subscription/status/:programId`
+**Estado de suscripcion para un programa**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "subscription": {
+    "status": "active",
+    "programId": "trenno_ia",
+    "startDate": "2025-01-15T00:00:00.000Z",
+    "nextPaymentDate": "2025-02-15T00:00:00.000Z",
+    "amount": 30000
+  }
+}
+```
+
+---
+
+### GET `/subscription/payments/:programId`
+**Historial de pagos de suscripcion**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Query params:**
+- `page`: Numero de pagina (default: 1)
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "payments": [
+    {
+      "amount": 30000,
+      "status": "approved",
+      "date": "2025-01-15T10:30:00.000Z",
+      "mpPaymentId": "12345678"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalItems": 12
+  }
+}
+```
+
+---
+
+### GET `/subscription/health` (ADMIN)
+**Health stats de suscripciones**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+---
+
+### POST `/subscription/admin/:userId/:programId/cancel` (ADMIN)
+**Cancelar suscripcion de un usuario**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+---
+
+### GET `/subscription/admin/:userId/:programId/history` (ADMIN)
+**Ver historial de pagos de un usuario**
+
+**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+
+---
+
+## Webhooks
+
+### POST `/webhooks/mercadopago`
+**Webhook de notificaciones de Mercado Pago**
+
+**Auth:** Verificacion de firma de Mercado Pago (header `x-signature`)
+
+**Body:** Enviado automaticamente por Mercado Pago
+
+Maneja notificaciones de:
+- **payment**: Pago aprobado/rechazado → actualiza orden, activa programa
+- **subscription_preapproval**: Cambio de estado de suscripcion → actualiza acceso
+
+---
+
+## Notas Generales
 
 ### Rate Limiting
 - General: 1000 requests/hora por IP

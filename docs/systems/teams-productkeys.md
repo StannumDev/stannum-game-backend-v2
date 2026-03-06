@@ -6,7 +6,7 @@ El sistema de Product Keys permite la activación de programas mediante códigos
 
 **Product Keys** son códigos alfanuméricos únicos (`XXXX-XXXX-XXXX-XXXX`) que permiten:
 
-- ✅ Activar acceso a programas (TIA, TMD, TIA_SUMMER)
+- ✅ Activar acceso a programas (TIA, TMD, TIA_SUMMER, TRENNO_IA)
 - ✅ Asignar usuarios a equipos automáticamente
 - ✅ Tracking de uso (usado/no usado, quién activó, cuándo)
 - ✅ Envío automático por email con templates HTML
@@ -29,7 +29,7 @@ El sistema de Product Keys permite la activación de programas mediante códigos
   used: Boolean,             // ¿Fue activado?
   usedAt: Date,              // Cuándo se activó
   usedBy: ObjectId (User),   // Quién lo activó
-  product: Enum ['tmd', 'tia', 'tia_summer'],
+  product: Enum ['tmd', 'tia', 'tia_summer', 'trenno_ia'],
   team: String               // Nombre del equipo o "no_team"
 }
 ```
@@ -117,7 +117,7 @@ if (key.team && key.team !== 'no_team') {
 
 ```javascript
 const teamSchema = new Schema({
-  programName: String,  // "tia", "tia_summer", "tmd"
+  programName: String,  // "tia", "tia_summer", "tmd", "trenno_ia"
   teamName: String,     // "equipo_alpha", "equipo_ventas", etc.
   role: String          // "member", "leader" (actualmente solo member)
 }, { _id: false });
@@ -622,6 +622,39 @@ const { newlyUnlocked } = await unlockAchievements(user);
 ```
 
 El frontend muestra confetti + toast cuando se activa un código.
+
+---
+
+## 🔄 12. MÉTODOS ALTERNATIVOS DE ACTIVACIÓN
+
+Además de Product Keys, los programas pueden activarse mediante:
+
+### Compra con Mercado Pago (Pago Único)
+
+**Servicio:** `src/services/programActivationService.js`
+
+Cuando un usuario completa una compra por Mercado Pago, el sistema activa el programa automáticamente usando `programActivationService`. Este servicio:
+
+1. Marca `isPurchased = true` y `hasAccessFlag = true` en el programa
+2. Registra `acquiredAt` con la fecha de compra
+3. Desbloquea achievements correspondientes
+
+**Nota:** Las compras por Mercado Pago NO asignan equipos (a diferencia de Product Keys).
+
+### Suscripción con Mercado Pago (Mensual)
+
+Para programas basados en suscripción (como `trenno_ia`), el acceso se gestiona mediante:
+
+- `subscription.status = 'active'` → acceso habilitado
+- `hasAccessFlag = true` → campo denormalizado para queries eficientes
+
+Ver [payments.md](./payments.md) para documentación completa del sistema de pagos.
+
+### Transferencia de Demo
+
+**Servicio:** `src/services/demoTransferService.js`
+
+Cuando un usuario con `demo_trenno` compra `trenno_ia`, su progreso del demo se transfiere al programa completo (lecciones completadas, instrucciones, etc.).
 
 ---
 

@@ -79,14 +79,38 @@ Cada usuario tiene un perfil completo que incluye:
       ...
     }
   ],
-  unlockedCovers: [ ... ],
+  // Moneda virtual
+  coins: Number (default: 0),
+  coinsHistory: [coinsEventSchema],
+
+  // Covers
+  equippedCoverId: String (default: 'default'),
+  unlockedCovers: [{ coverId, unlockedAt, source }],
 
   // Programas
   programs: {
     tia: { ... },
     tia_summer: { ... },
-    tmd: { ... }
+    tmd: { ... },
+    trenno_ia: { ... },   // Programa por suscripción
+    demo_trenno: { ... }   // Demo gratuito
   },
+
+  // Nota: Cada programa incluye campos de suscripción (para trenno_ia):
+  // programs.trenno_ia.subscription: {
+  //   status: 'pending' | 'active' | 'paused' | 'cancelled' | 'expired' | null,
+  //   mpSubscriptionId: String,
+  //   priceARS: Number,
+  //   currentPeriodEnd: Date,
+  //   subscribedAt: Date,
+  //   cancelledAt: Date,
+  //   lastPaymentAt: Date,
+  //   lastWebhookAt: Date,
+  //   pendingExpiresAt: Date,
+  //   previousSubscriptionIds: [String]
+  // }
+  // Cada programa también tiene hasAccessFlag (Boolean denormalizado)
+  // que es true cuando el usuario tiene acceso (compra o suscripción activa)
 
   // Preferencias
   preferences: {
@@ -121,41 +145,33 @@ Cada usuario tiene un perfil completo que incluye:
 
 ## 📸 2. FOTO DE PERFIL
 
-### Subida de Foto
+### Subida de Foto (Presigned URL)
 
-**Endpoint:** `POST /api/profile-photo/upload`
+El sistema usa **URLs prefirmadas de S3** para la subida de fotos. El flujo es:
 
-**Content-Type:** `multipart/form-data`
-
-**Body:**
-- `image`: Archivo (max 5MB, formatos: jpg, jpeg, png)
+1. El cliente solicita una URL prefirmada al backend
+2. El cliente sube la imagen directamente a S3 usando esa URL
+3. El cliente confirma la subida al backend
 
 **Proceso:**
 ```
 Usuario selecciona foto
   ↓
-Frontend → multipart/form-data
-  ↓
-Multer middleware procesa el archivo
-  ├─ Validar tamaño (max 5MB)
-  ├─ Validar formato (jpg, jpeg, png)
-  └─ Validar dimensiones mínimas
-  ↓
-Sharp procesa imagen
-  ├─ Resize proporcional (max 800x800)
-  ├─ Optimización de calidad
-  └─ Convertir a buffer
-  ↓
-Subir a AWS S3
-  ├─ Key: profile-photos/{userId}.jpg
+POST /api/profile-photo/presign-photo
+  ├─ Genera presigned URL con PutObjectCommand
+  ├─ Key: {AWS_S3_FOLDER_NAME}/{userId}
   ├─ ContentType: image/jpeg
-  └─ ACL: public-read
+  └─ Expira en 300 segundos (5 minutos)
   ↓
-Actualizar user
+Response: { presignedUrl: "https://s3.../..." }
+  ↓
+Frontend sube imagen directamente a S3 (PUT request a presignedUrl)
+  ↓
+POST /api/profile-photo/confirm-photo
   ├─ preferences.hasProfilePhoto = true
   └─ Save
   ↓
-Response: { photoUrl: "https://s3.../userId.jpg" }
+Response: { success: true }
 ```
 
 ### Virtual Property: profilePhotoUrl
@@ -177,19 +193,29 @@ hasProfilePhoto = true
 → profilePhotoUrl = "https://stannumgame2025.s3.sa-east-1.amazonaws.com/profile-photos/507f1f77bcf86cd799439011"
 ```
 
+### Endpoints de Foto
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/profile-photo/presign-photo` | POST | Genera URL prefirmada para subir foto a S3 |
+| `/api/profile-photo/confirm-photo` | POST | Confirma que la foto fue subida exitosamente |
+| `/api/profile-photo/get-photo` | GET | Obtiene URL de foto del usuario autenticado |
+| `/api/profile-photo/get-photo/:username` | GET | Obtiene URL de foto de un usuario por username |
+| `/api/profile-photo/delete-photo` | DELETE | Elimina foto de perfil de S3 |
+
 ### Eliminar Foto
 
-**Endpoint:** `DELETE /api/profile-photo/delete`
+**Endpoint:** `DELETE /api/profile-photo/delete-photo`
 
 **Proceso:**
 ```
 Usuario elimina foto
   ↓
-DELETE /api/profile-photo/delete
+DELETE /api/profile-photo/delete-photo
   ↓
 Eliminar de S3
   ├─ S3 deleteObject
-  └─ Key: profile-photos/{userId}.jpg
+  └─ Key: {AWS_S3_FOLDER_NAME}/{userId}
   ↓
 Actualizar user
   ├─ preferences.hasProfilePhoto = false
@@ -720,30 +746,26 @@ Usuario hace click en "Subir foto"
   ↓
 Selector de archivo (jpg, jpeg, png)
   ↓
-Frontend: validación de tamaño (max 5MB)
+POST /api/profile-photo/presign-photo
   ↓
-POST /api/profile-photo/upload (multipart/form-data)
-  ↓
-Multer procesa archivo
-  ├─ Validar formato
-  ├─ Validar tamaño
-  └─ Leer buffer
-  ↓
-Sharp procesa imagen
-  ├─ Resize a max 800x800 (proporcional)
-  ├─ Optimizar calidad (80%)
-  └─ Convertir a JPEG
-  ↓
-Subir a S3
-  ├─ Key: profile-photos/{userId}.jpg
+Backend genera presigned URL
+  ├─ PutObjectCommand con key: {folder}/{userId}
   ├─ ContentType: image/jpeg
-  └─ ACL: public-read
+  └─ Expiración: 300 segundos
+  ↓
+Response: { presignedUrl: "https://s3..." }
+  ↓
+Frontend sube imagen a S3
+  ├─ PUT request directo a presignedUrl
+  └─ Headers: Content-Type: image/jpeg
+  ↓
+POST /api/profile-photo/confirm-photo
   ↓
 Actualizar user
   ├─ preferences.hasProfilePhoto = true
   └─ Save
   ↓
-Response: { photoUrl: "https://s3..." }
+Response: { success: true }
   ↓
 Frontend: mostrar foto inmediatamente
 ```
