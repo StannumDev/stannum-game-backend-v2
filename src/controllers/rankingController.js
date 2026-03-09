@@ -10,7 +10,8 @@ const getIndividualRanking = async (req, res) => {
       $or: [
         { "programs.tmd.isPurchased": true },
         { "programs.tia.isPurchased": true },
-        { "programs.tia_summer.isPurchased": true }
+        { "programs.tia_summer.isPurchased": true },
+        { "programs.tia_pool.isPurchased": true }
       ],
       status: true
     });

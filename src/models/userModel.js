@@ -454,6 +454,18 @@ const userSchema = new Schema(
           productKey: null,
         }),
       },
+      tia_pool: {
+        type: programSchema,
+        default: () => ({
+          isPurchased: false,
+          acquiredAt: null,
+          instructions: [],
+          lessonsCompleted: [],
+          lastWatchedLesson: null,
+          tests: [],
+          productKey: null,
+        }),
+      },
       tmd: {
         type: programSchema,
         default: () => ({

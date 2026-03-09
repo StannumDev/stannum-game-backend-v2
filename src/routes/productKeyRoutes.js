@@ -33,7 +33,7 @@ router.post(
   [
     validateAPIKey,
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
-    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, o TRENNO IA SUMMER."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, TRENNO IA SUMMER o TRENNO IA POOL."),
     check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
     fieldsValidate,
   ],
@@ -47,7 +47,7 @@ router.post(
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
     check("fullName", "El nombre completo es obligatorio.").notEmpty().withMessage("El nombre no puede estar vacío.").isBase64().withMessage("El nombre debe estar codificado en Base64."),
     check("message", "El diagnóstico es obligatorio.").trim().notEmpty().withMessage("El diagnóstico no puede estar vacío.").isBase64().withMessage("El diagnóstico debe estar codificado en Base64."),
-    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA o TRENNO IA SUMMER."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO IA SUMMER o TRENNO IA POOL."),
     check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
     check("guideLink", "El link de la guía debe ser una URL válida.").optional().trim().isURL().withMessage("El formato del link de la guía es inválido."),
     check("whatsappLink", "El link de WhatsApp debe ser una URL válida.").optional().trim().isURL().withMessage("El formato del link de WhatsApp es inválido."),
@@ -61,7 +61,7 @@ router.post(
   [
     validateAPIKey,
     check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
-    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, o TRENNO IA SUMMER."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, TRENNO IA SUMMER o TRENNO IA POOL."),
     check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
     fieldsValidate,
   ],

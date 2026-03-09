@@ -199,4 +199,32 @@ module.exports = [
             return tiaSummerCfg.modules.every(module => module.lessons.every(lesson => (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
         }
     },
+    {
+        id: "trenno_ia_pool_joined",
+        description: "Participaste del programa exclusivo TRENNO IA POOL 2026",
+        xpReward: 100,
+        condition: (user) => !!user.programs?.tia_pool?.isPurchased
+    },
+    {
+        id: "trenno_ia_pool_halfway",
+        description: "Llegá a la mitad del programa POOL",
+        xpReward: 150,
+        condition: (user) => {
+            const tiaPool = user.programs?.tia_pool;
+            if (!tiaPool) return false;
+            return (tiaPool.lessonsCompleted || []).length >= 10;
+        }
+    },
+    {
+        id: "trenno_ia_pool_graduate",
+        description: "Completá el 100% del programa TRENNO IA POOL 2026",
+        xpReward: 500,
+        condition: (user) => {
+            const tiaPoolCfg = programs.find(p => p.id === "tia_pool");
+            if (!tiaPoolCfg) return false;
+            const tiaPool = user.programs?.tia_pool;
+            if (!tiaPool) return false;
+            return tiaPoolCfg.modules.every(module => module.lessons.every(lesson => (tiaPool.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaPool.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
+        }
+    },
 ];

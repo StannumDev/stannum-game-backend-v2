@@ -77,6 +77,44 @@ module.exports = {
             ]
         },
         {
+            id: "tia_pool",
+            modules: [
+                {
+                    id: "TIAPM01",
+                    lessons: [
+                        { id: "TIAPM01L01", durationSec: 347 },
+                        { id: "TIAPM01L02", durationSec: 347 },
+                        { id: "TIAPM01L03", durationSec: 555 },
+                        { id: "TIAPM01L04", durationSec: 497 },
+                        { id: "TIAPM01L05", durationSec: 585 },
+                        { id: "TIAPM01L06", durationSec: 434 },
+                        { id: "TIAPM01L07", durationSec: 582 },
+                    ],
+                    instructions: []
+                },
+                {
+                    id: "TIAPM02",
+                    lessons: [
+                        { id: "TIAPM02L01", durationSec: 437 },
+                        { id: "TIAPM02L02", durationSec: 420 },
+                        { id: "TIAPM02L03", durationSec: 584 },
+                        { id: "TIAPM02L04", durationSec: 413 },
+                        { id: "TIAPM02L05", durationSec: 597 },
+                        { id: "TIAPM02L06", durationSec: 576 },
+                        { id: "TIAPM02L07", durationSec: 554 },
+                        { id: "TIAPM02L08", durationSec: 546 },
+                        { id: "TIAPM02L09", durationSec: 545 },
+                        { id: "TIAPM02L10", durationSec: 499 },
+                        { id: "TIAPM02L11", durationSec: 571 },
+                        { id: "TIAPM02L12", durationSec: 229 },
+                        { id: "TIAPM02L13", durationSec: 572 },
+                        { id: "TIAPM02L14", durationSec: 580 },
+                    ],
+                    instructions: []
+                },
+            ]
+        },
+        {
             id: "tmd",
             modules: [
                 {
