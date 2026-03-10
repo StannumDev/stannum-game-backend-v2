@@ -46,6 +46,21 @@ const chests = [
         afterItemId: 'TIASM02L14',
         rewards: { xp: 500, coins: 25, coverId: 'summer_2026' },
     },
+    // TIA POOL - Módulo 2: Personalización de ChatGPT
+    {
+        id: 'TIAPM02C01',
+        programId: 'tia_pool',
+        moduleId: 'TIAPM02',
+        afterItemId: 'TIAPM02L01',
+        rewards: { xp: 200, coins: 10, coverId: null },
+    },
+    {
+        id: 'TIAPM02C02',
+        programId: 'tia_pool',
+        moduleId: 'TIAPM02',
+        afterItemId: 'TIAPM02L14',
+        rewards: { xp: 500, coins: 25, coverId: null },
+    },
 ];
 
 const chestsMap = Object.fromEntries(chests.map(c => [c.id, c]));

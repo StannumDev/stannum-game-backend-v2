@@ -577,6 +577,8 @@ const userSchema = new Schema(
           acquiredAt: null,
           instructions: [],
           lessonsCompleted: [],
+          chestsOpened: [],
+          hasAccessFlag: false,
           lastWatchedLesson: null,
           tests: [],
           productKey: null,
@@ -697,7 +699,7 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
-userSchema.index({ 'programs.tia.hasAccessFlag': 1, 'programs.tmd.hasAccessFlag': 1, 'programs.tia_summer.hasAccessFlag': 1, 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia.hasAccessFlag': 1, 'programs.tmd.hasAccessFlag': 1, 'programs.tia_summer.hasAccessFlag': 1, 'programs.tia_pool.hasAccessFlag': 1, 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 
 userSchema.virtual("profilePhotoUrl").get(function () {
   if (this.preferences?.hasProfilePhoto) {
@@ -854,6 +856,7 @@ userSchema.methods.getPublicUserDetails = function () {
       tia: sanitizeProgram(this.programs?.tia),
       tmd: sanitizeProgram(this.programs?.tmd),
       tia_summer: sanitizeProgram(this.programs?.tia_summer),
+      tia_pool: sanitizeProgram(this.programs?.tia_pool),
       trenno_ia: sanitizeProgram(this.programs?.trenno_ia),
     },
     dailyStreak: {
@@ -978,6 +981,7 @@ userSchema.index({ 'level.experienceTotal': -1, status: 1 });
 userSchema.index({ 'programs.tia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 userSchema.index({ 'programs.tmd.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 userSchema.index({ 'programs.tia_summer.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
+userSchema.index({ 'programs.tia_pool.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 userSchema.index({ 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 userSchema.index({ 'programs.trenno_ia.subscription.status': 1, 'programs.trenno_ia.subscription.currentPeriodEnd': 1 });
 userSchema.index({
