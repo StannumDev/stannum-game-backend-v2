@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const SubscriptionPayment = require('../models/subscriptionPaymentModel');
 const { getError } = require('../helpers/getError');
 const {
   createSubscription,
@@ -6,6 +7,7 @@ const {
   getSubscriptionStatus,
   getPaymentHistory,
 } = require('../services/subscriptionService');
+const { generateSubscriptionReceipt } = require('../services/receiptService');
 const { getSubscriptionHealthStats } = require('../services/subscriptionReconciliationService');
 
 // ─── Create subscription ────────────────────────────────────────────────
@@ -130,11 +132,37 @@ const adminHistory = async (req, res) => {
   }
 };
 
+// ─── Download subscription payment receipt ──────────────────────────────
+const downloadReceipt = async (req, res) => {
+  try {
+    const userId = req.userAuth.id;
+    const { paymentId } = req.params;
+
+    const payment = await SubscriptionPayment.findOne({ _id: paymentId, userId });
+    if (!payment) return res.status(404).json(getError('PAYMENT_ORDER_NOT_FOUND'));
+    if (payment.status !== 'approved') return res.status(400).json(getError('RECEIPT_NOT_AVAILABLE'));
+
+    const user = await User.findById(userId).select('firstName lastName username email');
+    if (!user) return res.status(404).json(getError('AUTH_USER_NOT_FOUND'));
+
+    const { buffer, receiptNumber } = await generateSubscriptionReceipt(payment, user, payment.programId);
+
+    const safeName = receiptNumber.replace(/[^a-zA-Z0-9\-]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);
+    res.end(buffer);
+  } catch (err) {
+    console.error('[Subscription] Download receipt error:', err.message);
+    return res.status(500).json(getError('SERVER_INTERNAL_ERROR'));
+  }
+};
+
 module.exports = {
   create,
   cancel,
   status,
   payments,
+  downloadReceipt,
   health,
   adminCancel,
   adminHistory,

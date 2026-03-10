@@ -51,6 +51,17 @@ router.post(
   paymentController.resendGiftEmail
 );
 
+router.get(
+  "/order/:orderId/receipt",
+  [
+    validateJWT,
+    sensitiveOperationLimiter,
+    check("orderId", "ID de orden inválido.").isMongoId(),
+    fieldsValidate,
+  ],
+  paymentController.downloadReceipt
+);
+
 router.post(
   "/apply-coupon",
   [

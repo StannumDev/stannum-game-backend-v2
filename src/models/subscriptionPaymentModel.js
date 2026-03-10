@@ -9,8 +9,10 @@ const subscriptionPaymentSchema = new mongoose.Schema({
   currency: { type: String, default: 'ARS' },
   status: { type: String, enum: ['approved', 'rejected', 'pending', 'refunded'], required: true },
   retryAttempt: { type: Number, default: 0 },
+  receiptNumber: { type: String, default: null },
 }, { timestamps: true });
 
+subscriptionPaymentSchema.index({ receiptNumber: 1 }, { unique: true, sparse: true });
 subscriptionPaymentSchema.index({ userId: 1, programId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('SubscriptionPayment', subscriptionPaymentSchema);

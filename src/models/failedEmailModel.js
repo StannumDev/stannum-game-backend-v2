@@ -7,6 +7,7 @@ const failedEmailSchema = new mongoose.Schema({
   retries: { type: Number, default: 0 },
   lastError: { type: String },
   resolved: { type: Boolean, default: false },
+  receiptData: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true });
 
 failedEmailSchema.index({ resolved: 1, retries: 1 });

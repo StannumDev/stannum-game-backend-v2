@@ -47,6 +47,18 @@ router.get(
   subscriptionController.payments
 );
 
+// Download subscription payment receipt
+router.get(
+  '/payment/:paymentId/receipt',
+  [
+    validateJWT,
+    sensitiveOperationLimiter,
+    check('paymentId', 'ID de pago inválido.').isMongoId(),
+    fieldsValidate,
+  ],
+  subscriptionController.downloadReceipt
+);
+
 // ─── Admin routes ──────────────────────────────────────────────────────
 
 // Health stats

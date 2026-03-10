@@ -48,6 +48,7 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
+  exposedHeaders: ['Content-Disposition'],
   optionsSuccessStatus: 200,
   credentials: true
 };

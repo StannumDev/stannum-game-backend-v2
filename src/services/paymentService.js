@@ -1,12 +1,15 @@
 const axios = require("axios");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const mongoose = require("mongoose");
 
 const Order = require("../models/orderModel");
 const Coupon = require("../models/couponModel");
 const ProductKey = require("../models/productKeyModel");
 const User = require("../models/userModel");
 const { activateProgramForUser } = require("./programActivationService");
+const { generateOrderReceipt } = require("./receiptService");
+const { sendPurchaseConfirmationEmail } = require("./subscriptionEmailService");
 const programPricing = require("../config/programPricing");
 
 const MP_API = "https://api.mercadopago.com";
@@ -131,22 +134,9 @@ const fulfillOrder = async (order) => {
   }
 
   try {
-    // Increment coupon FIRST (before fulfillment) to prevent over-use on crash/retry
+    // Coupon usage already incremented atomically in claimCoupon (createPreference).
+    // Mark couponCounted for reconciliation consistency.
     if (claimed.couponId && !claimed.couponCounted) {
-      const couponUpdated = await Coupon.findOneAndUpdate(
-        {
-          _id: claimed.couponId,
-          $or: [
-            { maxUses: null },
-            { $expr: { $lt: ["$currentUses", "$maxUses"] } },
-          ],
-        },
-        { $inc: { currentUses: 1 } }
-      );
-      if (!couponUpdated) {
-        // Coupon maxUses reached (concurrent race). Log but still fulfill — user already paid.
-        console.warn(`[Payment] Coupon ${claimed.couponId} maxUses exceeded for order ${claimed._id} (race condition)`);
-      }
       claimed.couponCounted = true;
       await claimed.save();
     }
@@ -182,6 +172,26 @@ const fulfillOrder = async (order) => {
     }
 
     await claimed.save();
+
+    // Generate receipt PDF and send confirmation email (non-blocking)
+    try {
+      const { buffer, receiptNumber } = await generateOrderReceipt(claimed, user);
+      const pName = programPricing[claimed.programId]?.name || claimed.programId;
+      const pdfAttachment = {
+        filename: `${receiptNumber}.pdf`,
+        content: buffer,
+        contentType: "application/pdf",
+      };
+      const receiptData = {
+        receiptNumber,
+        order: { createdAt: claimed.createdAt, programId: claimed.programId, type: claimed.type, originalAmount: claimed.originalAmount, finalAmount: claimed.finalAmount, discountApplied: claimed.discountApplied, currency: claimed.currency, mpPaymentId: claimed.mpPaymentId, status: claimed.status },
+        user: { firstName: user.firstName, lastName: user.lastName, username: user.username, email: user.email },
+        programName: pName,
+      };
+      sendPurchaseConfirmationEmail(user.email, pName, claimed, pdfAttachment, receiptData);
+    } catch (receiptErr) {
+      console.error(`[Payment] Receipt generation failed for order ${claimed._id}:`, receiptErr.message);
+    }
   } catch (err) {
     // Rollback fulfilledAt so reconciliation can retry
     await Order.updateOne({ _id: claimed._id }, { $set: { fulfilledAt: null } }).catch(() => {});
@@ -195,8 +205,8 @@ const processPaymentNotification = async (paymentId, expectedUserId = null) => {
   const { data: payment } = await getMP(`/v1/payments/${paymentId}`);
 
   const orderId = payment.external_reference;
-  if (!orderId) {
-    console.error(`[Payment] No external_reference in payment ${paymentId}`);
+  if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+    console.error(`[Payment] Invalid external_reference in payment ${paymentId}: ${orderId}`);
     return null;
   }
 
