@@ -12,6 +12,7 @@ const {
   sendCancellationConfirmEmail,
   sendSubscriptionExpiredEmail,
 } = require('./subscriptionEmailService');
+const { generateSubscriptionReceipt } = require('./receiptService');
 const { transferDemoProgress } = require('./demoTransferService');
 
 const MP_API = 'https://api.mercadopago.com';
@@ -402,6 +403,7 @@ async function getPaymentHistory(userId, programId, page = 1, limit = 20) {
       currency: p.currency,
       status: p.status,
       retryAttempt: p.retryAttempt,
+      receiptNumber: p.receiptNumber || null,
       date: p.createdAt,
     })),
     total,
@@ -651,10 +653,28 @@ async function processAuthorizedPaymentWebhook(authorizedPaymentId) {
 
     await User.findOneAndUpdate({ _id: user._id }, { $set: updateFields });
 
-    // Send payment success email
+    // Send payment success email with receipt PDF
     const paymentProgramName = programPricing[programId]?.name || programId;
     const paymentAmount = mpData.transaction_amount || mpData.payment?.transaction_amount || sub.priceARS;
-    sendPaymentSuccessEmail(user.email, paymentProgramName, paymentAmount, nextEnd);
+    try {
+      const subPaymentDoc = await SubscriptionPayment.findOne({ mpPaymentId: String(mpData.payment.id) });
+      if (subPaymentDoc) {
+        const { buffer, receiptNumber } = await generateSubscriptionReceipt(subPaymentDoc, user, programId);
+        const pdfAttachment = { filename: `${receiptNumber}.pdf`, content: buffer, contentType: "application/pdf" };
+        const receiptData = {
+          receiptNumber,
+          order: { createdAt: subPaymentDoc.createdAt, programId, type: "self", originalAmount: paymentAmount, finalAmount: paymentAmount, discountApplied: 0, currency: "ARS", mpPaymentId: String(mpData.payment.id), status: "approved" },
+          user: { firstName: user.firstName, lastName: user.lastName, username: user.username, email: user.email },
+          programName: `${paymentProgramName} — Suscripción mensual`,
+        };
+        sendPaymentSuccessEmail(user.email, paymentProgramName, paymentAmount, nextEnd, pdfAttachment, receiptData);
+      } else {
+        sendPaymentSuccessEmail(user.email, paymentProgramName, paymentAmount, nextEnd);
+      }
+    } catch (receiptErr) {
+      console.error(`[Subscription] Receipt generation failed for payment ${mpData.payment.id}:`, receiptErr.message);
+      sendPaymentSuccessEmail(user.email, paymentProgramName, paymentAmount, nextEnd);
+    }
   } else if (mpData.status === 'recycling') {
     // Payment being retried
     try {

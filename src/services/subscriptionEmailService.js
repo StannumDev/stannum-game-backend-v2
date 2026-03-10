@@ -19,7 +19,7 @@ const RATE_LIMIT_MS = 6000; // 1 email every 6 seconds = 10/min
 
 const MAX_QUEUE_SIZE = 500;
 
-const enqueueEmail = (to, subject, html) => {
+const enqueueEmail = (to, subject, html, attachments = [], receiptData = null) => {
   if (!to) {
     console.warn('[SubscriptionEmail] Skipping email — no recipient address');
     return;
@@ -28,7 +28,7 @@ const enqueueEmail = (to, subject, html) => {
     console.error('[SubscriptionEmail] Queue full, dropping email to:', to);
     return;
   }
-  emailQueue.push({ to, subject, html });
+  emailQueue.push({ to, subject, html, attachments, receiptData });
   processQueue();
 };
 
@@ -39,11 +39,12 @@ const processQueue = async () => {
   while (emailQueue.length > 0) {
     const email = emailQueue.shift();
     try {
-      await smtpTransporter.sendMail({
+      const result = await smtpTransporter.sendMail({
         from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
         to: email.to,
         subject: email.subject,
         html: email.html,
+        ...(email.attachments?.length > 0 && { attachments: email.attachments }),
       });
       console.info(`[SubscriptionEmail] Sent to ${email.to}: ${email.subject}`);
     } catch (err) {
@@ -54,6 +55,7 @@ const processQueue = async () => {
         subject: email.subject,
         html: email.html,
         lastError: err.message,
+        ...(email.receiptData && { receiptData: email.receiptData }),
       }).catch(dbErr => console.error('[SubscriptionEmail] Failed to persist failed email:', dbErr.message));
     }
     if (emailQueue.length > 0) {
@@ -117,7 +119,8 @@ const sendSubscriptionActivatedEmail = (email, programName, priceARS) => {
 };
 
 // --- 2. Monthly payment successful ---
-const sendPaymentSuccessEmail = (email, programName, amount, nextDate) => {
+const sendPaymentSuccessEmail = (email, programName, amount, nextDate, pdfAttachment = null, receiptData = null) => {
+  const attachments = pdfAttachment ? [pdfAttachment] : [];
   enqueueEmail(email, `Cobro exitoso — ${programName}`, wrap(`
     <h1 style="color:#fff;font-size:24px;margin:0 0 16px;">Cobro procesado correctamente</h1>
     <p style="color:#ffffffb3;font-size:14px;line-height:1.6;">
@@ -128,7 +131,29 @@ const sendPaymentSuccessEmail = (email, programName, amount, nextDate) => {
       <tr><td style="padding:0 20px;"><hr style="border:none;border-top:1px solid #ffffff10;"></td><td></td></tr>
       <tr><td style="padding:16px 20px;color:#ffffff80;font-size:13px;">Próximo cobro</td><td style="padding:16px 20px;color:#fff;font-size:13px;text-align:right;font-weight:600;">${formatDate(nextDate)}</td></tr>
     </table>
-  `));
+    <p style="color:#ffffff60;font-size:12px;margin-top:8px;">Encontrás el comprobante de pago adjunto a este email.</p>
+  `), attachments, receiptData);
+};
+
+// --- Purchase confirmation email (one-time) ---
+const sendPurchaseConfirmationEmail = (email, programName, order, pdfAttachment = null, receiptData = null) => {
+  const attachments = pdfAttachment ? [pdfAttachment] : [];
+  const typeLabel = order.type === "gift" ? "Regalo" : "Compra personal";
+  enqueueEmail(email, `Comprobante de pago — ${programName}`, wrap(`
+    <h1 style="color:#fff;font-size:24px;margin:0 0 16px;">¡Compra confirmada!</h1>
+    <p style="color:#ffffffb3;font-size:14px;line-height:1.6;">
+      Tu compra de <strong style="color:#fff;">${programName}</strong> fue procesada exitosamente.
+    </p>
+    <table style="margin:24px 0;width:100%;background:#1f1f1f;border-radius:8px;">
+      <tr><td style="padding:16px 20px;color:#ffffff80;font-size:13px;">Programa</td><td style="padding:16px 20px;color:#fff;font-size:13px;text-align:right;font-weight:600;">${programName}</td></tr>
+      <tr><td style="padding:0 20px;"><hr style="border:none;border-top:1px solid #ffffff10;"></td><td></td></tr>
+      <tr><td style="padding:16px 20px;color:#ffffff80;font-size:13px;">Tipo</td><td style="padding:16px 20px;color:#fff;font-size:13px;text-align:right;font-weight:600;">${typeLabel}</td></tr>
+      <tr><td style="padding:0 20px;"><hr style="border:none;border-top:1px solid #ffffff10;"></td><td></td></tr>
+      <tr><td style="padding:16px 20px;color:#ffffff80;font-size:13px;">Total</td><td style="padding:16px 20px;color:#00FFCC;font-size:13px;text-align:right;font-weight:600;">${formatARS(order.finalAmount)}</td></tr>
+    </table>
+    <p style="color:#ffffff60;font-size:12px;margin-top:8px;">Encontrás el comprobante de pago adjunto a este email.</p>
+    <a href="${process.env.FRONTEND_URL}/dashboard/billing" style="display:inline-block;background:#00FFCC;color:#000;font-weight:700;font-size:14px;padding:12px 32px;border-radius:8px;text-decoration:none;margin-top:16px;">Ver mis compras</a>
+  `), attachments, receiptData);
 };
 
 // --- 3. Payment rejected ---
@@ -264,11 +289,28 @@ const retryFailedEmails = async () => {
     let retried = 0;
     for (const email of failed) {
       try {
+        // Regenerate PDF attachment if receiptData is stored
+        let attachments = [];
+        if (email.receiptData) {
+          try {
+            const { generateReceiptPDF } = require("./receiptService");
+            const buffer = await generateReceiptPDF(email.receiptData);
+            attachments = [{
+              filename: `${email.receiptData.receiptNumber || "comprobante"}.pdf`,
+              content: buffer,
+              contentType: "application/pdf",
+            }];
+          } catch (pdfErr) {
+            console.warn(`[SubscriptionEmail] Failed to regenerate PDF for retry: ${pdfErr.message}`);
+          }
+        }
+
         await smtpTransporter.sendMail({
           from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
           to: email.to,
           subject: email.subject,
           html: email.html,
+          ...(attachments.length > 0 && { attachments }),
         });
         email.resolved = true;
         await email.save();
@@ -304,6 +346,7 @@ module.exports = {
   sendPreRenewalEmail,
   sendCancellationConfirmEmail,
   sendSubscriptionExpiredEmail,
+  sendPurchaseConfirmationEmail,
   sendPreRenewalNotifications,
   retryFailedEmails,
 };

@@ -118,6 +118,11 @@ const orderSchema = new Schema(
       default: false,
     },
 
+    receiptNumber: {
+      type: String,
+      default: null,
+    },
+
     expiresAt: {
       type: Date,
       default: null,
@@ -134,6 +139,7 @@ orderSchema.index({ userId: 1, programId: 1 }, {
 });
 
 orderSchema.index({ mpPaymentId: 1 }, { unique: true, sparse: true });
+orderSchema.index({ receiptNumber: 1 }, { unique: true, sparse: true });
 orderSchema.index({ status: 1, expiresAt: 1 });
 orderSchema.index({ userId: 1, createdAt: -1 });
 
@@ -153,6 +159,7 @@ orderSchema.methods.getOrderDetails = function () {
     productKeys: (this.productKeys || []).map((pk) =>
       pk && pk.code ? { code: pk.code, used: pk.used } : pk
     ),
+    receiptNumber: this.receiptNumber,
     fulfilledAt: this.fulfilledAt,
     giftEmailSent: this.giftEmailSent,
     createdAt: this.createdAt,

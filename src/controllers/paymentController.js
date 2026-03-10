@@ -7,11 +7,13 @@ const ProductKey = require("../models/productKeyModel");
 const { getError } = require("../helpers/getError");
 const { activateProgramForUser } = require("../services/programActivationService");
 const { processPaymentNotification, fulfillOrder, createProductKeysForOrder, sendGiftEmail } = require("../services/paymentService");
+const { generateOrderReceipt } = require("../services/receiptService");
 const programPricing = require("../config/programPricing");
 
 const MP_API = "https://api.mercadopago.com";
 
-const validateCoupon = async (couponCode, programId, originalAmount, userId) => {
+// Validates coupon without incrementing usage (for preview/applyCoupon)
+const checkCoupon = async (couponCode, programId, originalAmount, userId) => {
   const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true });
   if (!coupon) throw { statusCode: 404, errorKey: "PAYMENT_COUPON_NOT_FOUND" };
 
@@ -28,16 +30,8 @@ const validateCoupon = async (couponCode, programId, originalAmount, userId) => 
     throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MIN_AMOUNT" };
   }
 
-  // Atomic coupon usage: increment currentUses only if under maxUses
-  if (coupon.maxUses !== null) {
-    const updated = await Coupon.findOneAndUpdate(
-      { _id: coupon._id, currentUses: { $lt: coupon.maxUses } },
-      { $inc: { currentUses: 1 } },
-      { new: true }
-    );
-    if (!updated) {
-      throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
-    }
+  if (coupon.maxUses !== null && coupon.currentUses >= coupon.maxUses) {
+    throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
   }
 
   const userUsageCount = await Order.countDocuments({
@@ -59,6 +53,30 @@ const validateCoupon = async (couponCode, programId, originalAmount, userId) => 
   const finalAmount = Math.max(0, originalAmount - discountApplied);
 
   return { coupon, discountApplied, finalAmount };
+};
+
+// Validates + atomically claims a coupon use (for createPreference)
+const claimCoupon = async (couponCode, programId, originalAmount, userId) => {
+  const result = await checkCoupon(couponCode, programId, originalAmount, userId);
+
+  // Atomic increment: only if still under maxUses
+  if (result.coupon.maxUses !== null) {
+    const updated = await Coupon.findOneAndUpdate(
+      { _id: result.coupon._id, currentUses: { $lt: result.coupon.maxUses } },
+      { $inc: { currentUses: 1 } },
+      { new: true }
+    );
+    if (!updated) {
+      throw { statusCode: 400, errorKey: "PAYMENT_COUPON_MAX_USES" };
+    }
+  } else {
+    await Coupon.findOneAndUpdate(
+      { _id: result.coupon._id },
+      { $inc: { currentUses: 1 } }
+    );
+  }
+
+  return result;
 };
 
 const createPreference = async (req, res) => {
@@ -115,7 +133,7 @@ const createPreference = async (req, res) => {
     let couponId = null;
 
     if (couponCode) {
-      const couponResult = await validateCoupon(couponCode, programId, originalAmount, userId);
+      const couponResult = await claimCoupon(couponCode, programId, originalAmount, userId);
       finalAmount = couponResult.finalAmount;
       discountApplied = couponResult.discountApplied;
       couponId = couponResult.coupon._id;
@@ -312,6 +330,7 @@ const getMyOrders = async (req, res) => {
       currency: o.currency,
       status: o.status,
       productKeys: o.productKeys?.map((pk) => ({ code: pk.code, used: pk.used })) || [],
+      receiptNumber: o.receiptNumber || null,
       fulfilledAt: o.fulfilledAt,
       giftEmailSent: o.giftEmailSent,
       createdAt: o.createdAt,
@@ -383,7 +402,7 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json(getError("PAYMENT_PROGRAM_NOT_PURCHASABLE"));
     }
 
-    const { coupon, discountApplied, finalAmount } = await validateCoupon(
+    const { coupon, discountApplied, finalAmount } = await checkCoupon(
       couponCode,
       programId,
       pricing.priceARS,
@@ -464,6 +483,30 @@ const updateCoupon = async (req, res) => {
   }
 };
 
+const downloadReceipt = async (req, res) => {
+  try {
+    const userId = req.userAuth.id;
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ _id: orderId, userId });
+    if (!order) return res.status(404).json(getError("PAYMENT_ORDER_NOT_FOUND"));
+    if (order.status !== "approved") return res.status(400).json(getError("RECEIPT_NOT_AVAILABLE"));
+
+    const user = await User.findById(userId).select("firstName lastName username email");
+    if (!user) return res.status(404).json(getError("PAYMENT_ORDER_NOT_FOUND"));
+
+    const { buffer, receiptNumber } = await generateOrderReceipt(order, user);
+
+    const safeName = receiptNumber.replace(/[^a-zA-Z0-9\-]/g, "_");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}.pdf"`);
+    res.end(buffer);
+  } catch (err) {
+    console.error("[Payment] Download receipt error:", err.message);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
 module.exports = {
   createPreference,
   verifyPayment,
@@ -475,4 +518,5 @@ module.exports = {
   createCoupon,
   getCoupons,
   updateCoupon,
+  downloadReceipt,
 };
