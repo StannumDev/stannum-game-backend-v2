@@ -20,6 +20,13 @@ module.exports = {
     keysQuantity: 1,
     name: "Transformación con IA - Summer",
   },
+  tia_pool: {
+    type: "purchase",
+    priceARS: 250000,
+    purchasable: true,
+    keysQuantity: 1,
+    name: "Transformación con IA - Pool",
+  },
   trenno_ia: {
     type: "subscription",
     currentMonthlyPriceARS: 30000,

@@ -16,7 +16,7 @@ const s3Client = new S3Client({
   },
 });
 
-const VALID_PROGRAMS = ['tia', 'tia_summer', 'tmd'];
+const VALID_PROGRAMS = ['tia', 'tia_summer', 'tia_pool', 'tmd'];
 
 const MAX_GRADING_RETRIES = 3;
 const gradeWithRetry = async (userId, programName, instructionId, attempt = 1) => {

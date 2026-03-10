@@ -36,7 +36,7 @@ const couponSchema = new Schema(
       default: [],
       validate: {
         validator: function (arr) {
-          const valid = ["tmd", "tia", "tia_summer"];
+          const valid = ["tmd", "tia", "tia_summer", "tia_pool"];
           return arr.every(p => valid.includes(p));
         },
         message: "Programa inválido en applicablePrograms",

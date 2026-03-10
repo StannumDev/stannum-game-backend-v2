@@ -3,14 +3,14 @@
  * All program ID lists should be imported from here — never hardcoded in controllers.
  */
 
-const VALID_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'trenno_ia'];
+const VALID_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia'];
 
 const SUBSCRIPTION_PROGRAMS = ['trenno_ia'];
 
-const PURCHASE_PROGRAMS = ['tmd', 'tia', 'tia_summer'];
+const PURCHASE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool'];
 
 // Programs that participate in rankings (excludes demos)
-const RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'trenno_ia'];
+const RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia'];
 
 const DEMO_PROGRAMS = ['demo_trenno'];
 

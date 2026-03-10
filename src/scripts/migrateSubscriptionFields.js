@@ -14,7 +14,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const PROGRAMS = ['tmd', 'tia', 'tia_summer', 'trenno_ia'];
+const PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia'];
 
 async function run() {
   const uri = process.env.MONGODB_URI;
