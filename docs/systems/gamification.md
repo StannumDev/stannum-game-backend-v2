@@ -9,7 +9,7 @@ El sistema se compone de 5 pilares principales:
 1. **XP (Experience Points)** - Puntos ganados al completar actividades
 2. **Tins (Moneda Virtual)** - Moneda interna ganada con actividades
 3. **Niveles** - Progresion del 1 al 30 con curva exponencial
-4. **Achievements** - 28 logros desbloqueables automaticamente
+4. **Achievements** - 31 logros desbloqueables automaticamente
 5. **Daily Streaks** - Bonificacion por dias consecutivos de actividad
 
 ---
@@ -200,7 +200,7 @@ Cada transaccion de Tins se registra en `user.coinsHistory`:
 
 **Archivo:** `src/config/achievementsConfig.js`
 
-### Lista Completa de Logros (28 total)
+### Lista Completa de Logros (31 total)
 
 #### Logros Generales (22 logros)
 
@@ -229,7 +229,7 @@ Cada transaccion de Tins se registra en `user.coinsHistory`:
 | `community_favorite` | Recibe 5 favoritos en publicaciones | 150 | 20 |
 | `collector` | Guarda 10 prompts o asistentes en favoritos | 50 | 10 |
 
-#### Logros Especificos de Programas (6 logros)
+#### Logros Especificos de Programas (9 logros)
 
 **TIA:**
 
@@ -246,6 +246,14 @@ Cada transaccion de Tins se registra en `user.coinsHistory`:
 | `trenno_ia_summer_joined` | Participa en SUMMER | 100 | 15 |
 | `trenno_ia_summer_halfway` | 50% completado | 150 | 20 |
 | `trenno_ia_summer_graduate` | Todo SUMMER completo | 500 | 60 |
+
+**TIA POOL:**
+
+| ID | Descripcion | XP | Tins |
+|----|-------------|-----|------|
+| `trenno_ia_pool_joined` | Participa en POOL | 100 | 15 |
+| `trenno_ia_pool_halfway` | 50% completado | 150 | 20 |
+| `trenno_ia_pool_graduate` | Todo POOL completo | 500 | 60 |
 
 ### Sistema de Desbloqueo
 
@@ -282,6 +290,8 @@ Los cofres son nodos de recompensa en el PathMap de cada programa. Se desbloquea
 | TIAM02C02 | tia | TIAM02 | TIAM02L11 | 200 | 10 | - |
 | TIASM02C01 | tia_summer | TIASM02 | TIASM02L01 | 200 | 10 | - |
 | TIASM02C02 | tia_summer | TIASM02 | TIASM02L14 | 500 | 25 | summer_2026 |
+| TIAPM02C01 | tia_pool | TIAPM02 | (ver config) | 200 | 10 | - |
+| TIAPM02C02 | tia_pool | TIAPM02 | (ver config) | 500 | 25 | (ver config) |
 
 ### Endpoint
 
@@ -318,6 +328,8 @@ Las covers son items cosmeticos que los usuarios pueden comprar con Tins y equip
 | summer_2026 | Summer 2026 | 1000 | legendary |
 | podium | Podio | 1200 | legendary |
 | victory | Victoria | 1500 | legendary |
+
+**Total:** 12 covers disponibles.
 
 ### Endpoints
 
@@ -479,4 +491,4 @@ if (denominator === 0) return 100  // Progreso completo
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

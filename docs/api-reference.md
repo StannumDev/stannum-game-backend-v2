@@ -1737,4 +1737,4 @@ Todos los endpoints paginados retornan:
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

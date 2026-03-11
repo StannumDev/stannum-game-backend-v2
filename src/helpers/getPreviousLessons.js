@@ -41,4 +41,24 @@ const getPreviousLessons = (programId, instructionId) => {
   return allPreviousLessons;
 };
 
-module.exports = { getPreviousLessons };
+const getModuleLessons = (programId, instructionId) => {
+  const program = programs.find(p => p.id === programId);
+  if (!program) return [];
+
+  for (const module of program.modules) {
+    const instruction = module.instructions?.find(inst => inst.id === instructionId);
+    if (instruction) {
+      if (!module.lessons || !instruction.afterLessonId) return [];
+      const moduleLessons = [];
+      for (const lesson of module.lessons) {
+        moduleLessons.push(lesson.id);
+        if (lesson.id === instruction.afterLessonId) break;
+      }
+      return moduleLessons;
+    }
+  }
+
+  return [];
+};
+
+module.exports = { getPreviousLessons, getModuleLessons };

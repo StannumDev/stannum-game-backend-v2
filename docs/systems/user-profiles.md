@@ -91,6 +91,7 @@ Cada usuario tiene un perfil completo que incluye:
   programs: {
     tia: { ... },
     tia_summer: { ... },
+    tia_pool: { ... },
     tmd: { ... },
     trenno_ia: { ... },   // Programa por suscripción
     demo_trenno: { ... }   // Demo gratuito
@@ -853,4 +854,4 @@ AWS_SECRET_ACCESS_KEY=...
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

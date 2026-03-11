@@ -6,7 +6,7 @@ El sistema educativo de STANNUM Game está diseñado para ofrecer una experienci
 
 El sistema se estructura en 4 niveles jerárquicos:
 
-1. **Programs** - Cursos completos (TIA, TMD, TIA_SUMMER, TRENNO_IA, DEMO_TRENNO)
+1. **Programs** - Cursos completos (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA, DEMO_TRENNO)
 2. **Sections** - Agrupaciones temáticas de módulos (actualmente no implementadas en código, solo conceptuales)
 3. **Modules** - Unidades de aprendizaje con lecciones e instrucciones
 4. **Activities** - Lecciones (videos) e Instrucciones (tareas prácticas)
@@ -27,6 +27,7 @@ El sistema se estructura en 4 niveles jerárquicos:
 | **tia_summer** | TRENNO IA SUMMER | Compra única | Versión especial del programa TIA |
 | **tmd** | TRENNO MARKETING DIGITAL | Compra única | Programa de marketing digital |
 | **trenno_ia** | TRENNO IA (Suscripción) | Suscripción mensual | Programa IA accesible por suscripción |
+| **tia_pool** | TRENNO IA POOL | Compra única | Programa IA edición POOL |
 | **demo_trenno** | DEMO TRENNO | Demo gratuito | Demo de trenno_ia con contenido limitado |
 
 ### Estructura de un Programa
@@ -568,7 +569,7 @@ const hasAccess = (userProgram) => {
 
 | Método | Programas | Descripción |
 |--------|-----------|-------------|
-| **Product Key** | tia, tia_summer, tmd, trenno_ia | Código único que activa acceso permanente |
+| **Product Key** | tia, tia_summer, tia_pool, tmd, trenno_ia | Código único que activa acceso permanente |
 | **Mercado Pago (compra)** | tia, tia_summer, tmd | Pago único que activa acceso permanente |
 | **Mercado Pago (suscripción)** | trenno_ia | Suscripción mensual con acceso mientras esté activa |
 | **Demo gratuito** | demo_trenno | Acceso automático con contenido limitado |
@@ -635,4 +636,4 @@ Ejemplo de módulo con 2 instrucciones que deben hacerse en orden:
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

@@ -60,7 +60,7 @@ src/
 ├── index.js                 # Entry point (Express setup, CORS, MongoDB connect)
 │
 ├── config/                  # Configuraciones estaticas
-│   ├── achievementsConfig.js   # 19 achievements con condiciones
+│   ├── achievementsConfig.js   # 28 achievements con condiciones
 │   ├── coinsConfig.js          # Economia de Tins (moneda virtual)
 │   ├── xpConfig.js             # Tabla de XP por nivel (30 niveles)
 │   ├── chestsConfig.js         # Cofres por modulo (recompensas XP, Tins, portadas)
@@ -72,7 +72,7 @@ src/
 │   ├── programPricing.js       # Precios de compra y suscripcion
 │   ├── muxPlaybackIds.js       # IDs de playback de Mux
 │   ├── demoMapping.js          # Mapeo demo → programa completo
-│   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER, TRENNO_IA)
+│   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA, DEMO_TRENNO)
 │
 ├── models/                  # Schemas MongoDB (Mongoose)
 │   ├── userModel.js            # User: perfil, nivel, XP, achievements, programas, streaks
@@ -384,8 +384,8 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 - **XP:** 30 niveles con curva exponencial. Se gana al completar lecciones, instrucciones y abrir cofres.
 - **Tins:** Moneda virtual. Se gana con lecciones (5), instrucciones (10-25 segun score), modulos (30), programas (100), cofres (10-15). Se gastan en la Tienda de portadas.
 - **Cofres:** Nodos de recompensa en el PathMap. Se desbloquean al completar la actividad previa (`afterItemId`). Otorgan XP, Tins y opcionalmente una portada. Operacion atomica anti double-open.
-- **Tienda de Portadas:** 6 portadas cosmeticas (common a legendary, 0-1000 Tins). Compra atomica anti-overspend. Equip/unequip de portada activa.
-- **Achievements:** 19 logros verificados en backend. Se evaluan en cada accion relevante.
+- **Tienda de Portadas:** 12 portadas cosmeticas (common a legendary, 0-1500 Tins). Compra atomica anti-overspend. Equip/unequip de portada activa.
+- **Achievements:** 28 logros verificados en backend. Se evaluan en cada accion relevante.
 - **Daily Streaks:** Dias consecutivos con actividad. Bonus de XP creciente (cap 7 dias).
 - **Rankings:** Individual global, individual por programa, por equipos.
 
@@ -393,7 +393,7 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 
 ### 2. Sistema Educativo
 
-- **Programas:** TIA, TMD, TIA_SUMMER, TRENNO_IA (suscripcion), DEMO_TRENNO (demo)
+- **Programas:** TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA (suscripcion), DEMO_TRENNO (demo)
 - **Estructura:** Program → Section → Module → Lesson/Instruction
 - **Progreso:** Tracking completo por leccion e instruccion
 - **Modulos bloqueados:** Se desbloquean al completar el modulo anterior
@@ -519,4 +519,4 @@ Emails que fallaron al enviarse, con datos para retry automatico.
 
 ---
 
-**STANNUM 2025 - Repositorio Privado**
+**STANNUM 2026 - Repositorio Privado**

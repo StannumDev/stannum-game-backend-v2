@@ -262,10 +262,19 @@ const instructionSchema = new Schema({
     type: String,
     default: null,
   },
+  fileUrls: {
+    type: [String],
+    default: [],
+  },
   submittedText: {
     type: String,
     maxlength: 5000,
     default: null,
+  },
+  retryCount: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   status: {
     type: String,
