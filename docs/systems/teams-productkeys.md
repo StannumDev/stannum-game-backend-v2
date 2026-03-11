@@ -6,7 +6,7 @@ El sistema de Product Keys permite la activación de programas mediante códigos
 
 **Product Keys** son códigos alfanuméricos únicos (`XXXX-XXXX-XXXX-XXXX`) que permiten:
 
-- ✅ Activar acceso a programas (TIA, TMD, TIA_SUMMER, TRENNO_IA)
+- ✅ Activar acceso a programas (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA)
 - ✅ Asignar usuarios a equipos automáticamente
 - ✅ Tracking de uso (usado/no usado, quién activó, cuándo)
 - ✅ Envío automático por email con templates HTML
@@ -29,7 +29,7 @@ El sistema de Product Keys permite la activación de programas mediante códigos
   used: Boolean,             // ¿Fue activado?
   usedAt: Date,              // Cuándo se activó
   usedBy: ObjectId (User),   // Quién lo activó
-  product: Enum ['tmd', 'tia', 'tia_summer', 'trenno_ia'],
+  product: Enum ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia'],
   team: String               // Nombre del equipo o "no_team"
 }
 ```
@@ -117,7 +117,7 @@ if (key.team && key.team !== 'no_team') {
 
 ```javascript
 const teamSchema = new Schema({
-  programName: String,  // "tia", "tia_summer", "tmd", "trenno_ia"
+  programName: String,  // "tia", "tia_summer", "tia_pool", "tmd", "trenno_ia"
   teamName: String,     // "equipo_alpha", "equipo_ventas", etc.
   role: String          // "member", "leader" (actualmente solo member)
 }, { _id: false });
@@ -688,4 +688,4 @@ productKeySchema.index({ usedBy: 1 });              // Buscar claves usadas por 
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

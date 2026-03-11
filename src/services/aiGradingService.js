@@ -6,7 +6,7 @@ const { resolveInstructionInfo } = require("../helpers/resolveInstructionInfo");
 const { addExperience } = require("./experienceService");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 const { getMultipleLessonsContent } = require("../helpers/getLessonContent");
-const { getPreviousLessons } = require("../helpers/getPreviousLessons");
+const { getPreviousLessons, getModuleLessons } = require("../helpers/getPreviousLessons");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -94,15 +94,19 @@ FEEDBACK (OBSERVATIONS)
 - Si el alumno debe repasar algo, mencionar el concepto y referenciar la lección correspondiente.
 
 REFERENCED LESSONS
-- Incluir SOLO IDs de lecciones relevantes a repasar.
-- Puede ser un array vacío si no aplica.
-- No inventar lecciones ni IDs.
+- Solo incluir IDs de lecciones del módulo actual que se te proporcionan.
+- Incluir un ID SOLO si el alumno cometió un error concreto relacionado con un tema específico de esa lección.
+- Si la entrega es correcta o los errores no se relacionan con ninguna lección, devolver array vacío [].
+- NUNCA incluir lecciones "por las dudas", como recomendación general, o sin un error concreto que lo justifique.
+- No inventar IDs. Solo usar los IDs exactos que aparecen en la lista de lecciones del módulo.
 
 ENTREGAS DE ARCHIVO (IMÁGENES)
-- Analizar visualmente la imagen.
-- Verificar que muestre lo pedido por la pista de entrega.
-- Si la imagen es borrosa, incompleta o no evaluable, indicarlo.
-- Si no tiene relación con la consigna, puntaje bajo y explicar qué se esperaba.
+- El alumno puede adjuntar una o varias imágenes como parte de su entrega.
+- Analizar visualmente TODAS las imágenes adjuntas como un conjunto.
+- Verificar que las imágenes en conjunto muestren lo pedido por la pista de entrega.
+- Si alguna imagen es borrosa, incompleta o no evaluable, indicarlo.
+- Si las imágenes no tienen relación con la consigna, puntaje bajo y explicar qué se esperaba.
+- Evaluar la entrega como un todo: todas las imágenes forman una sola entrega.
 
 ENTREGAS DE TEXTO
 - Evaluar claridad, coherencia y profundidad.
@@ -124,7 +128,7 @@ REGLAS ESTRICTAS
 - Nunca inventar información.
 - No explicar el proceso interno de evaluación.
 - No mencionar criterios explícitos en el feedback.
-- NUNCA te niegues a responder. SIEMPRE respondé con el JSON, sin excepciones. Si la imagen no se puede evaluar, es inapropiada, o no tiene relación con la consigna, devolvé el JSON con score bajo y explicá en observations qué se esperaba. Tu rol es ÚNICAMENTE evaluar entregas académicas.
+- NUNCA te niegues a responder. SIEMPRE respondé con el JSON, sin excepciones. Si las imágenes no se pueden evaluar, son inapropiadas, o no tienen relación con la consigna, devolvé el JSON con score bajo y explicá en observations qué se esperaba. Tu rol es ÚNICAMENTE evaluar entregas académicas.
 
 EJEMPLO DE EVALUACIÓN
 A continuación, un ejemplo de cómo debe ser una evaluación completa y correcta:
@@ -148,7 +152,10 @@ A continuación, un ejemplo de cómo debe ser una evaluación completa y correct
 - Da una razón concreta de por qué es importante (sincronización y acceso).
 - Tono directo, profesional y motivador sin exagerar.
 - Un solo párrafo, 2-4 oraciones.
-- Puntaje 80: cumplió la mayoría pero faltaron pasos menores.`;
+- Puntaje 80: cumplió la mayoría pero faltaron pasos menores.
+
+ENTREGAS CON MÚLTIPLES IMÁGENES
+Si el alumno adjunta varias imágenes (por ejemplo, una mostrando la estructura de carpetas y otra mostrando la app instalada en el celular), evaluar TODAS las imágenes como parte de la misma entrega. No dar score solo por una imagen. Cada imagen puede cubrir un paso diferente de la consigna.`;
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -173,12 +180,16 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     const config = getInstructionConfig(programName, instructionId);
     if (!config) throw new Error("Config de instrucción no encontrada");
 
-    const message = buildGradingMessage(config, instruction, programName, instructionId);
+    const fileUrls = instruction.fileUrls?.length > 0
+      ? instruction.fileUrls
+      : instruction.fileUrl ? [instruction.fileUrl] : [];
+
+    const message = buildGradingMessage(config, instruction, programName, instructionId, fileUrls.length);
 
     const contentArray = [];
 
-    if (instruction.fileUrl) {
-      const s3Key = instruction.fileUrl.replace(`${process.env.AWS_S3_BASE_URL}/`, "");
+    for (const url of fileUrls) {
+      const s3Key = url.replace(`${process.env.AWS_S3_BASE_URL}/`, "");
 
       const s3Response = await s3Client.send(new GetObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME,
@@ -222,11 +233,17 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     let responseText = await callOpenAI();
     let grading = parseGradingResponse(responseText);
 
-    if (grading.score === 0 && !responseText.includes('"score"')) {
+    if (!grading.valid) {
       console.warn(`[AI Grading] Invalid response for ${instructionId}, retrying...`);
       responseText = await callOpenAI();
       grading = parseGradingResponse(responseText);
+
+      if (!grading.valid) {
+        throw new Error("OpenAI returned invalid JSON after retry");
+      }
     }
+
+    console.log(`[AI Grading] ${instructionId} | score: ${grading.score} | response: ${responseText.slice(0, 300)}`);
 
     const freshUser = await User.findById(userId);
     const freshProgram = freshUser?.programs?.[programName];
@@ -235,9 +252,12 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       return grading;
     }
 
+    const validLessonIds = getPreviousLessons(programName, instructionId);
+    const filteredLessons = grading.referencedLessons.filter(id => validLessonIds.includes(id));
+
     freshInstruction.score = grading.score;
     freshInstruction.observations = grading.observations;
-    freshInstruction.referencedLessons = grading.referencedLessons;
+    freshInstruction.referencedLessons = filteredLessons;
     freshInstruction.reviewedAt = new Date();
     freshInstruction.status = "GRADED";
 
@@ -281,7 +301,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
   }
 };
 
-const buildGradingMessage = (config, instruction, programName, instructionId) => {
+const buildGradingMessage = (config, instruction, programName, instructionId, fileCount = 0) => {
   let message = `Corrige la siguiente entrega de un alumno.\n\n`;
   message += `## Instrucción\n`;
   message += `- **Título**: ${config.title}\n`;
@@ -295,32 +315,29 @@ const buildGradingMessage = (config, instruction, programName, instructionId) =>
     message += `  ${i + 1}. ${step}\n`;
   });
 
-  const previousLessonIds = getPreviousLessons(programName, instructionId);
+  const moduleLessonIds = getModuleLessons(programName, instructionId);
 
-  if (previousLessonIds.length > 0) {
-    const lessons = getMultipleLessonsContent(programName, previousLessonIds);
+  if (moduleLessonIds.length > 0) {
+    const lessons = getMultipleLessonsContent(programName, moduleLessonIds);
 
     if (lessons.length > 0) {
-      message += `\n## Lecciones que el alumno vio antes de esta instrucción\n`;
-      message += `El alumno completó las siguientes ${lessons.length} lecciones antes de realizar esta instrucción. Evaluá si aplicó los conceptos enseñados. Si identificás que el alumno falla en algún concepto específico, recomendále que repase la lección correspondiente incluyendo su ID en el array "referencedLessons".\n\n`;
+      message += `\n## Lecciones del módulo actual\n`;
+      message += `Estas son las lecciones que el alumno completó en este módulo antes de esta instrucción. Solo incluí un ID en "referencedLessons" si identificás un error CONCRETO en la entrega que se relaciona DIRECTAMENTE con un tema específico de esa lección. Si la entrega no tiene errores relacionados con estas lecciones, dejá el array vacío. NUNCA incluyas lecciones "por las dudas" o como recomendación general.\n\n`;
 
       lessons.forEach((lesson) => {
-        message += `### ${lesson.id}: ${lesson.title}\n`;
-        message += `**Temas cubiertos**:\n`;
-        lesson.topics.forEach(topic => {
-          message += `- ${topic}\n`;
-        });
-        message += `\n`;
+        message += `- **${lesson.id}**: ${lesson.title} (${lesson.topics.join("; ")})\n`;
       });
+      message += `\n`;
     }
   }
 
   message += `## Entrega del alumno\n`;
   if (instruction.submittedText) {
     message += `**Tipo**: Texto\n**Contenido**:\n${instruction.submittedText}\n`;
-  } else if (instruction.fileUrl) {
-    message += `**Tipo**: Archivo (imagen adjunta arriba)\n`;
-    message += `IMPORTANTE: Analiza detalladamente el contenido de la imagen adjunta. Describe qué ves en la imagen y evalúa si cumple con lo que pide la instrucción. Si la imagen NO muestra lo que se pide (por ejemplo, si no es una captura de Google Drive, o no muestra carpetas organizadas), el puntaje debe ser bajo. NO asumas que la entrega es correcta sin verificar el contenido real de la imagen.\n`;
+  } else if (fileCount > 0) {
+    const plural = fileCount > 1;
+    message += `**Tipo**: Archivo (${fileCount} imagen${plural ? 'es' : ''} adjunta${plural ? 's' : ''} arriba)\n`;
+    message += `IMPORTANTE: Analiza detalladamente el contenido de ${plural ? 'las imágenes adjuntas' : 'la imagen adjunta'}. Describe qué ves y evalúa si cumple con lo que pide la instrucción.${plural ? ' Evaluá todas las imágenes como una sola entrega.' : ''} Si ${plural ? 'las imágenes NO muestran' : 'la imagen NO muestra'} lo que se pide, el puntaje debe ser bajo. NO asumas que la entrega es correcta sin verificar el contenido real.\n`;
   }
 
   message += `\nResponde ÚNICAMENTE con el JSON en el formato especificado en tus instrucciones.`;
@@ -331,27 +348,25 @@ const buildGradingMessage = (config, instruction, programName, instructionId) =>
 const parseGradingResponse = (responseText) => {
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return {
-      score: 0,
-      observations: "No se pudo evaluar tu entrega automáticamente. Si tu entrega no está relacionada con la consigna, volvé a intentar con el contenido correcto.",
-      referencedLessons: [],
-    };
+    return { valid: false, score: 0, observations: "", referencedLessons: [] };
   }
 
   try {
     const parsed = JSON.parse(jsonMatch[0]);
 
-    const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
-    const observations = String(parsed.observations || "").slice(0, 500);
-    const referencedLessons = Array.isArray(parsed.referencedLessons) ? parsed.referencedLessons : [];
+    if (typeof parsed.score !== "number" || typeof parsed.observations !== "string") {
+      return { valid: false, score: 0, observations: "", referencedLessons: [] };
+    }
 
-    return { score, observations, referencedLessons };
+    const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
+    const observations = parsed.observations.slice(0, 500);
+    const referencedLessons = Array.isArray(parsed.referencedLessons)
+      ? parsed.referencedLessons.filter(id => typeof id === "string")
+      : [];
+
+    return { valid: true, score, observations, referencedLessons };
   } catch {
-    return {
-      score: 0,
-      observations: "No se pudo evaluar tu entrega automáticamente. Si tu entrega no está relacionada con la consigna, volvé a intentar con el contenido correcto.",
-      referencedLessons: [],
-    };
+    return { valid: false, score: 0, observations: "", referencedLessons: [] };
   }
 };
 

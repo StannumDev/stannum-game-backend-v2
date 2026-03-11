@@ -38,6 +38,7 @@ STANNUM Game tiene dos tipos de rankings:
 **Programas considerados:**
 - `tia`
 - `tia_summer`
+- `tia_pool`
 - `tmd`
 - `trenno_ia`
 
@@ -48,13 +49,14 @@ STANNUM Game tiene dos tipos de rankings:
 
 ```javascript
 // Usa buildAccessQuery(RANKABLE_PROGRAMS) de src/utils/accessControl.js
-// RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'trenno_ia']
+// RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia']
 // Incluye usuarios con isPurchased: true O subscription activa
 const users = await User.find({
   $or: [
     { "programs.tmd.hasAccessFlag": true },
     { "programs.tia.hasAccessFlag": true },
     { "programs.tia_summer.hasAccessFlag": true },
+    { "programs.tia_pool.hasAccessFlag": true },
     { "programs.trenno_ia.hasAccessFlag": true }
   ],
   status: true
@@ -151,7 +153,7 @@ const censor = (text) => {
 **GET** `/api/ranking/individual/:programName`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
+- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia`
 
 **Query params:**
 - `limit`: Cantidad de usuarios a retornar (default: 10, max: 1000)
@@ -186,7 +188,7 @@ Mismo formato que el ranking individual global, pero los `points` reflejan el XP
 **GET** `/api/ranking/team/:programName`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
+- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia`
 
 ### Criterios
 
@@ -499,7 +501,7 @@ GET /api/ranking/team/tia
 validateJWT middleware
   ↓
 rankingController.getTeamRanking()
-  ├─ Validar programName (tia, tia_summer, tmd, trenno_ia)
+  ├─ Validar programName (tia, tia_summer, tia_pool, tmd, trenno_ia)
   ├─ Query usuarios con programa comprado
   └─ Filtrar por teams
   ↓
@@ -568,6 +570,7 @@ Frontend renderiza ranking de equipos
 user.index({ 'level.experienceTotal': -1 });
 user.index({ 'programs.tia.hasAccessFlag': 1 });
 user.index({ 'programs.tia_summer.hasAccessFlag': 1 });
+user.index({ 'programs.tia_pool.hasAccessFlag': 1 });
 user.index({ 'programs.tmd.hasAccessFlag': 1 });
 user.index({ 'programs.trenno_ia.hasAccessFlag': 1 });
 ```
@@ -639,4 +642,4 @@ Posibles endpoints futuros:
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

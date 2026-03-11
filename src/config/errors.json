@@ -440,6 +440,33 @@
         "techMessage": "The instruction must be in ERROR status to retry grading.",
         "friendlyMessage": "Solo podés reintentar la corrección si hubo un error previo."
     },
+    "INSTRUCTION_MAX_RETRIES": {
+        "success": false,
+        "code": "INSTRUCTION_015",
+        "type": "error",
+        "showAlert": true,
+        "title": "Límite de reintentos alcanzado",
+        "techMessage": "The user has exceeded the maximum number of grading retries for this instruction.",
+        "friendlyMessage": "Alcanzaste el límite de reintentos para esta instrucción. Contactá a soporte si necesitás ayuda."
+    },
+    "INSTRUCTION_TOO_MANY_FILES": {
+        "success": false,
+        "code": "INSTRUCTION_016",
+        "type": "error",
+        "showAlert": true,
+        "title": "Demasiados archivos",
+        "techMessage": "The number of files exceeds the maximum allowed for this instruction.",
+        "friendlyMessage": "Superaste el máximo de archivos permitidos para esta instrucción."
+    },
+    "INSTRUCTION_DUPLICATE_KEYS": {
+        "success": false,
+        "code": "INSTRUCTION_017",
+        "type": "error",
+        "showAlert": true,
+        "title": "Archivos duplicados",
+        "techMessage": "Duplicate S3 keys were detected in the submission.",
+        "friendlyMessage": "Se detectaron archivos duplicados en la entrega."
+    },
     "LESSON_BLOCKED_BY_INSTRUCTION": {
         "success": false,
         "code": "LESSON_001",

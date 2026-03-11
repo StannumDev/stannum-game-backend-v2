@@ -30,6 +30,7 @@ El sistema de pagos de STANNUM Game integra Mercado Pago para ofrecer **compras 
 | tia | purchase | 50,000 | No |
 | tmd | purchase | 0 | No |
 | tia_summer | purchase | 250,000 | Sí |
+| tia_pool | purchase | 250,000 | No |
 | trenno_ia | subscription | 30,000/mes | Sí |
 | demo_trenno | demo | Gratis | - |
 
@@ -37,9 +38,9 @@ El sistema de pagos de STANNUM Game integra Mercado Pago para ofrecer **compras 
 
 ```javascript
 SUBSCRIPTION_PROGRAMS: ['trenno_ia']
-PURCHASE_PROGRAMS: ['tmd', 'tia', 'tia_summer']
+PURCHASE_PROGRAMS: ['tmd', 'tia', 'tia_summer', 'tia_pool']
 DEMO_PROGRAMS: ['demo_trenno']
-VALID_PROGRAMS: ['tmd', 'tia', 'tia_summer', 'trenno_ia']
+VALID_PROGRAMS: ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia']
 ```
 
 ---
@@ -463,4 +464,4 @@ FRONTEND_URL=...             # URL del frontend (para redirects post-pago)
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

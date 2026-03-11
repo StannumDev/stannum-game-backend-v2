@@ -775,4 +775,4 @@ Si la llamada tarda mucho o falla:
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

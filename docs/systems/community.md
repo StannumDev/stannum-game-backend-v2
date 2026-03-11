@@ -695,4 +695,4 @@ router.get("/", searchRateLimiter, promptController.getAllPrompts);
 
 ---
 
-**© STANNUM 2025**
+**© STANNUM 2026**

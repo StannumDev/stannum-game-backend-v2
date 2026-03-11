@@ -105,4 +105,13 @@ const paymentLimiter = rateLimit({
     keyGenerator: (req) => req.userAuth?.id || req.ip,
 });
 
-module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter, paymentLimiter };
+const gradingRetryLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id || req.ip,
+});
+
+module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter, paymentLimiter, gradingRetryLimiter };
