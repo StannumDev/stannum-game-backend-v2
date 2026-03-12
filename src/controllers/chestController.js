@@ -5,6 +5,7 @@ const { addExperience } = require('../services/experienceService');
 const { grantCoins, trimCoinsHistory } = require('../services/coinsService');
 const { getError } = require('../helpers/getError');
 const { hasAccess } = require('../utils/accessControl');
+const { invalidateUser, invalidateRankingsForProgram } = require('../cache/cacheService');
 
 const openChest = async (req, res) => {
     try {
@@ -83,6 +84,8 @@ const openChest = async (req, res) => {
 
         trimCoinsHistory(atomicResult);
         await atomicResult.save();
+        invalidateUser(userId);
+        invalidateRankingsForProgram(programId);
 
         return res.status(200).json({
             success: true,

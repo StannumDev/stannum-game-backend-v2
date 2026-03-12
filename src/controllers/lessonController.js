@@ -5,6 +5,7 @@ const { programs } = require("../config/programs");
 const { isValidProgram } = require("../config/programRegistry");
 const { hasAccess } = require("../utils/accessControl");
 const { getPlaybackId: getMuxPlaybackId } = require("../config/muxPlaybackIds");
+const { invalidateUser, invalidateRankingsForProgram } = require("../cache/cacheService");
 
 const markLessonAsCompleted = async (req, res) => {
     try {
@@ -69,6 +70,8 @@ const markLessonAsCompleted = async (req, res) => {
         const xpResult = await addExperience(atomicPush, 'LESSON_COMPLETED', { programId: programName, lessonId });
 
         await atomicPush.save();
+        invalidateUser(userId);
+        invalidateRankingsForProgram(programName);
 
         return res.status(200).json({
             success: true,
@@ -106,6 +109,7 @@ const updateLastWatched = async (req, res) => {
         };
 
         await user.save();
+        invalidateUser(userId);
         return res.status(200).json({ success: true, message: "Última lección vista actualizada" });
     } catch (error) {
         console.error("Error actualizando última lección:", error);

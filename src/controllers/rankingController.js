@@ -3,10 +3,15 @@ const { getError } = require("../helpers/getError");
 const { censor } = require("../helpers/profanityChecker");
 const { RANKABLE_PROGRAMS, isRankableProgram } = require("../config/programRegistry");
 const { buildAccessQuery, buildProgramAccessQuery } = require("../utils/accessControl");
+const { cache, KEYS, TTL } = require("../cache/cacheService");
 
 const getIndividualRanking = async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
+
+    const cacheKey = KEYS.RANKING_GLOBAL(limit);
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
 
     const users = await User.find({
       $or: buildAccessQuery(RANKABLE_PROGRAMS),
@@ -16,10 +21,16 @@ const getIndividualRanking = async (req, res) => {
     .limit(limit)
     .select('level profile username enterprise preferences.hasProfilePhoto');
 
-    if (!users || users.length === 0) return res.status(200).json({ success: true, data: [] });
+    if (!users || users.length === 0) {
+      const empty = { success: true, data: [] };
+      cache.set(cacheKey, empty, TTL.RANKING);
+      return res.status(200).json(empty);
+    }
 
     const rankedUsers = users.map((user, index) => ({ ...user.getRankingUserDetails(), position: index + 1 }));
-    return res.status(200).json({ success: true, data: rankedUsers });
+    const response = { success: true, data: rankedUsers };
+    cache.set(cacheKey, response, TTL.RANKING);
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching individual ranking:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -32,6 +43,10 @@ const getTeamRanking = async (req, res) => {
     if (!programName) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_REQUIRED"));
 
     if (!isRankableProgram(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
+
+    const cacheKey = KEYS.RANKING_TEAM(programName);
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
 
     const teamRanking = await User.aggregate([
       {
@@ -100,7 +115,9 @@ const getTeamRanking = async (req, res) => {
       })),
     }));
 
-    return res.status(200).json({ success: true, data: result });
+    const response = { success: true, data: result };
+    cache.set(cacheKey, response, TTL.RANKING);
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching team ranking:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -116,6 +133,10 @@ const getProgramIndividualRanking = async (req, res) => {
 
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
 
+    const cacheKey = KEYS.RANKING_PROGRAM(programName, limit);
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
+
     const users = await User.find({
       ...buildProgramAccessQuery(programName),
       status: true
@@ -124,7 +145,11 @@ const getProgramIndividualRanking = async (req, res) => {
     .limit(limit)
     .select('level profile username enterprise preferences.hasProfilePhoto programs.' + programName + '.totalXp');
 
-    if (!users || users.length === 0) return res.status(200).json({ success: true, data: [] });
+    if (!users || users.length === 0) {
+      const empty = { success: true, data: [] };
+      cache.set(cacheKey, empty, TTL.RANKING);
+      return res.status(200).json(empty);
+    }
 
     const rankedUsers = users.map((user, index) => ({
       position: index + 1,
@@ -132,7 +157,9 @@ const getProgramIndividualRanking = async (req, res) => {
       points: user.programs?.[programName]?.totalXp || 0,
     }));
 
-    return res.status(200).json({ success: true, data: rankedUsers });
+    const response = { success: true, data: rankedUsers };
+    cache.set(cacheKey, response, TTL.RANKING);
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching program individual ranking:", error);
     return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));

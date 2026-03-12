@@ -7,6 +7,7 @@ const {
     computeActualLostAt,
 } = require('../helpers/experienceHelper');
 const { hasAnyAccess } = require('../utils/accessControl');
+const { invalidateUser } = require('../cache/cacheService');
 
 /**
  * Eagerly consumes a streak shield if the user has a gap since their
@@ -58,6 +59,7 @@ const applyShieldIfNeeded = async (userId) => {
         );
 
         if (!result) return { shieldConsumed: false, streakSaved: false };
+        invalidateUser(userId);
         return { shieldConsumed: true, streakSaved: true };
     }
 
@@ -82,6 +84,7 @@ const applyShieldIfNeeded = async (userId) => {
         );
 
         if (!result) return { shieldConsumed: false, streakSaved: false };
+        invalidateUser(userId);
         return { shieldConsumed: true, streakSaved: false };
     }
 

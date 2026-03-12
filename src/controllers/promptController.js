@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Prompt = require('../models/promptModel');
 const User = require('../models/userModel');
 const { getError } = require('../helpers/getError');
+const { cache, KEYS, TTL, invalidateUser } = require('../cache/cacheService');
 
 const getAllPrompts = async (req, res) => {
     try {
@@ -255,6 +256,15 @@ const toggleVisibility = async (req, res) => {
         prompt.visibility = visibility;
         await prompt.save();
 
+        // Update communityStats cache and check achievements for the author
+        try {
+            const { unlockAchievements } = require('../services/achievementsService');
+            const author = await User.findById(prompt.author);
+            if (author) await unlockAchievements(author, true);
+        } catch (err) {
+            console.error('[Achievements] Error after prompt visibility change:', err.message);
+        }
+
         return res.json({
             success: true,
             data: { visibility: prompt.visibility },
@@ -398,8 +408,9 @@ const toggleFavorite = async (req, res) => {
             session.endSession();
         }
 
+        const authorId = prompt.author;
+
         if (resultIsFavorited) {
-            const authorId = prompt.author;
             if (authorId && authorId.toString() !== userId) {
                 try {
                     const { grantCoinsAtomic } = require('../services/coinsService');
@@ -411,6 +422,26 @@ const toggleFavorite = async (req, res) => {
                     console.error('[Coins] Error granting favorite coins to prompt author:', err.message);
                 }
             }
+        }
+
+        // Invalidate cache for both toggling user and author
+        invalidateUser(userId);
+        if (authorId && authorId.toString() !== userId) invalidateUser(authorId);
+
+        // Update communityStats cache and check achievements for both users
+        // (author's totalFavoritesReceived changed; toggling user's saved count changed)
+        try {
+            const { unlockAchievements } = require('../services/achievementsService');
+            const promises = [];
+            if (authorId && authorId.toString() !== userId) {
+                const author = await User.findById(authorId);
+                if (author) promises.push(unlockAchievements(author, true));
+            }
+            const toggler = await User.findById(userId);
+            if (toggler) promises.push(unlockAchievements(toggler, true));
+            await Promise.all(promises);
+        } catch (err) {
+            console.error('[Achievements] Error after prompt favorite toggle:', err.message);
         }
 
         return res.json({
@@ -537,6 +568,9 @@ const getMyFavorites = async (req, res) => {
 
 const getStats = async (_, res) => {
     try {
+        const cached = cache.get(KEYS.PROMPT_STATS);
+        if (cached) return res.json(cached);
+
         const stats = await Prompt.aggregate([
             { $match: { status: true, visibility: 'published' } },
             {
@@ -567,7 +601,7 @@ const getStats = async (_, res) => {
             visibility: 'published'
         });
 
-        return res.json({
+        const response = {
             success: true,
             data: {
                 overview: stats[0] || {
@@ -579,7 +613,9 @@ const getStats = async (_, res) => {
                 byCategory: categoryStats,
                 totalAuthors: totalAuthors.length
             }
-        });
+        };
+        cache.set(KEYS.PROMPT_STATS, response, TTL.STATS);
+        return res.json(response);
     } catch (error) {
         console.error('Error getting stats:', error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
