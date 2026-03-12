@@ -2,7 +2,7 @@ const NodeCache = require('node-cache');
 
 // stdTTL: segundos de vida por defecto (se puede sobreescribir por set)
 // checkperiod: cada cuántos segundos limpia entradas expiradas
-const cache = new NodeCache({ stdTTL: 60, checkperiod: 30 });
+const cache = new NodeCache({ stdTTL: 60, checkperiod: 30, useClones: false });
 
 // ---------------------------------------------------------------------------
 // Keys estandarizadas — evita magic strings dispersos en los controllers
