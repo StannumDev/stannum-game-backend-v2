@@ -22,13 +22,23 @@ const enrichCommunityStats = async (user) => {
             ]),
         ]);
 
-        user._communityStats = {
+        const stats = {
             promptsCount,
             assistantsCount,
             totalFavoritesReceived: (promptFavorites[0]?.total || 0) + (assistantFavorites[0]?.total || 0),
         };
-    } catch {
-        user._communityStats = { promptsCount: 0, assistantsCount: 0, totalFavoritesReceived: 0 };
+
+        // Persist cache on the document and expose for in-memory condition checks
+        user.communityStats = stats;
+        user._communityStats = stats;
+    } catch (err) {
+        console.error('[Achievements] enrichCommunityStats failed, using cached data:', err.message);
+        // Fall back to persisted cache — do NOT overwrite with zeros on error
+        user._communityStats = {
+            promptsCount: user.communityStats?.promptsCount || 0,
+            assistantsCount: user.communityStats?.assistantsCount || 0,
+            totalFavoritesReceived: user.communityStats?.totalFavoritesReceived || 0,
+        };
     }
 };
 

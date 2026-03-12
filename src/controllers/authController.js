@@ -13,6 +13,7 @@ const { unlockAchievements } = require("../services/achievementsService");
 const { getProfileStatus } = require("../helpers/getProfileStatus");
 const { newRefreshToken, hashRefreshToken } = require("../helpers/newRefreshToken");
 const { setAuthCookies, clearAuthCookies } = require("../helpers/authCookies");
+const { invalidateUser } = require("../cache/cacheService");
 
 const login = async (req , res) => {
   const { username, password } = req.body;
@@ -39,6 +40,7 @@ const login = async (req , res) => {
     const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
     user.refreshToken = { token: hashedToken, expiresAt };
     await user.save();
+    invalidateUser(user.id);
 
     let newlyUnlocked = [];
     try {
@@ -360,6 +362,7 @@ const resetPassword = async (req, res) => {
     if (!user.preferences) user.preferences = {};
     user.preferences.allowPasswordLogin = true;
     await user.save();
+    invalidateUser(user._id);
 
     clearAuthCookies(res);
     return res.status(200).json({ success: true, message: "Contraseña actualizada exitosamente." });
@@ -421,6 +424,7 @@ const googleAuth = async (req, res) => {
           await uploadGoogleProfilePhoto(picture, user._id);
           user.preferences.hasProfilePhoto = true;
           await user.save();
+          invalidateUser(user._id);
         } catch (error) {
           console.error("Google profile photo upload failed:", error);
         }
@@ -441,6 +445,7 @@ const googleAuth = async (req, res) => {
     const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
     user.refreshToken = { token: hashedToken, expiresAt };
     await user.save();
+    invalidateUser(user._id);
 
     let newlyUnlocked = [];
     try {
@@ -481,6 +486,7 @@ const updateUsername = async (req , res) => {
       return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
     }
     const profileStatus = getProfileStatus(user);
+    invalidateUser(req.userAuth.id);
     return res.status(200).json({ success: true, message: "Username updated successfully", profileStatus });
   } catch (error) {
     console.error("Error updating username:", error);
@@ -550,6 +556,7 @@ const logoutHandler = async (req , res) => {
     }
     user.refreshToken = { token: null, expiresAt: null };
     await user.save();
+    invalidateUser(user.id);
     clearAuthCookies(res);
     return res.status(200).json({ success: true, message: "Logged out successfully." });
   } catch (error) {

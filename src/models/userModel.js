@@ -659,6 +659,11 @@ const userSchema = new Schema(
         default: true
       }
     },
+    communityStats: {
+      promptsCount: { type: Number, default: 0, min: 0 },
+      assistantsCount: { type: Number, default: 0, min: 0 },
+      totalFavoritesReceived: { type: Number, default: 0, min: 0 },
+    },
     favorites: {
       prompts: [{
         type: Schema.Types.ObjectId,
@@ -798,6 +803,11 @@ userSchema.methods.getFullUserDetails = function () {
     unlockedCovers: this.unlockedCovers,
     preferences: this.preferences,
     favorites: this.favorites,
+    communityStats: {
+      promptsCount: this.communityStats?.promptsCount || 0,
+      assistantsCount: this.communityStats?.assistantsCount || 0,
+      totalFavoritesReceived: this.communityStats?.totalFavoritesReceived || 0,
+    },
   };
 };
 

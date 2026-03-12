@@ -7,6 +7,7 @@ const { addExperience } = require("./experienceService");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 const { getMultipleLessonsContent } = require("../helpers/getLessonContent");
 const { getPreviousLessons, getModuleLessons } = require("../helpers/getPreviousLessons");
+const { invalidateUser, invalidateRankingsForProgram } = require("../cache/cacheService");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -278,6 +279,8 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     freshInstruction.xpGained = xpResult.gained;
 
     await freshUser.save();
+    invalidateUser(userId);
+    invalidateRankingsForProgram(programName);
 
     return grading;
   } catch (error) {
@@ -291,6 +294,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
         if (instruction && instruction.status === "SUBMITTED") {
           instruction.status = "ERROR";
           await user.save();
+          invalidateUser(userId);
         }
       }
     } catch (saveErr) {

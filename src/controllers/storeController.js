@@ -1,9 +1,9 @@
 const User = require('../models/userModel');
 const { covers, coversMap } = require('../config/coversConfig');
 const coinsCfg = require('../config/coinsConfig');
-const { deductCoinsAtomic } = require('../services/coinsService');
 const { getError } = require('../helpers/getError');
 const { localTodayString } = require('../helpers/experienceHelper');
+const { invalidateUser } = require('../cache/cacheService');
 
 const RECOVERY_WINDOW_MS = coinsCfg.STREAK_RECOVERY_WINDOW_MS;
 
@@ -45,12 +45,27 @@ const purchaseCover = async (req, res) => {
 
         if (user.coins < cover.price) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
 
-        const { coinsDeducted } = await deductCoinsAtomic(userId, 'STORE_PURCHASE', cover.price, { coverId });
-        if (!coinsDeducted) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
-
-        await User.findByIdAndUpdate(userId, {
-            $push: { unlockedCovers: { coverId, unlockedDate: new Date() } },
-        });
+        // Atomic: deduct coins + add cover in a single operation to prevent partial state
+        const result = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                coins: { $gte: cover.price },
+                'unlockedCovers.coverId': { $ne: coverId },
+            },
+            {
+                $inc: { coins: -cover.price },
+                $push: {
+                    unlockedCovers: { coverId, unlockedDate: new Date() },
+                    coinsHistory: {
+                        $each: [{ type: 'STORE_PURCHASE', coins: -cover.price, date: new Date(), meta: { coverId } }],
+                        $slice: -1000,
+                    },
+                },
+            },
+            { new: true }
+        );
+        if (!result) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+        invalidateUser(userId);
 
         return res.status(200).json({ success: true, message: 'Portada desbloqueada.', coverId, coinsSpent: cover.price });
     } catch (error) {
@@ -76,6 +91,7 @@ const equipCover = async (req, res) => {
         }
 
         await User.findByIdAndUpdate(userId, { equippedCoverId: coverId });
+        invalidateUser(userId);
 
         return res.status(200).json({ success: true, message: 'Portada equipada.', coverId });
     } catch (error) {
@@ -123,6 +139,8 @@ const purchaseShield = async (req, res) => {
         );
 
         if (!result) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        invalidateUser(userId);
 
         return res.status(200).json({
             success: true,
@@ -195,6 +213,8 @@ const recoverStreak = async (req, res) => {
         );
 
         if (!result) return res.status(400).json(getError('STORE_INSUFFICIENT_TINS'));
+
+        invalidateUser(userId);
 
         return res.status(200).json({
             success: true,

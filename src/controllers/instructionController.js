@@ -7,6 +7,7 @@ const { getInstructionConfig } = require("../helpers/getInstructionConfig");
 const { programs } = require("../config/programs");
 const { gradeWithAI } = require("../services/aiGradingService");
 const { hasAccess } = require("../utils/accessControl");
+const { invalidateUser } = require("../cache/cacheService");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -70,6 +71,7 @@ const startInstruction = async (req, res) => {
     });
 
     await user.save();
+    invalidateUser(userId);
 
     return res.status(200).json({ success: true, message: "Instrucción iniciada correctamente." });
   } catch (error) {
@@ -218,6 +220,7 @@ const submitInstruction = async (req, res) => {
     instruction.status = "SUBMITTED";
 
     await user.save();
+    invalidateUser(userId);
 
     gradeWithRetry(userId, programName, instructionId).catch(err => {
       console.error(`[AI Grading] Error en background para ${instructionId}:`, err.message);
@@ -256,6 +259,7 @@ const retryGrading = async (req, res) => {
     instruction.status = "SUBMITTED";
     instruction.retryCount = retryCount + 1;
     await user.save();
+    invalidateUser(userId);
 
     gradeWithRetry(userId, programName, instructionId).catch(err => {
       console.error(`[AI Grading] Error en retry para ${instructionId}:`, err.message);

@@ -6,6 +6,7 @@ const { applyShieldIfNeeded } = require("../services/streakService");
 const { getError } = require("../helpers/getError");
 const { hasAnyAccess, buildAccessQuery } = require("../utils/accessControl");
 const { RANKABLE_PROGRAMS } = require("../config/programRegistry");
+const { cache, KEYS, TTL, invalidateUser } = require("../cache/cacheService");
 
 const getUserByToken = async (req, res) => {
     try {
@@ -13,18 +14,30 @@ const getUserByToken = async (req, res) => {
 
         const shieldResult = await applyShieldIfNeeded(userId);
 
+        // Only cache when no shield was consumed (shield consumption mutates DB state)
+        if (!shieldResult.shieldConsumed) {
+            const cached = cache.get(KEYS.USER(userId.toString()));
+            if (cached) return res.status(200).json(cached);
+        }
+
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const userDetails = user.getFullUserDetails();
-        return res.status(200).json({
+        const response = {
             success: true,
             data: userDetails,
             ...(shieldResult.shieldConsumed && {
                 shieldConsumed: true,
                 streakSaved: shieldResult.streakSaved,
             }),
-        });
+        };
+
+        if (!shieldResult.shieldConsumed) {
+            cache.set(KEYS.USER(userId.toString()), response, TTL.USER);
+        }
+
+        return res.status(200).json(response);
     } catch (error) {
         console.error("Error fetching user details by token:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -35,11 +48,17 @@ const getUserSidebarDetails = async (req, res) => {
     try {
         const userId = req.userAuth.id;
 
+        const cacheKey = KEYS.USER_SIDEBAR(userId.toString());
+        const cached = cache.get(cacheKey);
+        if (cached) return res.status(200).json(cached);
+
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
         const sidebarDetails = user.getUserSidebarDetails();
-        return res.status(200).json({ success: true, data: sidebarDetails });
+        const response = { success: true, data: sidebarDetails };
+        cache.set(cacheKey, response, TTL.USER);
+        return res.status(200).json(response);
     } catch (error) {
         console.error("Error fetching user sidebar details:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
@@ -112,6 +131,7 @@ const markTutorialAsCompleted = async (req, res) => {
         }
 
         await user.markTutorialAsCompleted(tutorialName);
+        invalidateUser(userId);
         return res.status(200).json({ success: true, message: "Tutorial marked as completed." });
     } catch (error) {
         console.error("Error marking tutorial as completed:", error);
@@ -151,12 +171,13 @@ const editUser = async (req, res) => {
         const isProfileComplete = !!name && !!birthdate && !!country && !!region && !!aboutme && !!enterprise && !!enterpriseRole;
         if (isProfileComplete) achievementsResult = await unlockAchievements(user);
         await user.save();
-        
-        return res.status(200).json({ 
-            success: true, 
-            message: "User updated successfully.", 
-            data: user.getFullUserDetails(), 
-            achievementsUnlocked: achievementsResult.newlyUnlocked 
+        invalidateUser(userId);
+
+        return res.status(200).json({
+            success: true,
+            message: "User updated successfully.",
+            data: user.getFullUserDetails(),
+            achievementsUnlocked: achievementsResult.newlyUnlocked
         });
     } catch (error) {
         console.error("Error updating user:", error);

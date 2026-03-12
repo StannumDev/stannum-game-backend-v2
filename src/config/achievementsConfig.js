@@ -174,19 +174,20 @@ module.exports = [
         description: "Obtén 100% en 3 instrucciones distintas",
         xpReward: 200,
         coinsReward: 25,
-        condition: (user) => {
+        getProgress: (user) => {
             const count = Object.values(user.programs || {}).reduce((sum, p) =>
                 sum + (p.instructions || []).filter(i => i.status === "GRADED" && i.score === 100).length, 0
             );
-            return count >= 3;
-        }
+            return count >= 3 ? 100 : Math.floor((count / 3) * 100);
+        },
+        condition: function (user) { return this.getProgress(user) >= 100; },
     },
     {
         id: "marathon_day",
         description: "Completa 5 lecciones en un mismo día",
         xpReward: 100,
         coinsReward: 15,
-        condition: (user) => {
+        getProgress: (user) => {
             const tz = user.dailyStreak?.timezone || "America/Argentina/Buenos_Aires";
             const dates = {};
             for (const p of Object.values(user.programs || {})) {
@@ -194,11 +195,12 @@ module.exports = [
                     if (!lc.viewedAt) continue;
                     const day = new Date(lc.viewedAt).toLocaleDateString("en-CA", { timeZone: tz });
                     dates[day] = (dates[day] || 0) + 1;
-                    if (dates[day] >= 5) return true;
                 }
             }
-            return false;
-        }
+            const max = Math.max(0, ...Object.values(dates));
+            return max >= 5 ? 100 : Math.floor((max / 5) * 100);
+        },
+        condition: function (user) { return this.getProgress(user) >= 100; },
     },
     {
         id: "prompt_creator",
@@ -226,11 +228,11 @@ module.exports = [
         description: "Guarda 10 prompts o asistentes en favoritos",
         xpReward: 50,
         coinsReward: 10,
-        condition: (user) => {
-            const prompts = (user.favorites?.prompts || []).length;
-            const assistants = (user.favorites?.assistants || []).length;
-            return (prompts + assistants) >= 10;
-        }
+        getProgress: (user) => {
+            const total = (user.favorites?.prompts || []).length + (user.favorites?.assistants || []).length;
+            return total >= 10 ? 100 : Math.floor((total / 10) * 100);
+        },
+        condition: function (user) { return this.getProgress(user) >= 100; },
     },
     {
         id: "trenno_ia_joined",
@@ -274,11 +276,9 @@ module.exports = [
             return tiaProgramCfg.modules.every(module =>
                 (module.lessons || []).every(lesson =>
                     (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
-                ) && (
-                    (module.instructions || []).length === 0 ||
-                    module.instructions.every(inst =>
-                        (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
-                    )
+                ) &&
+                (module.instructions || []).every(inst =>
+                    (userTia.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
                 )
             )
         }
@@ -295,11 +295,11 @@ module.exports = [
         description: "Llegá a la mitad del programa SUMMER",
         xpReward: 150,
         coinsReward: 20,
-        condition: (user) => {
-            const tiaSummer = user.programs?.tia_summer;
-            if (!tiaSummer) return false;
-            return (tiaSummer.lessonsCompleted || []).length >= 10;
-        }
+        getProgress: (user) => {
+            const completed = (user.programs?.tia_summer?.lessonsCompleted || []).length;
+            return completed >= 10 ? 100 : Math.floor((completed / 10) * 100);
+        },
+        condition: function (user) { return this.getProgress(user) >= 100; },
     },
     {
         id: "trenno_ia_summer_graduate",
@@ -311,7 +311,14 @@ module.exports = [
             if (!tiaSummerCfg) return false;
             const tiaSummer = user.programs?.tia_summer;
             if (!tiaSummer) return false;
-            return tiaSummerCfg.modules.every(module => (module.lessons || []).every(lesson => (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
+            return tiaSummerCfg.modules.every(module =>
+                (module.lessons || []).every(lesson =>
+                    (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
+                ) &&
+                (module.instructions || []).every(inst =>
+                    (tiaSummer.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                )
+            );
         }
     },
     {
@@ -326,11 +333,11 @@ module.exports = [
         description: "Llegá a la mitad del programa POOL",
         xpReward: 150,
         coinsReward: 20,
-        condition: (user) => {
-            const tiaPool = user.programs?.tia_pool;
-            if (!tiaPool) return false;
-            return (tiaPool.lessonsCompleted || []).length >= 10;
-        }
+        getProgress: (user) => {
+            const completed = (user.programs?.tia_pool?.lessonsCompleted || []).length;
+            return completed >= 10 ? 100 : Math.floor((completed / 10) * 100);
+        },
+        condition: function (user) { return this.getProgress(user) >= 100; },
     },
     {
         id: "trenno_ia_pool_graduate",
@@ -342,7 +349,14 @@ module.exports = [
             if (!tiaPoolCfg) return false;
             const tiaPool = user.programs?.tia_pool;
             if (!tiaPool) return false;
-            return tiaPoolCfg.modules.every(module => (module.lessons || []).every(lesson => (tiaPool.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id) ) && ( (module.instructions || []).length === 0 || module.instructions.every(inst => (tiaPool.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED"))));
+            return tiaPoolCfg.modules.every(module =>
+                (module.lessons || []).every(lesson =>
+                    (tiaPool.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
+                ) &&
+                (module.instructions || []).every(inst =>
+                    (tiaPool.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")
+                )
+            );
         }
     },
 ];

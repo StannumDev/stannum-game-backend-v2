@@ -4,6 +4,7 @@ const sharp = require("sharp");
 const { getError } = require("../helpers/getError");
 const { adjustGooglePictureUrl, downloadImage } = require("../helpers/googlePictureUrl");
 const User = require("../models/userModel");
+const { invalidateUser } = require("../cache/cacheService");
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION,
@@ -39,6 +40,7 @@ const confirmPhotoUpload = async (req, res) => {
 
     try {
         await User.findByIdAndUpdate(userId, { "preferences.hasProfilePhoto": true });
+        invalidateUser(userId);
         return res.status(200).json({ success: true, message: "Profile photo uploaded successfully." });
     } catch (error) {
         console.error("Error confirming photo upload:", error);
@@ -90,6 +92,7 @@ const deletePhoto = async (req, res) => {
         const command = new DeleteObjectCommand(params);
         await s3Client.send(command);
         await User.findByIdAndUpdate(userId, { "preferences.hasProfilePhoto": false });
+        invalidateUser(userId);
         return res.status(200).json({ success: true, message: "Profile photo deleted successfully." });
     } catch (error) {
         console.error("Error deleting photo:", error);
