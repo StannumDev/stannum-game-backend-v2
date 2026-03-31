@@ -243,6 +243,8 @@ const generateAndSendProductKeyMake = async (req, res) => {
                 </div>
             `,
         };
+        mailOptions.html = mailOptions.html.replace(/\n\s+/g, '').replace(/>\s+</g, '><');
+
         try {
             await transporter.sendMail(mailOptions);
         } catch (error) {
