@@ -182,7 +182,9 @@ const generateAndSendProductKeyMake = async (req, res) => {
                     </div>
                     ${diagnosisSection}
                     <div style="text-align: center; margin: 40px 0;">
-                        <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Activación</h2>
+                        <p style="font-size: 16px; color: #ccc; margin: 0 0 8px 0;">Te damos acceso a</p>
+                        <h2 style="color: #00FFCC; font-size: 28px; margin: 0 0 25px 0; font-weight: 700;">STANNUM Game</h2>
+                        <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Tu Clave de Activación</h3>
                         <div style="background-color: #00FFCC; padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">
                             <h3 style="color: #000000; font-size: 36px; letter-spacing: 4px; font-weight: 900; margin: 0;">${code}</h3>
                         </div>
