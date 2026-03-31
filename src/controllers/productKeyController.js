@@ -96,7 +96,6 @@ const generateAndSendProductKeyMake = async (req, res) => {
     try {
         if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
         if (!fullName) return res.status(400).json(getError("VALIDATION_FULLNAME_REQUIRED"));
-        if (!message) return res.status(400).json(getError("VALIDATION_DIAGNOSIS_REQUIRED"));
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
@@ -109,10 +108,12 @@ const generateAndSendProductKeyMake = async (req, res) => {
         }
 
         let decodedMessage;
-        try {
-            decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
-        } catch (error) {
-            return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
+        if (message) {
+            try {
+                decodedMessage = Buffer.from(message, 'base64').toString('utf-8');
+            } catch (error) {
+                return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
+            }
         }
 
         const code = generateProductCode();
@@ -164,26 +165,71 @@ const generateAndSendProductKeyMake = async (req, res) => {
                         ${whatsappSection}
                     </div>` : '';
 
-        const mailOptions = {
-            from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
-            to: email,
-            subject: "Tu Diagnóstico IA + Acceso a STANNUM Game",
-            html: `
-                <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡BIENVENIDO AL ENTRENAMIENTO, <span style="color: #ffffff;">${decodedFullName}</span>!</h1>
-                    </div>
+        const diagnosisSection = decodedMessage ? `
                     <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
                         <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
                         <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0; white-space: pre-line;">${decodedMessage}</p>
+                    </div>` : '';
+
+        const mailOptions = {
+            from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
+            to: email,
+            subject: decodedMessage ? "Tu Diagnóstico IA + Acceso a STANNUM Game" : "Tu Acceso a STANNUM Game",
+            html: `
+                <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al entrenamiento,<br /><span style="color: #ffffff;">${decodedFullName}</span>!</h1>
                     </div>
+                    ${diagnosisSection}
                     <div style="text-align: center; margin: 40px 0;">
-                        <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Acceso</h2>
-                        <p style="font-size: 16px; color: #ccc; margin-bottom: 20px;">Activá esta clave en <b style="color: #00FFCC;">STANNUM Game</b> para comenzar tu entrenamiento:</p>
+                        <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Activación</h2>
                         <div style="background-color: #00FFCC; padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">
                             <h3 style="color: #000000; font-size: 36px; letter-spacing: 4px; font-weight: 900; margin: 0;">${code}</h3>
                         </div>
-                        <a href="https://stannumgame.com" style="display: inline-block; background-color: #00FFCC; color: #1f1f1f; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px; transition: transform 0.2s;">Activar Clave Ahora</a>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+                    <div style="margin: 30px 0;">
+                        <h2 style="color: #00FFCC; font-size: 22px; margin-bottom: 10px; font-weight: 600; text-align: center;">Antes que nada...</h2>
+                        <h3 style="color: #ffffff; font-size: 18px; margin-bottom: 8px; font-weight: 600;">¿Qué es STANNUM Game?</h3>
+                        <p style="font-size: 15px; color: #ccc; line-height: 1.7; margin: 0 0 10px 0;"><b style="color: #ffffff;">STANNUM Game</b> es nuestra plataforma de entrenamiento gamificada. Es <b style="color: #00FFCC;">gratuita y abierta para todos</b>. Cualquier persona puede crearse una cuenta y explorarla.</p>
+                        <p style="font-size: 15px; color: #ccc; line-height: 1.7; margin: 0 0 0 0;">Dentro de STANNUM Game viven los programas de entrenamiento como <b style="color: #ffffff;">TRENNO IA</b>. El código que recibís en este email <b style="color: #ccc;">NO es para ingresar a la plataforma</b>, sino para <b style="color: #00FFCC;">activar tu programa TRENNO IA</b> dentro de ella.</p>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+                    <div style="margin: 30px 0;">
+                        <h2 style="color: #00FFCC; font-size: 22px; margin-bottom: 25px; font-weight: 600; text-align: center;">¿Cómo activo mi programa?</h2>
+                        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                            <tr>
+                                <td style="vertical-align: top; padding: 0 15px 25px 0; width: 50px;">
+                                    <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">1</div>
+                                </td>
+                                <td style="vertical-align: top; padding-bottom: 25px;">
+                                    <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">Ingresá a STANNUM Game</h4>
+                                    <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">Entrá a <a href="https://stannumgame.com" style="color: #00FFCC; text-decoration: none; font-weight: 600;">stannumgame.com</a> y creá tu cuenta gratuita (podés usar tu email o iniciar con Google). Si ya tenés cuenta, simplemente iniciá sesión.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="vertical-align: top; padding: 0 15px 25px 0; width: 50px;">
+                                    <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">2</div>
+                                </td>
+                                <td style="vertical-align: top; padding-bottom: 25px;">
+                                    <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">Buscá el botón "Activar Producto"</h4>
+                                    <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">Una vez adentro de la plataforma, vas a encontrar un botón que dice <b style="color: #ffffff;">"Activar Producto"</b>. Hacé clic ahí.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="vertical-align: top; padding: 0 15px 0 0; width: 50px;">
+                                    <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">3</div>
+                                </td>
+                                <td style="vertical-align: top;">
+                                    <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">Ingresá tu código</h4>
+                                    <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">Pegá el código de este email y listo. Se va a desbloquear tu programa <b style="color: #ffffff;">TRENNO IA</b> y podés arrancar tu entrenamiento.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="background-color: #2a2a2a; border-left: 4px solid #f5a623; padding: 18px 20px; border-radius: 8px; margin: 30px 0;">
+                        <p style="font-size: 14px; color: #f5a623; font-weight: 700; margin: 0 0 6px 0;">IMPORTANTE</p>
+                        <p style="font-size: 14px; color: #ccc; line-height: 1.6; margin: 0;">El código <b style="color: #ffffff;">NO es una contraseña</b>. La plataforma STANNUM Game es gratuita y se accede creando una cuenta. El código solo sirve para <b style="color: #00FFCC;">activar el programa TRENNO IA</b> una vez que ya estés dentro.</p>
                     </div>
                     ${preparationSection}
                     <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
