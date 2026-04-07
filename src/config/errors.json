@@ -1114,5 +1114,32 @@
         "title": "Error del servidor",
         "techMessage": "An unexpected error occurred on the server.",
         "friendlyMessage": "Ocurrió un error inesperado en el servidor. Por favor, inténtalo nuevamente o contacta al soporte."
+    },
+    "PROGRAM_NOT_FOUND": {
+        "success": false,
+        "code": "PROGRAM_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Programa no encontrado",
+        "techMessage": "The specified program was not found.",
+        "friendlyMessage": "El programa especificado no existe."
+    },
+    "VALIDATION_MISSING_FIELDS": {
+        "success": false,
+        "code": "VALIDATION_052",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Campos obligatorios faltantes",
+        "techMessage": "One or more required fields are missing.",
+        "friendlyMessage": "Por favor, completa todos los campos obligatorios."
+    },
+    "INSTRUCTION_NOT_FOUND": {
+        "success": false,
+        "code": "PROGRAM_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Instrucción no encontrada",
+        "techMessage": "The specified instruction was not found within the program.",
+        "friendlyMessage": "La instrucción especificada no existe."
     }
 }

@@ -164,18 +164,10 @@ const instructionSchema = new Schema({
   submittedAt: {
     type: Date,
     default: null,
-    validate: {
-      validator: (value) => !value || value >= this.startDate,
-      message: "Submitted date must be after start date",
-    },
   },
   reviewedAt: {
     type: Date,
     default: null,
-    validate: {
-      validator: (value) => !value || value <= this.submittedAt,
-      message: "Reviewed date cannot be in the future",
-    },
   },
   score: {
     type: Number,

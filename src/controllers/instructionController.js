@@ -7,7 +7,7 @@ const startInstruction = async (req, res) => {
     const { programName, instructionId } = req.params;
     const userId = req.userAuth.id;
 
-    const config = getInstructionConfig(programName, instructionId);
+    const config = await getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
     const user = await User.findById(userId);

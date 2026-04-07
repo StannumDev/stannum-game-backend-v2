@@ -11,6 +11,7 @@ const productKeyRouter = require("./routes/productKeyRoutes");
 const rankingRouter = require("./routes/rankingRoutes");
 const promptRouter = require("./routes/promptRoutes");
 const assistantRouter = require("./routes/assistantRoutes");
+const programRouter = require("./routes/programRoutes");
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api/product-key", productKeyRouter);
 app.use("/api/ranking", rankingRouter);
 app.use("/api/prompt", promptRouter);
 app.use("/api/assistant", assistantRouter);
+app.use("/api/programs", programRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {

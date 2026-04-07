@@ -15,7 +15,7 @@ const addExperience = async (user, type, payload) => {
         const alreadyGiven = user.xpHistory.some(entry => entry.type === 'LESSON_COMPLETED' && entry.meta.lessonId === lessonId);
         if (alreadyGiven) return { gained: 0, streakBonus: 0, totalGain: 0 };
 
-        const info = resolveLessonInfo(programId, lessonId);
+        const info = await resolveLessonInfo(programId, lessonId);
         payload.moduleIndex ??= info.moduleIndex;
         payload.durationSec ??= info.durationSec;
         gained = computeLessonXP(payload);

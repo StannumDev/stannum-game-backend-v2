@@ -1,9 +1,13 @@
-const achievementsConfig = require('../config/achievementsConfig');
+const getAchievements = require('../config/achievementsConfig');
+const { getPrograms } = require('./programCacheService');
 const { nextLevelTarget, computeLevelProgress } = require('../helpers/experienceHelper');
 const xpCfg = require('../config/xpConfig');
 
 const checkAndAddAchievements = async (user) => {
     if (!user) throw new Error("USER_NOT_FOUND");
+
+    const programs = await getPrograms();
+    const achievementsConfig = getAchievements(programs);
 
     const newlyUnlocked = [];
     const unlockedIds = new Set(user.achievements.map(a => a.achievementId));
