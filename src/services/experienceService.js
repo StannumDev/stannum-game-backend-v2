@@ -19,7 +19,7 @@ const addExperience = async (user, type, payload) => {
         const alreadyGiven = user.xpHistory.some(entry => entry.type === 'LESSON_COMPLETED' && entry.meta.lessonId === lessonId);
         if (alreadyGiven) return { gained: 0, streakBonus: 0, totalGain: 0 };
 
-        const info = resolveLessonInfo(programId, lessonId);
+        const info = await resolveLessonInfo(programId, lessonId);
         payload.moduleIndex ??= info.moduleIndex;
         payload.durationSec ??= info.durationSec;
         gained = computeLessonXP(payload);
@@ -122,11 +122,11 @@ const addExperience = async (user, type, payload) => {
     const progId = payload.programId;
     if (progId && user.programs?.[progId]) {
         const moduleCfg =
-            type === 'LESSON_COMPLETED' ? findModuleByLessonId(progId, payload.lessonId)
-            : type === 'INSTRUCTION_GRADED' ? findModuleByInstructionId(progId, payload.instructionId)
+            type === 'LESSON_COMPLETED' ? await findModuleByLessonId(progId, payload.lessonId)
+            : type === 'INSTRUCTION_GRADED' ? await findModuleByInstructionId(progId, payload.instructionId)
             : null;
 
-        if (moduleCfg && isModuleCompleted(progId, moduleCfg.id, user.programs[progId])) {
+        if (moduleCfg && await isModuleCompleted(progId, moduleCfg.id, user.programs[progId])) {
             const rewarded = user.programs[progId].coinsRewardedModules || [];
             if (!rewarded.includes(moduleCfg.id)) {
                 grantCoins(user, 'MODULE_COMPLETED', coinsCfg.MODULE_COMPLETED, { programId: progId, moduleId: moduleCfg.id });
@@ -134,7 +134,7 @@ const addExperience = async (user, type, payload) => {
             }
         }
 
-        if (isProgramCompleted(progId, user.programs[progId])) {
+        if (await isProgramCompleted(progId, user.programs[progId])) {
             if (!user.programs[progId].coinsRewardedProgram) {
                 grantCoins(user, 'PROGRAM_COMPLETED', coinsCfg.PROGRAM_COMPLETED, { programId: progId });
                 user.programs[progId].coinsRewardedProgram = true;

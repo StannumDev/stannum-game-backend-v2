@@ -1,5 +1,6 @@
-const { programs } = require('../config/programs');
 const { hasAccess } = require('../utils/accessControl');
+
+const flat = (p) => (p.sections || []).flatMap(s => s.modules || []);
 
 module.exports = [
     {
@@ -27,11 +28,11 @@ module.exports = [
         description: "Completa todas las lecciones e instrucciones de un módulo",
         xpReward: 100,
         coinsReward: 15,
-        condition: (user) => {
-            return programs.some(programCfg => {
+        condition: (user, programs) => {
+            return (programs || []).some(programCfg => {
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
-                return programCfg.modules.some(module => {
+                return flat(programCfg).some(module => {
                     const allLessonsDone = (module.lessons || []).every(lesson =>
                         (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
@@ -68,12 +69,12 @@ module.exports = [
         description: "Completa todas las instrucciones de un módulo",
         xpReward: 100,
         coinsReward: 15,
-        condition: (user) => {
-            return programs.some(programCfg => {
+        condition: (user, programs) => {
+            return (programs || []).some(programCfg => {
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
 
-                return programCfg.modules.some(module => {
+                return flat(programCfg).some(module => {
                     const moduleInstructions = module.instructions || [];
                     return (moduleInstructions.length > 0 && moduleInstructions.every(inst => (userProgram.instructions || []).some(i => i.instructionId === inst.id && i.status === "GRADED")));
                 });
@@ -85,12 +86,12 @@ module.exports = [
         description: "Completa todos los módulos de un programa",
         xpReward: 200,
         coinsReward: 25,
-        condition: (user) => {
-            return programs.some(programCfg => {
+        condition: (user, programs) => {
+            return (programs || []).some(programCfg => {
                 const userProgram = user.programs?.[programCfg.id];
                 if (!userProgram) return false;
 
-                return programCfg.modules.every(module => {
+                return flat(programCfg).every(module => {
                     const allLessonsDone = (module.lessons || []).every(lesson =>
                         (userProgram.lessonsCompleted || []).some(l => l.lessonId === lesson.id)
                     );
@@ -246,11 +247,11 @@ module.exports = [
         description: "Completa el primer módulo de Trenno IA",
         xpReward: 150,
         coinsReward: 20,
-        condition: (user) => {
-            const tiaProgramCfg = programs.find(p => p.id === "tia");
+        condition: (user, programs) => {
+            const tiaProgramCfg = (programs || []).find(p => p.id === "tia");
             if (!tiaProgramCfg) return false;
 
-            const firstModule = tiaProgramCfg.modules?.[0];
+            const firstModule = flat(tiaProgramCfg)?.[0];
             if (!firstModule) return false;
 
             const userTia = user.programs?.tia;
@@ -266,14 +267,14 @@ module.exports = [
         description: "Completa todos los módulos de Trenno IA",
         xpReward: 300,
         coinsReward: 40,
-        condition: (user) => {
-            const tiaProgramCfg = programs.find(p => p.id === "tia");
+        condition: (user, programs) => {
+            const tiaProgramCfg = (programs || []).find(p => p.id === "tia");
             if (!tiaProgramCfg) return false;
 
             const userTia = user.programs?.tia;
             if (!userTia) return false;
 
-            return tiaProgramCfg.modules.every(module =>
+            return flat(tiaProgramCfg).every(module =>
                 (module.lessons || []).every(lesson =>
                     (userTia.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
                 ) &&
@@ -306,12 +307,12 @@ module.exports = [
         description: "Completá el 100% del programa TRENNO IA SUMMER 2026",
         xpReward: 500,
         coinsReward: 60,
-        condition: (user) => {
-            const tiaSummerCfg = programs.find(p => p.id === "tia_summer");
+        condition: (user, programs) => {
+            const tiaSummerCfg = (programs || []).find(p => p.id === "tia_summer");
             if (!tiaSummerCfg) return false;
             const tiaSummer = user.programs?.tia_summer;
             if (!tiaSummer) return false;
-            return tiaSummerCfg.modules.every(module =>
+            return flat(tiaSummerCfg).every(module =>
                 (module.lessons || []).every(lesson =>
                     (tiaSummer.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
                 ) &&
@@ -344,12 +345,12 @@ module.exports = [
         description: "Completá el 100% del programa TRENNO IA POOL 2026",
         xpReward: 500,
         coinsReward: 60,
-        condition: (user) => {
-            const tiaPoolCfg = programs.find(p => p.id === "tia_pool");
+        condition: (user, programs) => {
+            const tiaPoolCfg = (programs || []).find(p => p.id === "tia_pool");
             if (!tiaPoolCfg) return false;
             const tiaPool = user.programs?.tia_pool;
             if (!tiaPool) return false;
-            return tiaPoolCfg.modules.every(module =>
+            return flat(tiaPoolCfg).every(module =>
                 (module.lessons || []).every(lesson =>
                     (tiaPool.lessonsCompleted || []).some(lc => lc.lessonId === lesson.id)
                 ) &&

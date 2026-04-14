@@ -17,6 +17,7 @@ const assistantRouter = require("./routes/assistantRoutes");
 const storeRouter = require("./routes/storeRoutes");
 const chestRouter = require("./routes/chestRoutes");
 const webhookRouter = require("./routes/webhookRoutes");
+const programRouter = require("./routes/programRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
 const subscriptionRouter = require("./routes/subscriptionRoutes");
 const cron = require("node-cron");
@@ -42,7 +43,8 @@ try {
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (server-to-server, e.g. Next.js server components)
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -68,6 +70,8 @@ app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  if (req.headers['x-api-key']) return next();
 
   const origin = req.headers.origin;
   if (origin) {
@@ -107,6 +111,7 @@ app.use("/api/store", storeRouter);
 app.use("/api/chest", chestRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/subscription", subscriptionRouter);
+app.use("/api/programs", programRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {

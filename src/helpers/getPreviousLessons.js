@@ -1,16 +1,18 @@
-const { programs } = require("../config/programs");
+const { getPrograms, getFlatModules } = require("../services/programCacheService");
 
-const getPreviousLessons = (programId, instructionId) => {
+const getPreviousLessons = async (programId, instructionId) => {
+  const programs = await getPrograms();
   const program = programs.find(p => p.id === programId);
   if (!program) return [];
 
+  const flatModules = getFlatModules(program);
   const allPreviousLessons = [];
   let foundInstruction = false;
   let instructionModuleIndex = -1;
   let afterLessonId = null;
 
-  for (let i = 0; i < program.modules.length; i++) {
-    const module = program.modules[i];
+  for (let i = 0; i < flatModules.length; i++) {
+    const module = flatModules[i];
     const instruction = module.instructions?.find(inst => inst.id === instructionId);
 
     if (instruction) {
@@ -24,13 +26,13 @@ const getPreviousLessons = (programId, instructionId) => {
   if (!foundInstruction) return [];
 
   for (let i = 0; i < instructionModuleIndex; i++) {
-    const module = program.modules[i];
+    const module = flatModules[i];
     if (module.lessons) {
       allPreviousLessons.push(...module.lessons.map(l => l.id));
     }
   }
 
-  const currentModule = program.modules[instructionModuleIndex];
+  const currentModule = flatModules[instructionModuleIndex];
   if (currentModule.lessons && afterLessonId) {
     for (const lesson of currentModule.lessons) {
       allPreviousLessons.push(lesson.id);
@@ -41,11 +43,13 @@ const getPreviousLessons = (programId, instructionId) => {
   return allPreviousLessons;
 };
 
-const getModuleLessons = (programId, instructionId) => {
+const getModuleLessons = async (programId, instructionId) => {
+  const programs = await getPrograms();
   const program = programs.find(p => p.id === programId);
   if (!program) return [];
 
-  for (const module of program.modules) {
+  const flatModules = getFlatModules(program);
+  for (const module of flatModules) {
     const instruction = module.instructions?.find(inst => inst.id === instructionId);
     if (instruction) {
       if (!module.lessons || !instruction.afterLessonId) return [];

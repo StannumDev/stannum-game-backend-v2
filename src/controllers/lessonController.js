@@ -1,7 +1,7 @@
 const User = require("../models/userModel");
 const { addExperience } = require("../services/experienceService");
 const { getError } = require("../helpers/getError");
-const { programs } = require("../config/programs");
+const { getPrograms, getFlatModules } = require("../services/programCacheService");
 const { isValidProgram } = require("../config/programRegistry");
 const { hasAccess } = require("../utils/accessControl");
 const { getPlaybackId: getMuxPlaybackId } = require("../config/muxPlaybackIds");
@@ -30,11 +30,13 @@ const markLessonAsCompleted = async (req, res) => {
         const alreadyGivenXP = user.xpHistory.some(entry => entry.type === 'LESSON_COMPLETED' && entry.meta?.lessonId === lessonId);
         if (alreadyGivenXP) return res.status(400).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
 
-        const programConfig = programs.find(p => p.id === programName);
+        const allPrograms = await getPrograms();
+        const programConfig = allPrograms.find(p => p.id === programName);
         if (!programConfig) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
 
+        const flatMods = getFlatModules(programConfig);
         let lessonFound = false;
-        for (const mod of (programConfig.modules || [])) {
+        for (const mod of flatMods) {
             const lessonIndex = mod.lessons.findIndex(l => l.id === lessonId);
             if (lessonIndex === -1) continue;
 
@@ -130,6 +132,15 @@ const getPlaybackId = async (req, res) => {
 
         const userProgram = user.programs?.[programName];
         if (!hasAccess(userProgram)) return res.status(403).json(getError("VALIDATION_LESSON_NOT_PURCHASED"));
+
+        // Verify lesson belongs to the requested program before returning playback ID
+        const allPrograms = await getPrograms();
+        const programConfig = allPrograms.find(p => p.id === programName);
+        if (!programConfig) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
+
+        const flatMods = getFlatModules(programConfig);
+        const lessonBelongsToProgram = flatMods.some(mod => mod.lessons.some(l => l.id === lessonId));
+        if (!lessonBelongsToProgram) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));
 
         const playbackId = getMuxPlaybackId(lessonId);
         if (!playbackId) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));

@@ -1043,6 +1043,15 @@
         "techMessage": "An unexpected error occurred on the server.",
         "friendlyMessage": "Ocurrió un error inesperado en el servidor. Por favor, inténtalo nuevamente o contacta al soporte."
     },
+    "PROGRAM_NOT_FOUND": {
+        "success": false,
+        "code": "PROGRAM_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Programa no encontrado",
+        "techMessage": "The specified program does not exist.",
+        "friendlyMessage": "No se encontró el programa solicitado."
+    },
     "CHEST_NOT_FOUND": {
         "success": false,
         "code": "CHEST_001",
@@ -1267,6 +1276,15 @@
         "title": "No se puede cancelar",
         "techMessage": "Subscription is not in a cancellable state.",
         "friendlyMessage": "Esta suscripción no puede cancelarse en su estado actual."
+    },
+    "SUBSCRIPTION_INVALID_TRANSITION": {
+        "success": false,
+        "code": "SUB_009",
+        "type": "error",
+        "showAlert": true,
+        "title": "Transición no válida",
+        "techMessage": "Invalid subscription state transition.",
+        "friendlyMessage": "No se puede realizar este cambio de estado en la suscripción."
     },
     "VALIDATION_PROGRAM_NAME_INVALID": {
         "success": false,
