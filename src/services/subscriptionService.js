@@ -294,7 +294,7 @@ async function cancelSubscription(userId, programId, trigger = 'user') {
     throw { statusCode: 400, errorKey: 'SUBSCRIPTION_NOT_FOUND' };
   }
 
-  if (!['active', 'paused'].includes(sub.status)) {
+  if (!isValidTransition(sub.status, 'cancelled')) {
     throw { statusCode: 400, errorKey: 'SUBSCRIPTION_CANNOT_CANCEL' };
   }
 
@@ -642,13 +642,17 @@ async function processAuthorizedPaymentWebhook(authorizedPaymentId) {
       [`programs.${programId}.hasAccessFlag`]: true,
     };
 
-    // Ensure status is active if it was paused
+    // Ensure status is active if it was paused (validate transition)
     if (sub.status === 'paused') {
-      updateFields[`programs.${programId}.subscription.status`] = 'active';
-      await logAudit(user._id, programId, 'paused', 'active', 'webhook', {
-        reason: 'payment_approved',
-        mpPaymentId: mpData.payment.id,
-      });
+      if (!isValidTransition('paused', 'active')) {
+        console.warn(`[Subscription Webhook] Invalid transition: paused → active for user ${user._id}`);
+      } else {
+        updateFields[`programs.${programId}.subscription.status`] = 'active';
+        await logAudit(user._id, programId, 'paused', 'active', 'webhook', {
+          reason: 'payment_approved',
+          mpPaymentId: mpData.payment.id,
+        });
+      }
     }
 
     await User.findOneAndUpdate({ _id: user._id }, { $set: updateFields });
@@ -719,7 +723,7 @@ async function processAuthorizedPaymentWebhook(authorizedPaymentId) {
       throw err;
     }
 
-    if (sub.status === 'active') {
+    if (sub.status === 'active' && isValidTransition('active', 'paused')) {
       await User.findOneAndUpdate(
         { _id: user._id },
         {
@@ -737,6 +741,8 @@ async function processAuthorizedPaymentWebhook(authorizedPaymentId) {
         reason: 'payment_rejected_final',
         mpPaymentId: mpData.payment.id,
       });
+    } else if (sub.status === 'active') {
+      console.warn(`[Subscription Webhook] Invalid transition: active → paused for user ${user._id}`);
     } else {
       await User.findOneAndUpdate(
         { _id: user._id },
@@ -767,6 +773,7 @@ async function expireCancelledSubscriptions() {
       if (!sub) continue;
       if (sub.status !== 'cancelled') continue;
       if (!sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > now) continue;
+      if (!isValidTransition(sub.status, 'expired')) continue;
 
       // MED-04 fix: Single atomic update for both status and hasAccessFlag
       try {

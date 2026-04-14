@@ -1,7 +1,7 @@
 const OpenAI = require("openai");
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const User = require("../models/userModel");
-const { programs } = require("../config/programs");
+const { getPrograms } = require("./programCacheService");
 const { resolveInstructionInfo } = require("../helpers/resolveInstructionInfo");
 const { addExperience } = require("./experienceService");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
@@ -178,7 +178,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     if (!instruction) throw new Error("Instrucción no encontrada");
     if (instruction.status !== "SUBMITTED") throw new Error(`Estado inválido: ${instruction.status}`);
 
-    const config = getInstructionConfig(programName, instructionId);
+    const config = await getInstructionConfig(programName, instructionId);
     if (!config) throw new Error("Config de instrucción no encontrada");
 
     const fileUrls = instruction.fileUrls?.length > 0
@@ -253,7 +253,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
       return grading;
     }
 
-    const validLessonIds = getPreviousLessons(programName, instructionId);
+    const validLessonIds = await getPreviousLessons(programName, instructionId);
     const filteredLessons = grading.referencedLessons.filter(id => validLessonIds.includes(id));
 
     freshInstruction.score = grading.score;
@@ -262,7 +262,8 @@ const gradeWithAI = async (userId, programName, instructionId) => {
     freshInstruction.reviewedAt = new Date();
     freshInstruction.status = "GRADED";
 
-    const info = resolveInstructionInfo(programs, programName, instructionId);
+    const cachedPrograms = await getPrograms();
+    const info = resolveInstructionInfo(cachedPrograms, programName, instructionId);
     const timeTakenSec = freshInstruction.submittedAt && freshInstruction.startDate
       ? Math.round((new Date(freshInstruction.submittedAt) - new Date(freshInstruction.startDate)) / 1000)
       : 0;
@@ -305,7 +306,7 @@ const gradeWithAI = async (userId, programName, instructionId) => {
   }
 };
 
-const buildGradingMessage = (config, instruction, programName, instructionId, fileCount = 0) => {
+const buildGradingMessage = async (config, instruction, programName, instructionId, fileCount = 0) => {
   let message = `Corrige la siguiente entrega de un alumno.\n\n`;
   message += `## Instrucción\n`;
   message += `- **Título**: ${config.title}\n`;
@@ -319,7 +320,7 @@ const buildGradingMessage = (config, instruction, programName, instructionId, fi
     message += `  ${i + 1}. ${step}\n`;
   });
 
-  const moduleLessonIds = getModuleLessons(programName, instructionId);
+  const moduleLessonIds = await getModuleLessons(programName, instructionId);
 
   if (moduleLessonIds.length > 0) {
     const lessons = getMultipleLessonsContent(programName, moduleLessonIds);

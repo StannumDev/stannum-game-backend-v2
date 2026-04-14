@@ -2,6 +2,7 @@ const achievementsConfig = require('../config/achievementsConfig');
 const { nextLevelTarget, computeLevelProgress } = require('../helpers/experienceHelper');
 const xpCfg = require('../config/xpConfig');
 const { grantCoins } = require('./coinsService');
+const { getPrograms } = require('./programCacheService');
 
 const enrichCommunityStats = async (user) => {
     try {
@@ -45,13 +46,14 @@ const enrichCommunityStats = async (user) => {
 const checkAndAddAchievements = async (user) => {
     if (!user) throw new Error("USER_NOT_FOUND");
 
+    const programs = await getPrograms();
     const newlyUnlocked = [];
     const unlockedIds = new Set((user.achievements || []).map(a => a.achievementId));
     const lockedAchievements = achievementsConfig.filter(a => !unlockedIds.has(a.id));
 
     for (const achievement of lockedAchievements) {
         try {
-            if (achievement.condition(user)) {
+            if (achievement.condition(user, programs)) {
                 const newAchievement = { achievementId: achievement.id, unlockedAt: new Date(), xpReward: achievement.xpReward || 0, coinsReward: achievement.coinsReward || 0 };
                 user.achievements.push(newAchievement);
                 newlyUnlocked.push(newAchievement);

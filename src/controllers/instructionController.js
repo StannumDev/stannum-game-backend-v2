@@ -4,7 +4,6 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 const { getInstructionConfig } = require("../helpers/getInstructionConfig");
-const { programs } = require("../config/programs");
 const { gradeWithAI } = require("../services/aiGradingService");
 const { hasAccess } = require("../utils/accessControl");
 const { invalidateUser } = require("../cache/cacheService");
@@ -41,7 +40,7 @@ const startInstruction = async (req, res) => {
 
     if (!VALID_PROGRAMS.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
-    const config = getInstructionConfig(programName, instructionId);
+    const config = await getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
     const user = await User.findById(userId);
@@ -100,7 +99,7 @@ const getPresignedUrls = async (req, res) => {
     if (!VALID_PROGRAMS.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
     if (!Array.isArray(files) || files.length === 0) return res.status(400).json(getError("VALIDATION_MISSING_FIELDS"));
 
-    const config = getInstructionConfig(programName, instructionId);
+    const config = await getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
     if (config.deliverableType !== "file") return res.status(400).json(getError("INSTRUCTION_TEXT_REQUIRED"));
 
@@ -161,7 +160,7 @@ const submitInstruction = async (req, res) => {
 
     if (!VALID_PROGRAMS.includes(programName)) return res.status(400).json(getError("VALIDATION_PROGRAM_NAME_INVALID"));
 
-    const config = getInstructionConfig(programName, instructionId);
+    const config = await getInstructionConfig(programName, instructionId);
     if (!config) return res.status(404).json(getError("INSTRUCTION_NOT_FOUND"));
 
     const user = await User.findById(userId);

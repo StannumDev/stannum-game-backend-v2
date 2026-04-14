@@ -1,7 +1,9 @@
 const resolveInstructionInfo = (catalog, programId, instructionId) => {
     const prog = catalog.find(p => p.id === programId);
     if (!prog) return { rewardXP: 0, estimatedTimeSec: 0 };
-    for (const mod of (prog.modules || [])) {
+
+    const flatModules = (prog.sections || []).flatMap(s => s.modules || []);
+    for (const mod of flatModules) {
         const i = (mod.instructions || []).find(x => x.id === instructionId);
         if (i) {
             return {

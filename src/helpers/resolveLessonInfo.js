@@ -1,12 +1,13 @@
-const { programs } = require('../config/programs');
+const { getPrograms, getFlatModules } = require('../services/programCacheService');
 
-const resolveLessonInfo = (programId, lessonId) => {
+const resolveLessonInfo = async (programId, lessonId) => {
+    const programs = await getPrograms();
     const prog = programs.find(p => p.id === programId);
     if (!prog) return { moduleIndex: 0, durationSec: 0 };
 
-    for (let m = 0; m < (prog.modules?.length || 0); m++) {
-        const mod = prog.modules[m];
-        const lesson = mod.lessons?.find(l => l.id === lessonId);
+    const flatModules = getFlatModules(prog);
+    for (let m = 0; m < flatModules.length; m++) {
+        const lesson = flatModules[m].lessons?.find(l => l.id === lessonId);
         if (lesson) {
             return {
                 moduleIndex: m,
@@ -16,6 +17,5 @@ const resolveLessonInfo = (programId, lessonId) => {
     }
     return { moduleIndex: 0, durationSec: 0 };
 };
-
 
 module.exports = { resolveLessonInfo };
