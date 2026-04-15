@@ -1294,5 +1294,23 @@
         "title": "Programa no válido",
         "techMessage": "The program name is not valid or does not exist.",
         "friendlyMessage": "El programa seleccionado no es válido."
+    },
+    "ADMIN_USER_NOT_FOUND": {
+        "success": false,
+        "code": "ADMIN_001",
+        "type": "error",
+        "showAlert": false,
+        "title": "Usuario no encontrado",
+        "techMessage": "No user found with the provided identifier.",
+        "friendlyMessage": "No se encontró un usuario con ese identificador."
+    },
+    "ADMIN_INVALID_PARAMS": {
+        "success": false,
+        "code": "ADMIN_002",
+        "type": "warning",
+        "showAlert": false,
+        "title": "Parámetros inválidos",
+        "techMessage": "Invalid or missing query parameters for admin endpoint.",
+        "friendlyMessage": "Los parámetros proporcionados no son válidos."
     }
 }
