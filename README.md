@@ -76,6 +76,7 @@ src/
 │
 ├── models/                  # Schemas MongoDB (Mongoose)
 │   ├── userModel.js            # User: perfil, nivel, XP, achievements, programas, streaks
+│   ├── programModel.js         # Catalogo de programas (secciones, modulos, lecciones, instrucciones)
 │   ├── productKeyModel.js      # Product keys para activar programas
 │   ├── promptModel.js          # Prompts de comunidad
 │   ├── assistantModel.js       # Assistants/GPTs de comunidad
@@ -83,7 +84,7 @@ src/
 │   ├── couponModel.js          # Cupones de descuento
 │   ├── subscriptionPaymentModel.js  # Pagos de suscripcion
 │   ├── subscriptionAuditLogModel.js # Audit log de suscripciones
-│   ├── cancelTokenModel.js     # Tokens de cancelacion
+│   ├── cancelTokenModel.js     # Tokens de cancelacion (TTL)
 │   └── failedEmailModel.js     # Emails fallidos (retry)
 │
 ├── routes/                  # Definicion de endpoints
@@ -129,6 +130,8 @@ src/
 │   ├── subscriptionReconciliationService.js # Reconciliacion con Mercado Pago
 │   ├── streakService.js        # Gestion de daily streaks
 │   ├── programActivationService.js # Activacion de programas (product keys, compras)
+│   ├── programCacheService.js  # Cache en memoria del catalogo de programas
+│   ├── receiptService.js       # Generacion de recibos de compra y suscripcion
 │   └── demoTransferService.js  # Transferencia de progreso demo → programa completo
 │
 ├── middlewares/             # Middlewares Express
@@ -154,10 +157,19 @@ src/
 │   ├── getLessonContent.js     # Obtener contenido de leccion por ID
 │   ├── getPreviousLessons.js   # Obtener lecciones previas (para AI context)
 │   ├── getInstructionConfig.js # Obtener config de instruccion
+│   ├── resolveInstructionInfo.js # Resolver info de instruccion desde config
 │   └── resolveLessonInfo.js    # Resolver info de leccion desde config
 │
-└── scripts/                 # Scripts de migracion
-    └── migrateTotalXp.js       # Migracion de XP total
+├── utils/                   # Utilidades
+│   └── accessControl.js        # Control de acceso centralizado (hasAccess, buildAccessQuery)
+│
+├── migrations/              # Migraciones de datos
+│   └── seedPrograms.js         # Seed del catalogo de programas en MongoDB
+│
+└── scripts/                 # Scripts de migracion y utilidades
+    ├── migrateTotalXp.js       # Migracion de XP total por programa
+    ├── migrateSubscriptionFields.js # Migrar hasAccessFlag y subscription subdoc
+    └── createMpPlan.js         # Crear plan de suscripcion en Mercado Pago
 ```
 
 ## Variables de Entorno
@@ -494,6 +506,12 @@ Registro de cada pago de suscripcion recibido via webhook de Mercado Pago.
 
 ### SubscriptionAuditLog (`subscriptionAuditLogModel.js`)
 Audit trail de cambios de estado en suscripciones (creacion, cancelacion, expiracion, etc).
+
+### Program (`programModel.js`)
+Catalogo de programas educativos. Almacena la estructura completa: secciones, modulos, lecciones e instrucciones. Cada programa tiene tipo (purchase/subscription/demo), precios, y metadata descriptiva.
+
+### CancelToken (`cancelTokenModel.js`)
+Tokens de un solo uso para cancelacion de suscripciones via link en email. Incluyen TTL con expiracion automatica.
 
 ### FailedEmail (`failedEmailModel.js`)
 Emails que fallaron al enviarse, con datos para retry automatico.
