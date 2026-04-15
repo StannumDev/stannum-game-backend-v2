@@ -18,6 +18,7 @@ const storeRouter = require("./routes/storeRoutes");
 const chestRouter = require("./routes/chestRoutes");
 const webhookRouter = require("./routes/webhookRoutes");
 const programRouter = require("./routes/programRoutes");
+const adminRouter = require("./routes/adminRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
 const subscriptionRouter = require("./routes/subscriptionRoutes");
 const cron = require("node-cron");
@@ -112,6 +113,7 @@ app.use("/api/chest", chestRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/subscription", subscriptionRouter);
 app.use("/api/programs", programRouter);
+app.use("/api/admin", adminRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
