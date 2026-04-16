@@ -4,7 +4,6 @@ const { getError } = require("../helpers/getError");
 const { getPrograms, getFlatModules } = require("../services/programCacheService");
 const { isValidProgram } = require("../config/programRegistry");
 const { hasAccess } = require("../utils/accessControl");
-const { getPlaybackId: getMuxPlaybackId } = require("../config/muxPlaybackIds");
 const { invalidateUser, invalidateRankingsForProgram } = require("../cache/cacheService");
 
 const markLessonAsCompleted = async (req, res) => {
@@ -139,10 +138,11 @@ const getPlaybackId = async (req, res) => {
         if (!programConfig) return res.status(404).json(getError("VALIDATION_PROGRAM_NOT_FOUND"));
 
         const flatMods = getFlatModules(programConfig);
-        const lessonBelongsToProgram = flatMods.some(mod => mod.lessons.some(l => l.id === lessonId));
-        if (!lessonBelongsToProgram) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));
-
-        const playbackId = getMuxPlaybackId(lessonId);
+        let playbackId = null;
+        for (const mod of flatMods) {
+            const lesson = mod.lessons.find(l => l.id === lessonId);
+            if (lesson) { playbackId = lesson.muxPlaybackId; break; }
+        }
         if (!playbackId) return res.status(404).json(getError("VALIDATION_LESSON_NOT_FOUND"));
 
         return res.status(200).json({ success: true, playbackId });
