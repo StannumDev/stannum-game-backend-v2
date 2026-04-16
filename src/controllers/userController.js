@@ -23,7 +23,7 @@ const getUserByToken = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
-        const userDetails = user.getFullUserDetails();
+        const userDetails = user.getGameUserDetails();
         const response = {
             success: true,
             data: userDetails,
@@ -78,7 +78,7 @@ const getUserDetailsByUsername = async (req, res) => {
             user = await User.findById(user._id);
         }
 
-        const userDetails = isOwner ? user.getFullUserDetails() : user.getPublicUserDetails();
+        const userDetails = isOwner ? user.getGameUserDetails() : user.getPublicUserDetails();
 
         if (hasAnyAccess(user.programs)) {
             const usersAbove = await User.countDocuments({
@@ -176,7 +176,7 @@ const editUser = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "User updated successfully.",
-            data: user.getFullUserDetails(),
+            data: user.getGameUserDetails(),
             achievementsUnlocked: achievementsResult.newlyUnlocked
         });
     } catch (error) {

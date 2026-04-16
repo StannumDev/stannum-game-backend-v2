@@ -2,6 +2,109 @@ const { Program } = require("../models/programModel");
 const { getError } = require("../helpers/getError");
 const { invalidateCache } = require("../services/programCacheService");
 
+// ── Helper: sanitizar programa para endpoints públicos (game frontend) ──
+// Quita campos que el frontend no necesita y que exponen info interna.
+// Solo expone muxPlaybackId de la primera lesson del programa (trailer en la tienda).
+const sanitizeProgramForPublic = (program) => {
+    // Encontrar el ID de la primera lesson para usarla como trailer
+    let trailerLessonId = null;
+    for (const section of (program.sections || [])) {
+        for (const mod of (section.modules || [])) {
+            if (mod.lessons?.length > 0 && mod.lessons[0].muxPlaybackId) {
+                trailerLessonId = mod.lessons[0].id;
+                break;
+            }
+        }
+        if (trailerLessonId) break;
+    }
+
+    const sanitizeResource = (r) => ({
+        id: r.id,
+        parentId: r.parentId ?? null,
+        title: r.title,
+        description: r.description || "",
+        link: r.link || "",
+        type: r.type,
+    });
+
+    const sanitizeInstruction = (inst) => ({
+        id: inst.id,
+        title: inst.title,
+        shortDescription: inst.shortDescription || "",
+        description: inst.description || "",
+        difficulty: inst.difficulty,
+        rewardXP: inst.rewardXP || 0,
+        estimatedTimeSec: inst.estimatedTimeSec || 0,
+        acceptedFormats: inst.acceptedFormats || [],
+        maxFileSizeMB: inst.maxFileSizeMB || 15,
+        deliverableHint: inst.deliverableHint || "",
+        afterLessonId: inst.afterLessonId || null,
+        deliverableType: inst.deliverableType || "file",
+        maxFiles: inst.maxFiles || 1,
+        requiredActivityId: inst.requiredActivityId || null,
+        tools: inst.tools || [],
+        steps: inst.steps || [],
+        resources: (inst.resources || []).map(sanitizeResource),
+    });
+
+    const sanitizeLesson = (lesson) => {
+        const base = {
+            id: lesson.id,
+            title: lesson.title,
+            longTitle: lesson.longTitle || "",
+            description: lesson.description || "",
+            durationSec: lesson.durationSec || 0,
+            blocked: lesson.blocked || false,
+        };
+        // Solo exponer muxPlaybackId para la lesson trailer
+        if (lesson.id === trailerLessonId) {
+            base.muxPlaybackId = lesson.muxPlaybackId || "";
+        }
+        return base;
+    };
+
+    const sanitizeModule = (mod) => ({
+        id: mod.id,
+        name: mod.name,
+        description: mod.description || "",
+        lessons: (mod.lessons || []).map(sanitizeLesson),
+        instructions: (mod.instructions || []).map(sanitizeInstruction),
+    });
+
+    const sanitizeSection = (section) => ({
+        id: section.id,
+        name: section.name,
+        modules: (section.modules || []).map(sanitizeModule),
+    });
+
+    return {
+        id: program.id,
+        name: program.name,
+        type: program.type || "purchase",
+        price: program.price ?? 0,
+        priceARS: program.priceARS ?? null,
+        subscriptionPriceARS: program.subscriptionPriceARS ?? null,
+        purchasable: program.purchasable ?? false,
+        hidden: program.hidden ?? false,
+        categories: program.categories || [],
+        description: program.description || "",
+        longDescription: program.longDescription || "",
+        learningPoints: program.learningPoints || [],
+        sections: (program.sections || []).map(sanitizeSection),
+    };
+};
+
+// ── GET /full ── Lista de programas completa (admin)
+const getAllProgramsFull = async (req, res) => {
+    try {
+        const programs = await Program.find().lean();
+        return res.status(200).json({ success: true, data: programs });
+    } catch (error) {
+        console.error("Error obteniendo programas completos:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
 // ── GET / ── Lista de programas (summary para admin dashboard)
 const getAllPrograms = async (req, res) => {
     try {
@@ -21,18 +124,30 @@ const getAllPrograms = async (req, res) => {
     }
 };
 
-// ── GET /public ── Lista de programas completa (para game frontend)
+// ── GET /public ── Lista de programas sanitizada (para game frontend)
 const getAllProgramsPublic = async (req, res) => {
     try {
         const programs = await Program.find().lean();
-        return res.status(200).json({ success: true, data: programs });
+        return res.status(200).json({ success: true, data: programs.map(sanitizeProgramForPublic) });
     } catch (error) {
         console.error("Error obteniendo programas públicos:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
 };
 
-// ── GET /:programId ── Programa completo
+// ── GET /public/:programId ── Programa sanitizado (para game frontend)
+const getProgramByIdPublic = async (req, res) => {
+    try {
+        const program = await Program.findOne({ id: req.params.programId }).lean();
+        if (!program) return res.status(404).json(getError("PROGRAM_NOT_FOUND"));
+        return res.status(200).json({ success: true, data: sanitizeProgramForPublic(program) });
+    } catch (error) {
+        console.error("Error obteniendo programa público:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+// ── GET /:programId ── Programa completo (admin)
 const getProgramById = async (req, res) => {
     try {
         const program = await Program.findOne({ id: req.params.programId }).lean();
@@ -333,8 +448,10 @@ const deleteInstructionResource = async (req, res) => {
 
 module.exports = {
     getAllPrograms,
+    getAllProgramsFull,
     getAllProgramsPublic,
     getProgramById,
+    getProgramByIdPublic,
     updateProgram,
     updateSection,
     updateModule,
