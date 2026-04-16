@@ -4,19 +4,7 @@ const { invalidateCache } = require("../services/programCacheService");
 
 // ── Helper: sanitizar programa para endpoints públicos (game frontend) ──
 // Quita campos que el frontend no necesita y que exponen info interna.
-// Solo expone muxPlaybackId de la primera lesson del programa (trailer en la tienda).
 const sanitizeProgramForPublic = (program) => {
-    // Encontrar el ID de la primera lesson para usarla como trailer
-    let trailerLessonId = null;
-    for (const section of (program.sections || [])) {
-        for (const mod of (section.modules || [])) {
-            if (mod.lessons?.length > 0 && mod.lessons[0].muxPlaybackId) {
-                trailerLessonId = mod.lessons[0].id;
-                break;
-            }
-        }
-        if (trailerLessonId) break;
-    }
 
     const sanitizeResource = (r) => ({
         id: r.id,
@@ -48,19 +36,15 @@ const sanitizeProgramForPublic = (program) => {
     });
 
     const sanitizeLesson = (lesson) => {
-        const base = {
+        return {
             id: lesson.id,
             title: lesson.title,
             longTitle: lesson.longTitle || "",
             description: lesson.description || "",
             durationSec: lesson.durationSec || 0,
             blocked: lesson.blocked || false,
+            muxPlaybackId: lesson.muxPlaybackId || "",
         };
-        // Solo exponer muxPlaybackId para la lesson trailer
-        if (lesson.id === trailerLessonId) {
-            base.muxPlaybackId = lesson.muxPlaybackId || "";
-        }
-        return base;
     };
 
     const sanitizeModule = (mod) => ({
