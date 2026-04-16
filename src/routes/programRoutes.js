@@ -20,7 +20,7 @@ const resourceIdParam = param("resourceId").trim().notEmpty().withMessage("resou
 // Endpoints publicos para game frontend (JWT)
 // ═══════════════════════════════════════════════
 router.get("/public", validateJWT, programController.getAllProgramsPublic);
-router.get("/public/:programId", [validateJWT, programIdParam, fieldsValidate], programController.getProgramById);
+router.get("/public/:programId", [validateJWT, programIdParam, fieldsValidate], programController.getProgramByIdPublic);
 
 // ═══════════════════════════════════════════════
 // Endpoints admin para Trenno Dashboard (API Key)
@@ -28,7 +28,7 @@ router.get("/public/:programId", [validateJWT, programIdParam, fieldsValidate], 
 
 // Programas
 router.get("/", validateAPIKey, programController.getAllPrograms);
-router.get("/full", validateAPIKey, programController.getAllProgramsPublic);
+router.get("/full", validateAPIKey, programController.getAllProgramsFull);
 router.get("/:programId", [validateAPIKey, programIdParam, fieldsValidate], programController.getProgramById);
 router.put("/:programId", [validateAPIKey, programIdParam, fieldsValidate], programController.updateProgram);
 

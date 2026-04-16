@@ -811,6 +811,95 @@ userSchema.methods.getFullUserDetails = function () {
   };
 };
 
+// Versión para el game frontend: sin datos internos que el cliente no necesita.
+userSchema.methods.getGameUserDetails = function () {
+  const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
+  const today = localTodayString(tz);
+  const last = this.dailyStreak?.lastActivityLocalDate;
+  const coveredDate = this.dailyStreak?.shieldCoveredDate;
+  const effectiveLast = (coveredDate && (!last || coveredDate > last)) ? coveredDate : last;
+
+  const isStreakAlive = effectiveLast && (
+    isSameLocalDay(effectiveLast, today) ||
+    isConsecutiveLocalDay(effectiveLast, today)
+  );
+  const effectiveCount = isStreakAlive ? (this.dailyStreak?.count || 0) : 0;
+
+  const sanitizeProgram = (prog) => {
+    if (!prog) return prog;
+    return {
+      isPurchased: prog.isPurchased,
+      hasAccessFlag: prog.hasAccessFlag || false,
+      instructions: (prog.instructions || []).map(i => ({
+        instructionId: i.instructionId,
+        status: i.status,
+        score: i.score,
+        observations: i.observations,
+        xpGained: i.xpGained,
+        startDate: i.startDate,
+        submittedAt: i.submittedAt,
+        estimatedTimeSec: i.estimatedTimeSec,
+        referencedLessons: i.referencedLessons,
+      })),
+      lessonsCompleted: prog.lessonsCompleted,
+      lastWatchedLesson: prog.lastWatchedLesson,
+      chestsOpened: prog.chestsOpened,
+      subscription: prog.subscription?.status ? { status: prog.subscription.status } : undefined,
+    };
+  };
+
+  const programKeys = Object.keys(this.programs?.toJSON?.() || this.programs || {});
+  const programs = {};
+  for (const key of programKeys) {
+    programs[key] = sanitizeProgram(this.programs[key]);
+  }
+
+  return {
+    id: this._id,
+    username: this.username,
+    profilePhoto: this.profilePhotoUrl,
+    profile: {
+      ...this.profile,
+      name: censor(this.profile.name),
+      aboutMe: censor(this.profile.aboutMe),
+    },
+    enterprise: {
+      name: (censor(this.enterprise?.name) || "").toUpperCase(),
+      jobPosition: censor(this.enterprise?.jobPosition),
+    },
+    level: this.level,
+    achievements: this.achievements,
+    dailyStreak: {
+      count: effectiveCount,
+      lastActivityLocalDate: this.dailyStreak?.lastActivityLocalDate,
+      timezone: tz,
+      shields: this.dailyStreak?.shields || 0,
+      lostCount: this.dailyStreak?.lostCount ?? null,
+      recoveryAvailable: !!(
+        this.dailyStreak?.lostCount &&
+        this.dailyStreak?.lostAt &&
+        (Date.now() - new Date(this.dailyStreak.lostAt).getTime()) < coinsCfg.STREAK_RECOVERY_WINDOW_MS
+      ),
+      recoveryExpiresAt: (this.dailyStreak?.lostCount && this.dailyStreak?.lostAt)
+        ? new Date(new Date(this.dailyStreak.lostAt).getTime() + coinsCfg.STREAK_RECOVERY_WINDOW_MS).toISOString()
+        : null,
+    },
+    coins: this.coins || 0,
+    equippedCoverId: this.equippedCoverId || 'default',
+    unlockedCovers: this.unlockedCovers,
+    favorites: {
+      prompts: (this.favorites?.prompts || []).length,
+      assistants: (this.favorites?.assistants || []).length,
+    },
+    communityStats: {
+      promptsCount: this.communityStats?.promptsCount || 0,
+      assistantsCount: this.communityStats?.assistantsCount || 0,
+      totalFavoritesReceived: this.communityStats?.totalFavoritesReceived || 0,
+    },
+    programs,
+  };
+};
+
 userSchema.methods.getPublicUserDetails = function () {
   const tz = this.dailyStreak?.timezone || 'America/Argentina/Buenos_Aires';
   const today = localTodayString(tz);
