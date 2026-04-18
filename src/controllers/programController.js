@@ -33,6 +33,9 @@ const sanitizeProgramForPublic = (program) => {
         tools: inst.tools || [],
         steps: inst.steps || [],
         resources: (inst.resources || []).map(sanitizeResource),
+        order: inst.order || 0,
+        createdAt: inst.createdAt || null,
+        updatedAt: inst.updatedAt || null,
     });
 
     const sanitizeLesson = (lesson) => {
@@ -44,6 +47,9 @@ const sanitizeProgramForPublic = (program) => {
             durationSec: lesson.durationSec || 0,
             blocked: lesson.blocked || false,
             muxPlaybackId: lesson.muxPlaybackId || "",
+            order: lesson.order || 0,
+            createdAt: lesson.createdAt || null,
+            updatedAt: lesson.updatedAt || null,
         };
     };
 
@@ -51,6 +57,7 @@ const sanitizeProgramForPublic = (program) => {
         id: mod.id,
         name: mod.name,
         description: mod.description || "",
+        order: mod.order || 0,
         lessons: (mod.lessons || []).map(sanitizeLesson),
         instructions: (mod.instructions || []).map(sanitizeInstruction),
     });
@@ -58,6 +65,7 @@ const sanitizeProgramForPublic = (program) => {
     const sanitizeSection = (section) => ({
         id: section.id,
         name: section.name,
+        order: section.order || 0,
         modules: (section.modules || []).map(sanitizeModule),
     });
 
@@ -233,6 +241,7 @@ const updateLesson = async (req, res) => {
         for (const key of allowedFields) {
             if (req.body[key] !== undefined) updates[`sections.$[s].modules.$[m].lessons.$[l].${key}`] = req.body[key];
         }
+        if (Object.keys(updates).length > 0) updates["sections.$[s].modules.$[m].lessons.$[l].updatedAt"] = new Date();
 
         const result = await Program.findOneAndUpdate(
             { id: programId },
@@ -262,6 +271,7 @@ const updateInstruction = async (req, res) => {
         for (const key of allowedFields) {
             if (req.body[key] !== undefined) updates[`sections.$[s].modules.$[m].instructions.$[i].${key}`] = req.body[key];
         }
+        if (Object.keys(updates).length > 0) updates["sections.$[s].modules.$[m].instructions.$[i].updatedAt"] = new Date();
 
         const result = await Program.findOneAndUpdate(
             { id: programId },

@@ -28,7 +28,7 @@ const lessonSchema = new Schema(
         blocked: { type: Boolean, default: false },
         order: { type: Number, default: 0 },
     },
-    { _id: false }
+    { _id: false, timestamps: true }
 );
 
 const instructionSchema = new Schema(
@@ -57,7 +57,7 @@ const instructionSchema = new Schema(
         resources: { type: [resourceSchema], default: [] },
         order: { type: Number, default: 0 },
     },
-    { _id: false }
+    { _id: false, timestamps: true }
 );
 
 const moduleSchema = new Schema(

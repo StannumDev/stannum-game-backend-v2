@@ -377,6 +377,7 @@ const tiaSummerProgram = {
     price: 250,
     href: 'https://stannum.com.ar/trenno-ia-summer-2026',
     categories: ['main'],
+    hidden: true,
     description: 'Programa intensivo especializado en el entrenamiento en inteligencia artificial para líderes de empresas y sus equipos.',
     sections: [
         {
@@ -623,20 +624,11 @@ const tiaSummerProgram = {
             resources: [
                 {
                     id: genResourceId(),
-                    title: 'Proceso de contratación: ChatGPT Plus',
-                    description: 'Documento de soporte',
-                    link: 'https://docs.google.com/document/d/1iIxxIFbnV_pk3faDHrsGFZ72MpLSWQj6F2j0h0tzw28/edit?usp=sharing',
-                    type: 'document',
-                    order: 0,
-                    children: [],
-                },
-                {
-                    id: genResourceId(),
                     title: 'La esencia del negocio',
                     description: 'Presentación',
                     link: 'https://docs.google.com/presentation/d/1dxt94sAG4Xmu3lHXseigHr2okfjP0SEeUvrq1cC78LE/edit?usp=sharing',
                     type: 'presentation',
-                    order: 1,
+                    order: 0,
                     children: [],
                 },
                 {
@@ -645,6 +637,15 @@ const tiaSummerProgram = {
                     description: 'Carpeta de documentos claves',
                     link: 'https://drive.google.com/drive/folders/1xYUmjLEuIbIq_mq2uqRtSD13diRumokt?usp=sharing',
                     type: 'folder',
+                    order: 1,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Proceso de contratación: ChatGPT Plus',
+                    description: 'Documento de soporte',
+                    link: 'https://docs.google.com/document/d/1iIxxIFbnV_pk3faDHrsGFZ72MpLSWQj6F2j0h0tzw28/edit?usp=sharing',
+                    type: 'document',
                     order: 2,
                     children: [],
                 },
@@ -652,9 +653,54 @@ const tiaSummerProgram = {
                     id: genResourceId(),
                     title: 'Plantilla para el desarrollo del ROL',
                     description: 'Documento',
-                    link: 'https://drive.google.com/file/d/1L40cmq6A_hvlJDxOGRhslfbTUW0H7Dyc/view?usp=sharing',
+                    link: 'https://docs.google.com/document/d/1bvQQL7b76_FBS90zh-Usww1nGjgJ5U3dNevEyNMwkxw/edit?usp=sharing',
                     type: 'document',
                     order: 3,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Tu Asistente Estratégico',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1ZKM2XKAa9pJDyWVJLVA6xlRgFYAVUeUTUJmi8Vyv2Zg/edit?usp=sharing',
+                    type: 'activity',
+                    order: 4,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Copiloto de Ventas',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1phUM86e8z5_ysDYw4NXBSY5yp4VfyIzLsncXZ3MSKaM/edit?usp=sharing',
+                    type: 'activity',
+                    order: 5,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Diversificación de Mensajes',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1sYsaTKLTXeAaLkP9h8HNqm9-S0bm1ME5jKw52ctuUww/edit?usp=sharing',
+                    type: 'activity',
+                    order: 6,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Desafío de Contenido Multimedia',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1Qy-F93URmiGAZjgJm0nvUvGiOgudCE12WPcMQyMANr0/edit?usp=sharing',
+                    type: 'activity',
+                    order: 7,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Inteligencia Documental',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1CV-Vxh_E1mMnzf_o4uR6rBhpkDF28s15eQ_-WVAqY9w/edit?usp=sharing',
+                    type: 'activity',
+                    order: 8,
                     children: [],
                 },
                 {
@@ -663,7 +709,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, apuntes y ejercicios',
                     link: '',
                     type: 'folder',
-                    order: 4,
+                    order: 9,
                     children: [
                         {
                             id: genResourceId(),
@@ -700,7 +746,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, apuntes y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 5,
+                    order: 10,
                     children: [
                         {
                             id: genResourceId(),
@@ -737,7 +783,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 6,
+                    order: 11,
                     children: [
                         {
                             id: genResourceId(),
@@ -819,7 +865,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 7,
+                    order: 12,
                     children: [
                         {
                             id: genResourceId(),
@@ -874,7 +920,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 8,
+                    order: 13,
                     children: [
                         {
                             id: genResourceId(),
@@ -929,7 +975,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 9,
+                    order: 14,
                     children: [
                         {
                             id: genResourceId(),
@@ -993,7 +1039,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 10,
+                    order: 15,
                     children: [
                         {
                             id: genResourceId(),
@@ -1030,7 +1076,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen y ejercicios',
                     link: '',
                     type: 'folder',
-                    order: 11,
+                    order: 16,
                     children: [
                         {
                             id: genResourceId(),
@@ -1076,7 +1122,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 12,
+                    order: 17,
                     children: [
                         {
                             id: genResourceId(),
@@ -1122,7 +1168,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 13,
+                    order: 18,
                     children: [
                         {
                             id: genResourceId(),
@@ -1168,7 +1214,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 14,
+                    order: 19,
                     children: [
                         {
                             id: genResourceId(),
@@ -1205,7 +1251,7 @@ const tiaSummerProgram = {
                     description: 'Grabación, resumen, ejercicios y PROMPTs',
                     link: '',
                     type: 'folder',
-                    order: 15,
+                    order: 20,
                     children: [
                         {
                             id: genResourceId(),
@@ -1496,20 +1542,11 @@ const tiaPoolProgram = {
             resources: [
                 {
                     id: genResourceId(),
-                    title: 'Proceso de contratación: ChatGPT Plus',
-                    description: 'Documento de soporte',
-                    link: 'https://docs.google.com/document/d/1iIxxIFbnV_pk3faDHrsGFZ72MpLSWQj6F2j0h0tzw28/edit?usp=sharing',
-                    type: 'document',
-                    order: 0,
-                    children: [],
-                },
-                {
-                    id: genResourceId(),
                     title: 'La esencia del negocio',
                     description: 'Presentación',
                     link: 'https://docs.google.com/presentation/d/1dxt94sAG4Xmu3lHXseigHr2okfjP0SEeUvrq1cC78LE/edit?usp=sharing',
                     type: 'presentation',
-                    order: 1,
+                    order: 0,
                     children: [],
                 },
                 {
@@ -1518,6 +1555,15 @@ const tiaPoolProgram = {
                     description: 'Carpeta de documentos claves',
                     link: 'https://drive.google.com/drive/folders/1xYUmjLEuIbIq_mq2uqRtSD13diRumokt?usp=sharing',
                     type: 'folder',
+                    order: 1,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Proceso de contratación: ChatGPT Plus',
+                    description: 'Documento de soporte',
+                    link: 'https://docs.google.com/document/d/1iIxxIFbnV_pk3faDHrsGFZ72MpLSWQj6F2j0h0tzw28/edit?usp=sharing',
+                    type: 'document',
                     order: 2,
                     children: [],
                 },
@@ -1525,9 +1571,54 @@ const tiaPoolProgram = {
                     id: genResourceId(),
                     title: 'Plantilla para el desarrollo del ROL',
                     description: 'Documento',
-                    link: 'https://drive.google.com/file/d/1L40cmq6A_hvlJDxOGRhslfbTUW0H7Dyc/view?usp=sharing',
+                    link: 'https://docs.google.com/document/d/1bvQQL7b76_FBS90zh-Usww1nGjgJ5U3dNevEyNMwkxw/edit?usp=sharing',
                     type: 'document',
                     order: 3,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Tu Asistente Estratégico',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1ZKM2XKAa9pJDyWVJLVA6xlRgFYAVUeUTUJmi8Vyv2Zg/edit?usp=sharing',
+                    type: 'activity',
+                    order: 4,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Copiloto de Ventas',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1phUM86e8z5_ysDYw4NXBSY5yp4VfyIzLsncXZ3MSKaM/edit?usp=sharing',
+                    type: 'activity',
+                    order: 5,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Diversificación de Mensajes',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1sYsaTKLTXeAaLkP9h8HNqm9-S0bm1ME5jKw52ctuUww/edit?usp=sharing',
+                    type: 'activity',
+                    order: 6,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Desafío de Contenido Multimedia',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1Qy-F93URmiGAZjgJm0nvUvGiOgudCE12WPcMQyMANr0/edit?usp=sharing',
+                    type: 'activity',
+                    order: 7,
+                    children: [],
+                },
+                {
+                    id: genResourceId(),
+                    title: 'Inteligencia Documental',
+                    description: 'Ejercicios Prácticos de Consolidación',
+                    link: 'https://docs.google.com/document/d/1CV-Vxh_E1mMnzf_o4uR6rBhpkDF28s15eQ_-WVAqY9w/edit?usp=sharing',
+                    type: 'activity',
+                    order: 8,
                     children: [],
                 },
             ],
@@ -1556,10 +1647,12 @@ const programsData = [tiaProgram, tiaSummerProgram, tiaPoolProgram, tmdProgram];
 // ---------------------------------------------------------------------------
 // Seed
 // ---------------------------------------------------------------------------
-const seed = async () => {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(process.env.DB_URL);
-    console.log('Connected.\n');
+const seed = async ({ reuseConnection = false } = {}) => {
+    if (!reuseConnection) {
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(process.env.DB_URL);
+        console.log('Connected.\n');
+    }
 
     // Validate: no lesson should have an empty muxPlaybackId
     const warnings = [];
@@ -1613,10 +1706,16 @@ const seed = async () => {
     }
 
     console.log('\nSeed complete.');
-    await mongoose.disconnect();
+    if (!reuseConnection) {
+        await mongoose.disconnect();
+    }
 };
 
-seed().catch((err) => {
-    console.error('Seed failed:', err);
-    process.exit(1);
-});
+module.exports = { seed, programsData };
+
+if (require.main === module) {
+    seed().catch((err) => {
+        console.error('Seed failed:', err);
+        process.exit(1);
+    });
+}

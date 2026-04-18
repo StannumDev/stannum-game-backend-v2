@@ -830,6 +830,7 @@ userSchema.methods.getGameUserDetails = function () {
     return {
       isPurchased: prog.isPurchased,
       hasAccessFlag: prog.hasAccessFlag || false,
+      acquiredAt: prog.acquiredAt || null,
       instructions: (prog.instructions || []).map(i => ({
         instructionId: i.instructionId,
         status: i.status,
