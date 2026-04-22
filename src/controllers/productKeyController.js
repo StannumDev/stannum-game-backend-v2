@@ -376,7 +376,7 @@ const checkProductKeyStatus = async (req, res) => {
     const { code } = req.params;
     try {
         const productKey = await ProductKey.findOne({ code: code.toUpperCase() })
-            .populate("user", "name email");
+            .populate("usedBy", "profile.name email");
 
         if (!productKey) {
             return res.status(404).json({
@@ -392,11 +392,11 @@ const checkProductKeyStatus = async (req, res) => {
                 code: productKey.code,
                 email: productKey.email,
                 product: productKey.product,
-                isActivated: !!productKey.user,
-                activatedAt: productKey.user ? productKey.createdAt : null,
-                user: productKey.user ? {
-                    name: productKey.user.name,
-                    email: productKey.user.email
+                isActivated: !!productKey.usedBy,
+                activatedAt: productKey.usedBy ? productKey.usedAt : null,
+                user: productKey.usedBy ? {
+                    name: productKey.usedBy.profile?.name,
+                    email: productKey.usedBy.email
                 } : null
             }
         });
