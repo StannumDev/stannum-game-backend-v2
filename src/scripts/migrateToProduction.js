@@ -296,6 +296,11 @@ async function run() {
   );
   console.log(`  otp.recoveryVerified added to ${step9c.modifiedCount} users`);
 
+  const step9d = await users.updateMany(
+    { 'profile.socialLinks': { $exists: false } },
+    { $set: { 'profile.socialLinks': [] } }
+  );
+  console.log(`  profile.socialLinks added to ${step9d.modifiedCount} users`);
   // ========================================================================
   // STEP 10: Add favorites object
   // ========================================================================
