@@ -136,6 +136,8 @@ const coinsEventSchema = new Schema({
       'CHEST_OPENED',
       'STREAK_SHIELD_PURCHASE',
       'STREAK_RECOVERY',
+      'MIGRATION_BACKFILL',
+      'ADMIN_GRANT',
     ],
     required: true,
   },
