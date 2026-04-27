@@ -1633,10 +1633,65 @@ const tmdProgram = {
     id: 'tmd',
     name: 'TRENNO Mark Digital',
     price: -1,
-    href: '',
+    href: 'https://docs.google.com/forms/d/e/1FAIpQLSfK4Wp2c27wa-xxfgd4Bw9AhY7cuUHsLL4Rk4_YXAbuz2zL4Q/viewform?usp=sharing&ouid=118137140539958374058',
     categories: ['free'],
     description: 'Programa especializado en organización digital y marketing para emprendedores.',
-    sections: [],
+    sections: [
+        {
+            id: 'preseason',
+            name: 'Introducción',
+            order: 0,
+            resources: [],
+            modules: [
+                {
+                    id: 'TMDM01',
+                    name: 'Dominio de PROMPTS',
+                    description: 'Aprende a organizar tu empresa digitalmente con herramientas y estrategias avanzadas.',
+                    order: 0,
+                    lessons: [
+                        { id: 'TMDM01L01', title: 'Introducción a la Serie TRENNO iA', longTitle: 'Introducción a la Serie TRENNO iA - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TIAM01L01'), blocked: false, order: 0 },
+                        { id: 'TMDM01L02', title: 'Conceptos básicos para entender a la INTELIGENCIA ARTIFICIAL', longTitle: 'Conceptos básicos para entender a la INTELIGENCIA ARTIFICIAL - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TIAM01L02'), blocked: false, order: 1 },
+                        { id: 'TMDM01L03', title: 'Introducción al DISEÑO de PROMPTS - Parte 1', longTitle: 'Introducción al DISEÑO de PROMPTS - Parte 1 - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TIAM01L03'), blocked: false, order: 2 },
+                        { id: 'TMDM01L04', title: 'Introducción al DISEÑO de PROMPTS - Parte 2', longTitle: 'Introducción al DISEÑO de PROMPTS - Parte 2 - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TIAM01L04'), blocked: false, order: 3 },
+                    ],
+                },
+            ],
+        },
+        {
+            id: 'part_2',
+            name: 'Desarrollo',
+            order: 1,
+            resources: [],
+            modules: [
+                {
+                    id: 'TMDM01',
+                    name: 'Dominio de PROMPTS',
+                    description: 'Aprende a organizar tu empresa digitalmente con herramientas y estrategias avanzadas.',
+                    order: 0,
+                    lessons: [
+                        { id: 'TMDM01L01', title: 'Introducción a la Serie TRENNO iA', longTitle: 'Introducción a la Serie TRENNO iA - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TMDM01L01'), blocked: false, order: 0 },
+                    ],
+                },
+            ],
+        },
+        {
+            id: 'part_3',
+            name: 'Cierre',
+            order: 2,
+            resources: [],
+            modules: [
+                {
+                    id: 'TMDM01',
+                    name: 'Dominio de PROMPTS',
+                    description: 'Aprende a organizar tu empresa digitalmente con herramientas y estrategias avanzadas.',
+                    order: 0,
+                    lessons: [
+                        { id: 'TMDM01L01', title: 'Introducción a la Serie TRENNO iA', longTitle: 'Introducción a la Serie TRENNO iA - Dominio de PROMPTS | TRENNO IA', description: 'Aprende los conceptos básicos de la inteligencia artificial y su aplicación en el mundo empresarial.', durationSec: 360, muxPlaybackId: mux('TMDM01L01'), blocked: false, order: 0 },
+                    ],
+                },
+            ],
+        },
+    ],
 };
 
 // ---------------------------------------------------------------------------
