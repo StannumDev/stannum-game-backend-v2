@@ -3,3 +3,6 @@ node_modules/
 
 # Ignore .env files
 .env*
+
+# Production database backups (contain sensitive user data)
+production.*.json

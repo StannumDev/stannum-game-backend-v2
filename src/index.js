@@ -34,9 +34,6 @@ const PORT = process.env.PORT || 4000;
 let allowedOrigins = [];
 try {
   allowedOrigins = JSON.parse(process.env.ALLOWED_ORIGINS || "[]");
-  if (process.env.NODE_ENV === 'production') {
-    allowedOrigins = allowedOrigins.filter(o => !o.includes('localhost'));
-  }
 } catch (err) {
   console.error("ALLOWED_ORIGINS no es un JSON válido:", err.message);
   process.exit(1);
