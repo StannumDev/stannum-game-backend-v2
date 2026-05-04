@@ -1312,5 +1312,86 @@
         "title": "Parámetros inválidos",
         "techMessage": "Invalid or missing query parameters for admin endpoint.",
         "friendlyMessage": "Los parámetros proporcionados no son válidos."
+    },
+    "FEEDBACK_INVALID_TYPE": {
+        "success": false,
+        "code": "FEEDBACK_001",
+        "type": "warning",
+        "showAlert": false,
+        "title": "Tipo de feedback inválido",
+        "techMessage": "Invalid or missing feedback type.",
+        "friendlyMessage": "No se pudo registrar el feedback."
+    },
+    "FEEDBACK_INVALID_RATING": {
+        "success": false,
+        "code": "FEEDBACK_002",
+        "type": "warning",
+        "showAlert": false,
+        "title": "Rating inválido",
+        "techMessage": "Rating must be a number between 0 and 10.",
+        "friendlyMessage": "No se pudo registrar el feedback."
+    },
+    "FEEDBACK_INVALID_REACTION": {
+        "success": false,
+        "code": "FEEDBACK_003",
+        "type": "warning",
+        "showAlert": false,
+        "title": "Reacción inválida",
+        "techMessage": "Invalid reaction value.",
+        "friendlyMessage": "No se pudo registrar el feedback."
+    },
+    "FEEDBACK_INVALID_ERROR_PAYLOAD": {
+        "success": false,
+        "code": "FEEDBACK_004",
+        "type": "warning",
+        "showAlert": false,
+        "title": "Payload inválido",
+        "techMessage": "Error payload missing required fields.",
+        "friendlyMessage": "No se pudo registrar el error."
+    },
+    "FEEDBACK_NOT_FOUND": {
+        "success": false,
+        "code": "FEEDBACK_005",
+        "type": "error",
+        "showAlert": false,
+        "title": "Feedback no encontrado",
+        "techMessage": "Feedback record not found.",
+        "friendlyMessage": "El feedback no existe o ya fue eliminado."
+    },
+    "MAGIC_LINK_INVALID": {
+        "success": false,
+        "code": "MAGIC_LINK_001",
+        "type": "error",
+        "showAlert": true,
+        "title": "Enlace inválido",
+        "techMessage": "Magic link token does not match any active record.",
+        "friendlyMessage": "Este enlace de activación no es válido o ya fue utilizado."
+    },
+    "MAGIC_LINK_EXPIRED": {
+        "success": false,
+        "code": "MAGIC_LINK_002",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Enlace expirado",
+        "techMessage": "Magic link token expired.",
+        "friendlyMessage": "El enlace de activación expiró. Solicitá uno nuevo para continuar."
+    },
+    "ACTIVATION_TOKEN_REQUIRED": {
+        "success": false,
+        "code": "MAGIC_LINK_003",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Sesión de activación requerida",
+        "techMessage": "Activation-scoped JWT is required for this endpoint.",
+        "friendlyMessage": "Necesitás abrir el enlace de activación que enviamos a tu correo."
+    },
+    "USER_ALREADY_ACTIVATED": {
+        "success": false,
+        "code": "MAGIC_LINK_004",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Cuenta ya activada",
+        "techMessage": "User profile is already complete; activation flow not applicable.",
+        "friendlyMessage": "Esta cuenta ya está activada. Iniciá sesión normalmente."
     }
 }

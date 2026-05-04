@@ -1,4 +1,5 @@
 const getProfileStatus = (user) => {
+    if (user.username?.startsWith('pending_')) return 'needs_activation';
     if (user.username?.startsWith('google_')) return 'needs_username';
     const requiredFields = [
         user.profile?.name?.trim(),

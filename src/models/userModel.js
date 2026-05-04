@@ -661,6 +661,14 @@ const userSchema = new Schema(
         default: true
       }
     },
+    feedbackState: {
+      lastNpsAt: { type: Date, default: null },
+      lastOnboardingFeedbackAt: { type: Date, default: null },
+    },
+    magicLink: {
+      token: { type: String, default: null },
+      expiresAt: { type: Date, default: null },
+    },
     communityStats: {
       promptsCount: { type: Number, default: 0, min: 0 },
       assistantsCount: { type: Number, default: 0, min: 0 },
@@ -708,6 +716,7 @@ const userSchema = new Schema(
         delete ret.password;
         delete ret.otp;
         delete ret.refreshToken;
+        delete ret.magicLink;
         return ret;
       }
     },
@@ -715,6 +724,10 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
+userSchema.index(
+  { 'magicLink.token': 1 },
+  { partialFilterExpression: { 'magicLink.token': { $type: 'string' } } }
+);
 userSchema.index({ 'programs.tia.hasAccessFlag': 1, 'programs.tmd.hasAccessFlag': 1, 'programs.tia_summer.hasAccessFlag': 1, 'programs.tia_pool.hasAccessFlag': 1, 'programs.trenno_ia.hasAccessFlag': 1, status: 1, 'level.experienceTotal': -1 });
 
 userSchema.virtual("profilePhotoUrl").get(function () {
@@ -898,6 +911,10 @@ userSchema.methods.getGameUserDetails = function () {
       promptsCount: this.communityStats?.promptsCount || 0,
       assistantsCount: this.communityStats?.assistantsCount || 0,
       totalFavoritesReceived: this.communityStats?.totalFavoritesReceived || 0,
+    },
+    feedbackState: {
+      lastNpsAt: this.feedbackState?.lastNpsAt || null,
+      lastOnboardingFeedbackAt: this.feedbackState?.lastOnboardingFeedbackAt || null,
     },
     programs,
   };
