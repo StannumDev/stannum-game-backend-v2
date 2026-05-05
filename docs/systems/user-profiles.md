@@ -85,17 +85,18 @@ Cada usuario tiene un perfil completo que incluye:
 
   // Covers
   equippedCoverId: String (default: 'default'),
-  unlockedCovers: [{ coverId, unlockedAt, source }],
+  unlockedCovers: [{ coverId, unlockedDate }],
 
-  // Programas
+  // Programas (sub-documentos definidos en programSchema)
   programs: {
     tia: { ... },
     tia_summer: { ... },
     tia_pool: { ... },
     tmd: { ... },
-    trenno_ia: { ... },   // Programa por suscripción
-    demo_trenno: { ... }   // Demo gratuito
+    trenno_ia: { ... }   // Programa por suscripción
   },
+  // Nota: demo_trenno está en DEMO_PROGRAMS (programRegistry) pero no tiene
+  // sub-documento dedicado en el userSchema. Su acceso se gestiona externamente.
 
   // Nota: Cada programa incluye campos de suscripción (para trenno_ia):
   // programs.trenno_ia.subscription: {
@@ -134,13 +135,35 @@ Cada usuario tiene un perfil completo que incluye:
     assistants: [ObjectId]
   },
 
-  // OTP
+  // OTP (recuperación de contraseña, ver authentication.md)
   otp: {
-    recoveryOtp: String (6 dígitos),
-    otpExpiresAt: Date
+    recoveryOtp: String,           // 6 dígitos hasheados (HMAC-SHA256)
+    otpExpiresAt: Date,             // 30 min desde creación
+    recoveryVerified: Boolean       // true después de verify-recovery-otp
+  },
+
+  // Magic Link (auto-enroll, ver authentication.md)
+  magicLink: {
+    token: String,        // SHA-256 hash del raw token
+    expiresAt: Date       // TTL: MAGIC_LINK_TTL_DAYS (default 7)
+  },
+
+  // Estado de feedback (NPS / onboarding)
+  feedbackState: {
+    lastNpsAt: Date,
+    lastOnboardingFeedbackAt: Date
+  },
+
+  // Stats de comunidad
+  communityStats: {
+    promptsCount: Number,
+    assistantsCount: Number,
+    totalFavoritesReceived: Number
   }
 }
 ```
+
+**Nota sobre `toJSON`:** el transform del schema borra `password`, `otp`, `refreshToken` y `magicLink` antes de serializar, así que ninguno de estos campos sale en responses de la API.
 
 ---
 
@@ -298,20 +321,37 @@ if (isProfileComplete) {
 **Query params:**
 - `query`: Término de búsqueda (min 2 caracteres)
 
-### Búsqueda Fuzzy con Fuse.js
+### Estrategia: MongoDB text search + Fuse.js fuzzy
 
-**Configuración:**
+La búsqueda corre en dos pasos para combinar performance (MongoDB) con tolerancia a typos (Fuse.js):
+
+**Paso 1 — pre-filtro con MongoDB text index** (cap 50 resultados, excluyendo al usuario actual):
+
 ```javascript
-const fuseOptions = {
-  keys: ['username', 'profile.name', 'enterprise.name', 'enterprise.jobPosition'],
-  threshold: 0.4,          // Tolerancia a errores de tipeo
-  includeScore: true,
-  minMatchCharLength: 2
-};
-
-const fuse = new Fuse(users, fuseOptions);
-const results = fuse.search(query);
+const users = await User.find({
+  $text: { $search: query },
+  _id: { $ne: userId }
+})
+  .select('username profilePhoto profile.name enterprise.name enterprise.jobPosition')
+  .limit(50);
 ```
+
+**Paso 2 — re-ranking fuzzy con Fuse.js** sobre los resultados del paso 1, mapeados via `getSearchUserDetails()`:
+
+```javascript
+const fuse = new Fuse(users.map(u => u.getSearchUserDetails()), {
+  keys: ["username", "name", "enterprise", "jobPosition"],
+  threshold: 0.3,           // Tolerancia a errores de tipeo
+  findAllMatches: true,
+  includeScore: true,
+  ignoreLocation: true,
+  ignoreDiacritics: true,
+});
+
+const results = fuse.search(query).map(r => r.item);
+```
+
+> **Importante:** las `keys` de Fuse.js usan los nombres mapeados (`name`, `enterprise`, `jobPosition`) tras `getSearchUserDetails()`, no los paths originales del schema (`profile.name`, `enterprise.name`, `enterprise.jobPosition`).
 
 **Ejemplo:**
 ```bash
@@ -494,22 +534,9 @@ if (!isCompleted) {
 
 ### getUserSidebarDetails()
 
-**Uso:** Sidebar con datos mínimos
+**Uso:** Sidebar (request frecuente, payload mínimo)
 
-**Retorna:**
-```javascript
-{
-  id: this._id,
-  username: this.username,
-  profilePhoto: this.profilePhotoUrl
-}
-```
-
----
-
-### getFullUserDetails()
-
-**Uso:** Datos completos del usuario autenticado
+**Endpoint:** `GET /api/user/sidebar-details`
 
 **Retorna:**
 ```javascript
@@ -517,39 +544,83 @@ if (!isCompleted) {
   id: this._id,
   username: this.username,
   profilePhoto: this.profilePhotoUrl,
-  profile: {
-    name: censor(this.profile.name),
-    country: this.profile.country,
-    region: this.profile.region,
-    birthdate: this.profile.birthdate,
-    aboutMe: censor(this.profile.aboutMe),
-    socialLinks: this.profile.socialLinks
-  },
-  enterprise: {
-    name: censor(this.enterprise?.name),
-    jobPosition: censor(this.enterprise?.jobPosition)
-  },
-  teams: this.teams,
-  level: this.level,
-  achievements: this.achievements,
-  programs: this.programs,
-  dailyStreak: {
-    count: effectiveCount,
-    lastActivityLocalDate: this.dailyStreak?.lastActivityLocalDate,
-    timezone: tz
-  },
-  xpHistory: this.xpHistory,
-  unlockedCovers: this.unlockedCovers,
-  preferences: this.preferences,
-  favorites: this.favorites
+  coins: this.coins || 0,
+  hasActiveSubscription: Boolean   // true si trenno_ia tiene status active|paused|cancelled
 }
 ```
 
 ---
 
+### getGameUserDetails()
+
+**Uso:** Datos completos del usuario autenticado, optimizado para el game frontend (filtra campos internos).
+
+**Endpoints que lo usan:** `GET /api/user/`, `GET /api/user/profile/:username` (cuando es el propio usuario), `PUT /api/user/edit` (en la response).
+
+**Retorna:**
+```javascript
+{
+  id, username, profilePhoto,
+  profile: {
+    ...this.profile,
+    name: censor(...),
+    aboutMe: censor(...),
+  },
+  enterprise: {
+    name: (censor(name) || "").toUpperCase(),
+    jobPosition: censor(jobPosition),
+  },
+  level, achievements,
+  dailyStreak: {
+    count: effectiveCount,         // 0 si la racha está rota
+    lastActivityLocalDate, timezone,
+    shields, lostCount,
+    recoveryAvailable: Boolean,    // true si lostCount && lostAt && dentro de STREAK_RECOVERY_WINDOW_MS
+    recoveryExpiresAt: ISO string,
+  },
+  coins,
+  equippedCoverId, unlockedCovers,
+  favorites: { prompts: <count>, assistants: <count> },  // counts, no IDs
+  communityStats: { promptsCount, assistantsCount, totalFavoritesReceived },
+  feedbackState: { lastNpsAt, lastOnboardingFeedbackAt },
+  programs: {                    // sanitizados (sin observations completas, sin payload privado)
+    [progId]: {
+      isPurchased, hasAccessFlag, acquiredAt,
+      instructions: [{ instructionId, status, score, observations, xpGained, startDate, submittedAt, estimatedTimeSec, referencedLessons }],
+      lessonsCompleted, lastWatchedLesson, chestsOpened,
+      subscription: { status }    // solo si hay suscripción activa, NO expone mpSubscriptionId
+    }
+  }
+}
+```
+
+---
+
+### getFullUserDetails()
+
+**Uso:** Datos internos del schema (admin / debugging). No se expone directamente en endpoints públicos del game frontend.
+
+**Diferencia con getGameUserDetails():** incluye `xpHistory` completo, `coinsHistory`, `preferences` completas, `teams`, y los `programs` sin sanitizar (con `subscription.mpSubscriptionId`, `previousSubscriptionIds`, etc).
+
+---
+
+### getPublicUserDetails()
+
+**Uso:** Perfil público de otro usuario.
+
+**Endpoint:** `GET /api/user/profile/:username` (cuando NO es el propio usuario).
+
+**Retorna campos públicos** (con censura aplicada): `id, username, profilePhoto, profile, enterprise, teams, level, achievements, programs (sanitizados), dailyStreak.count, coins, equippedCoverId, unlockedCovers`.
+
+`programs[*].subscription` se sanea: solo expone `status, priceARS, currentPeriodEnd, subscribedAt, cancelledAt` (NO `mpSubscriptionId`).
+
+Si el usuario tiene acceso a algún `RANKABLE_PROGRAMS`, se agrega `rankingPosition` (calculado vía `User.countDocuments` con `level.experienceTotal > X`).
+
+---
+
 ### getRankingUserDetails()
 
-**Uso:** Datos para rankings (con censura)
+**Uso:** Datos para rankings (con censura + UPPERCASE en enterprise)
 
 **Retorna:**
 ```javascript
@@ -558,7 +629,7 @@ if (!isCompleted) {
   name: censor(this.profile.name),
   username: this.username,
   photo: this.profilePhotoUrl,
-  enterprise: censor(this.enterprise?.name) || "",
+  enterprise: (censor(this.enterprise?.name) || "").toUpperCase(),
   points: this.level.experienceTotal,
   level: this.level.currentLevel
 }
@@ -577,7 +648,7 @@ if (!isCompleted) {
   username: this.username,
   name: censor(this.profile.name),
   profilePhoto: this.profilePhotoUrl,
-  enterprise: censor(this.enterprise?.name) || null,
+  enterprise: (censor(this.enterprise?.name) || "").toUpperCase() || null,
   jobPosition: censor(this.enterprise?.jobPosition) || null
 }
 ```

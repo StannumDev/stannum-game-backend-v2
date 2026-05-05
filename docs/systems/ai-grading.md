@@ -317,12 +317,18 @@ if (lessons.length > 0) {
 
 ## 🖼️ 5. MANEJO DE ARCHIVOS (IMÁGENES)
 
+El campo `fileUrls` (array) es el formato actual; `fileUrl` (string) se mantiene como legacy. La instrucción puede aceptar entre 1 y 10 archivos según `config.maxFiles` (default: 1).
+
 ### Descarga desde S3
 
 ```javascript
-if (instruction.fileUrl) {
+const fileUrls = instruction.fileUrls?.length
+  ? instruction.fileUrls
+  : (instruction.fileUrl ? [instruction.fileUrl] : []);
+
+for (const url of fileUrls) {
   // 1. Extraer S3 key de la URL
-  const s3Key = instruction.fileUrl.replace(`${process.env.AWS_S3_BASE_URL}/`, "");
+  const s3Key = url.replace(`${process.env.AWS_S3_BASE_URL}/`, "");
 
   // 2. Descargar archivo desde S3
   const s3Response = await s3Client.send(new GetObjectCommand({
@@ -342,7 +348,7 @@ if (instruction.fileUrl) {
   const base64 = fileBuffer.toString("base64");
   const dataUrl = `data:${contentType};base64,${base64}`;
 
-  // 5. Agregar a content array para vision
+  // 5. Agregar a content array para vision (una entry por archivo)
   contentArray.push({
     type: "input_image",
     image_url: dataUrl,
@@ -580,9 +586,12 @@ instruction.xpGained = xpResult.gained;
 
 ## 🔁 8. REINTENTO DE CALIFICACIÓN
 
-Si la calificación falla (`status = "ERROR"`), el usuario puede reintentar.
+Hay **dos capas de retry**:
 
-**Endpoint:** `POST /api/instruction/retry/:programName/:instructionId`
+1. **Automática (backend, sin intervención del usuario):** al disparar `gradeWithAI` desde submit, `gradeWithRetry` reintenta hasta `MAX_GRADING_RETRIES = 3` con backoff exponencial (1s, 2s, 4s con cap 30s).
+2. **Manual (usuario, vía endpoint):** si después de los 3 retries automáticos el status quedó en `ERROR`, el usuario puede pedir un retry manual hasta `MAX_USER_RETRIES = 3` veces.
+
+**Endpoint:** `POST /api/instruction/retry/:programName/:instructionId` (rate limited via `gradingRetryLimiter`)
 
 **Lógica:**
 
@@ -593,12 +602,19 @@ const retryGrading = async (req, res) => {
     return res.status(400).json(getError("INSTRUCTION_NOT_IN_ERROR"));
   }
 
-  // 2. Cambiar status de vuelta a SUBMITTED
+  // 2. Verificar cap de retries del usuario
+  const retryCount = instruction.retryCount || 0;
+  if (retryCount >= 3) {
+    return res.status(429).json(getError("INSTRUCTION_MAX_RETRIES"));
+  }
+
+  // 3. Cambiar status de vuelta a SUBMITTED + incrementar contador
   instruction.status = "SUBMITTED";
+  instruction.retryCount = retryCount + 1;
   await user.save();
 
-  // 3. Reintentar AI grading en background
-  gradeWithAI(userId, programName, instructionId).catch(...);
+  // 4. Reintentar AI grading en background (con su propio retry interno x3)
+  gradeWithRetry(userId, programName, instructionId).catch(...);
 
   return res.status(200).json({
     success: true,
@@ -615,17 +631,19 @@ const retryGrading = async (req, res) => {
 
 ```javascript
 {
-  instructionId: String,           // "TIAM01I01"
-  startDate: Date,                 // Cuando se inició
-  submittedAt: Date,               // Cuando se envió
-  reviewedAt: Date,                // Cuando AI terminó de calificar
-  score: Number (0-100),           // Score de AI
-  xpGrantedAt: Date,               // Cuando se otorgó XP
-  xpGained: Number,                // XP total ganado
-  observations: String (max 500),  // Feedback de AI
-  referencedLessons: [String],     // IDs de lecciones a repasar
-  fileUrl: String,                 // S3 URL si deliverable = file
+  instructionId: String,            // "TIAM01I01"
+  startDate: Date,                  // Cuando se inició
+  submittedAt: Date,                // Cuando se envió
+  reviewedAt: Date,                 // Cuando AI terminó de calificar
+  score: Number (0-100),            // Score de AI
+  xpGrantedAt: Date,                // Cuando se otorgó XP
+  xpGained: Number,                 // XP total ganado
+  observations: String (max 500),   // Feedback de AI
+  referencedLessons: [String],      // IDs de lecciones a repasar
+  fileUrl: String,                  // legacy (single-file)
+  fileUrls: [String],               // S3 URLs si deliverable = file (1 a 10)
   submittedText: String (max 5000), // Texto si deliverable = text
+  retryCount: Number,               // intentos de retry tras ERROR (cap 3)
   status: "IN_PROCESS" | "SUBMITTED" | "GRADED" | "ERROR"
 }
 ```

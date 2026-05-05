@@ -687,10 +687,11 @@ Esto reduce payload y mejora performance.
 
 ### Rate Limiting
 
-Búsquedas usan `searchRateLimiter` para prevenir abuso:
+Búsquedas usan `searchLimiter` (definido en `src/middlewares/rateLimiter.js`); la creación usa `contentCreationLimiter`:
 
 ```javascript
-router.get("/", searchRateLimiter, promptController.getAllPrompts);
+router.get("/", searchLimiter, promptController.getAllPrompts);
+router.post("/", contentCreationLimiter, promptController.createPrompt);
 ```
 
 ---

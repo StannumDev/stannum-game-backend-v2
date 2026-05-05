@@ -118,6 +118,7 @@ Frontend verifica: POST /api/payment/verify
 | `/api/payment/order/:orderId` | GET | JWT | Detalle de una orden |
 | `/api/payment/order/:orderId/cancel` | POST | JWT | Cancelar orden pendiente |
 | `/api/payment/order/:orderId/resend-email` | POST | JWT | Reenviar códigos de regalo |
+| `/api/payment/order/:orderId/receipt` | GET | JWT | Descargar comprobante PDF de la orden (rate limited: `sensitiveOperationLimiter`) |
 
 ### Cupones (Admin)
 
@@ -247,6 +248,7 @@ Cuando se cancela una suscripción, el usuario mantiene acceso hasta `currentPer
 | `/api/subscription/cancel` | POST | JWT | Cancelar suscripción activa |
 | `/api/subscription/status/:programId` | GET | JWT | Estado de suscripción |
 | `/api/subscription/payments/:programId` | GET | JWT | Historial de pagos (paginado) |
+| `/api/subscription/payment/:paymentId/receipt` | GET | JWT | Descargar comprobante PDF de un pago de suscripción |
 
 ### Admin
 
@@ -453,12 +455,25 @@ Todas usan timezone `America/Argentina/Buenos_Aires`.
 
 ---
 
+## 13. COMPROBANTES (RECEIPTS)
+
+**Servicio:** `src/services/receiptService.js` (genera PDFs con `pdfkit`)
+
+Hay dos endpoints de descarga, ambos con rate limit (`sensitiveOperationLimiter`) y validación `isMongoId()` del ID:
+
+- **Compra única:** `GET /api/payment/order/:orderId/receipt` — verifica ownership por `userId`, genera PDF de la orden y devuelve `Content-Disposition: attachment`.
+- **Suscripción:** `GET /api/subscription/payment/:paymentId/receipt` — mismo concepto pero a partir de un `SubscriptionPayment` (un comprobante por pago mensual).
+
+El cliente debe leer el header `Content-Disposition` para extraer el filename sugerido (CORS lo expone vía `exposedHeaders` en `src/index.js`).
+
+---
+
 ## Variables de Entorno
 
 ```env
 MP_ACCESS_TOKEN=...          # Token de acceso Mercado Pago
 MP_NOTIFICATION_URL=...      # URL base para webhooks
-MP_WEBHOOK_SECRET=...        # Secret para verificación HMAC
+MP_WEBHOOK_SECRET=...        # Secret para verificación HMAC de webhooks
 FRONTEND_URL=...             # URL del frontend (para redirects post-pago)
 ```
 
