@@ -13,12 +13,13 @@ const ROUTE_MAX_LEN = 200;
 const USER_AGENT_MAX_LEN = 500;
 
 const sanitizeText = (str, maxLen) => {
-  if (str == null) return "";
-  return String(str)
+  if (str == null) return null;
+  const cleaned = String(str)
     .replace(/[<>]/g, "")
     .replace(/[\x00-\x1F\x7F]/g, "")
     .trim()
     .slice(0, maxLen);
+  return cleaned || null;
 };
 
 const sanitizeContext = (ctx = {}) => ({

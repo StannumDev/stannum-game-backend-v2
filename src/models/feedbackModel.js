@@ -36,7 +36,7 @@ const feedbackSchema = new Schema(
       evaluationFair: { type: String, enum: REACTIONS, default: null },
       instructionsClear: { type: String, enum: REACTIONS, default: null },
     },
-    message: { type: String, default: "", maxlength: 2000 },
+    message: { type: String, default: null, maxlength: 2000 },
     requestId: { type: String, default: null },
     context: { type: contextSchema, default: () => ({}) },
     errorPayload: { type: errorPayloadSchema, default: null },
