@@ -229,4 +229,158 @@ const markResolved = async (req, res) => {
   }
 };
 
-module.exports = { createFeedback, createErrorFeedback, listFeedback, markResolved };
+let feedbackStatsCache = null;
+let feedbackStatsCachedAt = 0;
+const FEEDBACK_STATS_CACHE_TTL = 5 * 60 * 1000;
+
+const getFeedbackStats = async (req, res) => {
+    try {
+        const now = Date.now();
+        if (feedbackStatsCache && now - feedbackStatsCachedAt < FEEDBACK_STATS_CACHE_TTL) {
+            return res.status(200).json({ success: true, stats: feedbackStatsCache });
+        }
+
+        const from = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+        const [result] = await Feedback.aggregate([
+            {
+                $facet: {
+                    totalByType: [
+                        { $match: { createdAt: { $gte: from } } },
+                        { $group: { _id: "$type", count: { $sum: 1 } } },
+                    ],
+                    unresolved: [
+                        { $match: { resolved: false, type: { $ne: "error" } } },
+                        { $count: "count" },
+                    ],
+                    lessonReactions: [
+                        { $match: { type: "lesson", createdAt: { $gte: from }, reaction: { $in: ["up", "down"] } } },
+                        { $group: {
+                            _id: null,
+                            up: { $sum: { $cond: [{ $eq: ["$reaction", "up"] }, 1, 0] } },
+                            down: { $sum: { $cond: [{ $eq: ["$reaction", "down"] }, 1, 0] } },
+                        }},
+                    ],
+                    instructionReactions: [
+                        { $match: { type: "instruction", createdAt: { $gte: from }, reaction: { $in: ["up", "down"] } } },
+                        { $group: {
+                            _id: null,
+                            up: { $sum: { $cond: [{ $eq: ["$reaction", "up"] }, 1, 0] } },
+                            down: { $sum: { $cond: [{ $eq: ["$reaction", "down"] }, 1, 0] } },
+                            fairUp: { $sum: { $cond: [{ $eq: ["$secondaryReactions.evaluationFair", "up"] }, 1, 0] } },
+                            fairDown: { $sum: { $cond: [{ $eq: ["$secondaryReactions.evaluationFair", "down"] }, 1, 0] } },
+                            clearUp: { $sum: { $cond: [{ $eq: ["$secondaryReactions.instructionsClear", "up"] }, 1, 0] } },
+                            clearDown: { $sum: { $cond: [{ $eq: ["$secondaryReactions.instructionsClear", "down"] }, 1, 0] } },
+                        }},
+                    ],
+                    onboardingReactions: [
+                        { $match: { type: "onboarding", createdAt: { $gte: from }, reaction: { $in: ["up", "down"] } } },
+                        { $group: {
+                            _id: null,
+                            up: { $sum: { $cond: [{ $eq: ["$reaction", "up"] }, 1, 0] } },
+                            down: { $sum: { $cond: [{ $eq: ["$reaction", "down"] }, 1, 0] } },
+                        }},
+                    ],
+                    npsRatings: [
+                        { $match: { type: "nps", createdAt: { $gte: from }, rating: { $ne: null } } },
+                        { $group: {
+                            _id: null,
+                            promoters: { $sum: { $cond: [{ $gte: ["$rating", 9] }, 1, 0] } },
+                            passives: { $sum: { $cond: [{ $and: [{ $gte: ["$rating", 7] }, { $lte: ["$rating", 8] }] }, 1, 0] } },
+                            detractors: { $sum: { $cond: [{ $lte: ["$rating", 6] }, 1, 0] } },
+                            total: { $sum: 1 },
+                        }},
+                    ],
+                    worstLessons: [
+                        { $match: { type: "lesson", createdAt: { $gte: from }, reaction: { $in: ["up", "down"] }, "context.lessonId": { $ne: null } } },
+                        { $group: {
+                            _id: { lessonId: "$context.lessonId", programId: "$context.programId" },
+                            up: { $sum: { $cond: [{ $eq: ["$reaction", "up"] }, 1, 0] } },
+                            down: { $sum: { $cond: [{ $eq: ["$reaction", "down"] }, 1, 0] } },
+                            total: { $sum: 1 },
+                        }},
+                        { $match: { total: { $gte: 3 }, down: { $gt: 0 } } },
+                        { $addFields: { downRate: { $divide: ["$down", "$total"] } } },
+                        { $sort: { downRate: -1 } },
+                        { $limit: 5 },
+                        { $project: { _id: 0, lessonId: "$_id.lessonId", programId: "$_id.programId", up: 1, down: 1, total: 1, downRate: 1 } },
+                    ],
+                    byProgram: [
+                        { $match: { type: "instruction", createdAt: { $gte: from }, "context.programId": { $ne: null } } },
+                        { $group: {
+                            _id: "$context.programId",
+                            count: { $sum: 1 },
+                            up: { $sum: { $cond: [{ $eq: ["$reaction", "up"] }, 1, 0] } },
+                            down: { $sum: { $cond: [{ $eq: ["$reaction", "down"] }, 1, 0] } },
+                            fairUp: { $sum: { $cond: [{ $eq: ["$secondaryReactions.evaluationFair", "up"] }, 1, 0] } },
+                            fairDown: { $sum: { $cond: [{ $eq: ["$secondaryReactions.evaluationFair", "down"] }, 1, 0] } },
+                            clearUp: { $sum: { $cond: [{ $eq: ["$secondaryReactions.instructionsClear", "up"] }, 1, 0] } },
+                            clearDown: { $sum: { $cond: [{ $eq: ["$secondaryReactions.instructionsClear", "down"] }, 1, 0] } },
+                        }},
+                    ],
+                    onboardingMessages: [
+                        { $match: { type: "onboarding", createdAt: { $gte: from }, message: { $ne: null } } },
+                        { $sort: { createdAt: -1 } },
+                        { $limit: 3 },
+                        { $project: { _id: 0, message: 1, reaction: 1, createdAt: 1 } },
+                    ],
+                },
+            },
+        ]);
+
+        const pct = (up, down) => {
+            const total = up + down;
+            return total > 0 ? Math.round((up / total) * 100) : null;
+        };
+
+        const totalByType = {};
+        for (const { _id, count } of result.totalByType) totalByType[_id] = count;
+
+        const lr = result.lessonReactions[0] || { up: 0, down: 0 };
+        const ir = result.instructionReactions[0] || { up: 0, down: 0, fairUp: 0, fairDown: 0, clearUp: 0, clearDown: 0 };
+        const or = result.onboardingReactions[0] || { up: 0, down: 0 };
+        const nr = result.npsRatings[0] || { promoters: 0, passives: 0, detractors: 0, total: 0 };
+
+        const npsScore = nr.total > 0
+            ? Math.round(((nr.promoters - nr.detractors) / nr.total) * 100)
+            : null;
+
+        const byProgram = {};
+        for (const p of result.byProgram) {
+            const reactions = p.up + p.down;
+            byProgram[p._id] = {
+                instructionFeedbackCount: p.count,
+                instructionSatisfaction: pct(p.up, p.down),
+                evaluationFair: pct(p.fairUp, p.fairDown),
+                instructionsClear: pct(p.clearUp, p.clearDown),
+            };
+        }
+
+        const stats = {
+            totalByType,
+            unresolved: result.unresolved[0]?.count ?? 0,
+            lessonSatisfaction: { up: lr.up, down: lr.down, rate: pct(lr.up, lr.down) },
+            instructionSatisfaction: {
+                up: ir.up, down: ir.down, rate: pct(ir.up, ir.down),
+                evaluationFair: { up: ir.fairUp, down: ir.fairDown, rate: pct(ir.fairUp, ir.fairDown) },
+                instructionsClear: { up: ir.clearUp, down: ir.clearDown, rate: pct(ir.clearUp, ir.clearDown) },
+            },
+            onboardingSatisfaction: { up: or.up, down: or.down, rate: pct(or.up, or.down) },
+            nps: { promoters: nr.promoters, passives: nr.passives, detractors: nr.detractors, score: npsScore, total: nr.total },
+            worstLessons: result.worstLessons,
+            byProgram,
+            onboardingMessages: result.onboardingMessages,
+            periodDays: 30,
+        };
+
+        feedbackStatsCache = stats;
+        feedbackStatsCachedAt = now;
+
+        return res.status(200).json({ success: true, stats });
+    } catch (error) {
+        console.error("[Feedback] getFeedbackStats error:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { createFeedback, createErrorFeedback, listFeedback, markResolved, getFeedbackStats };

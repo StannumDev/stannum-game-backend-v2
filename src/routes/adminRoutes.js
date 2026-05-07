@@ -5,6 +5,7 @@ const { getError } = require("../helpers/getError");
 const { validateAPIKey } = require("../middlewares/validateAPIKey");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
 const { getUser, getUsers, getStats, getEnterprises } = require("../controllers/adminController");
+const { listFeedback, markResolved, getFeedbackStats } = require("../controllers/feedbackController");
 
 const router = Router();
 
@@ -57,6 +58,37 @@ router.get(
     "/enterprises",
     [validateAPIKey, adminLimiter],
     getEnterprises
+);
+
+// GET /api/admin/feedback
+router.get(
+    "/feedback",
+    [
+        validateAPIKey,
+        adminLimiter,
+        query("type").optional().trim().isLength({ max: 50 }),
+        query("resolved").optional().isIn(["true", "false"]),
+        query("from").optional().trim(),
+        query("to").optional().trim(),
+        query("cursor").optional().trim(),
+        query("limit").optional().isInt({ min: 1, max: 200 }),
+        fieldsValidate,
+    ],
+    listFeedback
+);
+
+// GET /api/admin/feedback/stats
+router.get(
+    "/feedback/stats",
+    [validateAPIKey, adminLimiter],
+    getFeedbackStats
+);
+
+// PATCH /api/admin/feedback/:id/resolve
+router.patch(
+    "/feedback/:id/resolve",
+    [validateAPIKey, adminLimiter],
+    markResolved
 );
 
 module.exports = router;
