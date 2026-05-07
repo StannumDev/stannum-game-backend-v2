@@ -231,18 +231,13 @@ const markResolved = async (req, res) => {
 
 let feedbackStatsCache = null;
 let feedbackStatsCachedAt = 0;
+let feedbackStatsInFlight = null;
 const FEEDBACK_STATS_CACHE_TTL = 5 * 60 * 1000;
 
-const getFeedbackStats = async (req, res) => {
-    try {
-        const now = Date.now();
-        if (feedbackStatsCache && now - feedbackStatsCachedAt < FEEDBACK_STATS_CACHE_TTL) {
-            return res.status(200).json({ success: true, stats: feedbackStatsCache });
-        }
+const computeFeedbackStats = async () => {
+    const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-        const from = new Date(now - 30 * 24 * 60 * 60 * 1000);
-
-        const [result] = await Feedback.aggregate([
+    const [result] = await Feedback.aggregate([
             {
                 $facet: {
                     totalByType: [
@@ -355,26 +350,40 @@ const getFeedbackStats = async (req, res) => {
             };
         }
 
-        const stats = {
-            totalByType,
-            unresolved: result.unresolved[0]?.count ?? 0,
-            lessonSatisfaction: { up: lr.up, down: lr.down, rate: pct(lr.up, lr.down) },
-            instructionSatisfaction: {
-                up: ir.up, down: ir.down, rate: pct(ir.up, ir.down),
-                evaluationFair: { up: ir.fairUp, down: ir.fairDown, rate: pct(ir.fairUp, ir.fairDown) },
-                instructionsClear: { up: ir.clearUp, down: ir.clearDown, rate: pct(ir.clearUp, ir.clearDown) },
-            },
-            onboardingSatisfaction: { up: or.up, down: or.down, rate: pct(or.up, or.down) },
-            nps: { promoters: nr.promoters, passives: nr.passives, detractors: nr.detractors, score: npsScore, total: nr.total },
-            worstLessons: result.worstLessons,
-            byProgram,
-            onboardingMessages: result.onboardingMessages,
-            periodDays: 30,
-        };
+    return {
+        totalByType,
+        unresolved: result.unresolved[0]?.count ?? 0,
+        lessonSatisfaction: { up: lr.up, down: lr.down, rate: pct(lr.up, lr.down) },
+        instructionSatisfaction: {
+            up: ir.up, down: ir.down, rate: pct(ir.up, ir.down),
+            evaluationFair: { up: ir.fairUp, down: ir.fairDown, rate: pct(ir.fairUp, ir.fairDown) },
+            instructionsClear: { up: ir.clearUp, down: ir.clearDown, rate: pct(ir.clearUp, ir.clearDown) },
+        },
+        onboardingSatisfaction: { up: or.up, down: or.down, rate: pct(or.up, or.down) },
+        nps: { promoters: nr.promoters, passives: nr.passives, detractors: nr.detractors, score: npsScore, total: nr.total },
+        worstLessons: result.worstLessons,
+        byProgram,
+        onboardingMessages: result.onboardingMessages,
+        periodDays: 30,
+    };
+};
 
-        feedbackStatsCache = stats;
-        feedbackStatsCachedAt = now;
-
+const getFeedbackStats = async (req, res) => {
+    try {
+        const now = Date.now();
+        if (feedbackStatsCache && now - feedbackStatsCachedAt < FEEDBACK_STATS_CACHE_TTL) {
+            return res.status(200).json({ success: true, stats: feedbackStatsCache });
+        }
+        if (!feedbackStatsInFlight) {
+            feedbackStatsInFlight = computeFeedbackStats()
+                .then(stats => {
+                    feedbackStatsCache = stats;
+                    feedbackStatsCachedAt = Date.now();
+                    return stats;
+                })
+                .finally(() => { feedbackStatsInFlight = null; });
+        }
+        const stats = await feedbackStatsInFlight;
         return res.status(200).json({ success: true, stats });
     } catch (error) {
         console.error("[Feedback] getFeedbackStats error:", error);
