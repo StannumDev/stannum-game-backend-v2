@@ -47,6 +47,7 @@ const feedbackSchema = new Schema(
 
 feedbackSchema.index({ userId: 1, type: 1, createdAt: -1 });
 feedbackSchema.index({ resolved: 1, createdAt: -1 });
+feedbackSchema.index({ type: 1, createdAt: -1 });
 
 feedbackSchema.index(
   { userId: 1, requestId: 1 },

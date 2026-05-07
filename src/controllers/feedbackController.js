@@ -306,7 +306,7 @@ const getFeedbackStats = async (req, res) => {
                         { $project: { _id: 0, lessonId: "$_id.lessonId", programId: "$_id.programId", up: 1, down: 1, total: 1, downRate: 1 } },
                     ],
                     byProgram: [
-                        { $match: { type: "instruction", createdAt: { $gte: from }, "context.programId": { $ne: null } } },
+                        { $match: { type: "instruction", createdAt: { $gte: from }, "context.programId": { $ne: null }, reaction: { $in: ["up", "down"] } } },
                         { $group: {
                             _id: "$context.programId",
                             count: { $sum: 1 },
@@ -319,7 +319,7 @@ const getFeedbackStats = async (req, res) => {
                         }},
                     ],
                     onboardingMessages: [
-                        { $match: { type: "onboarding", createdAt: { $gte: from }, message: { $ne: null } } },
+                        { $match: { type: "onboarding", createdAt: { $gte: from }, message: { $nin: [null, ""] } } },
                         { $sort: { createdAt: -1 } },
                         { $limit: 3 },
                         { $project: { _id: 0, message: 1, reaction: 1, createdAt: 1 } },
@@ -347,7 +347,6 @@ const getFeedbackStats = async (req, res) => {
 
         const byProgram = {};
         for (const p of result.byProgram) {
-            const reactions = p.up + p.down;
             byProgram[p._id] = {
                 instructionFeedbackCount: p.count,
                 instructionSatisfaction: pct(p.up, p.down),
