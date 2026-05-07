@@ -71,31 +71,42 @@ XP_TOTAL = 100 × (1 + 0.578) = 157.8 ≈ 158 XP
 ### 1.2 XP por Instrucción Calificada
 
 **Archivo:** `src/helpers/experienceHelper.js` → `computeInstructionXP()`
+**Config:** `src/config/xpConfig.js` → `INSTRUCTION.SPEED_BONUS`
 
 **Fórmula:**
 ```javascript
 XP_BASE = rewardXP (configurado en programs/index.js)
 BONIFICACIÓN_SCORE = XP_BASE × 0.5 × (score / 100)
-BONIFICACIÓN_VELOCIDAD = aplicada si tiempo < 70% del estimado
-XP_TOTAL = XP_BASE + BONIFICACIÓN_SCORE + BONIFICACIÓN_VELOCIDAD
+BONIFICACIÓN_VELOCIDAD = aplicada según ratio tiempoUsado / estimatedTimeSec
+XP_TOTAL = clamp(XP_BASE + BONIFICACIÓN_SCORE + BONIFICACIÓN_VELOCIDAD, 50, 3000)
 ```
 
-**Bonificación por Score:**
-- Score 0-49: 0% bonus
-- Score 50-79: 25-39.5% bonus
-- Score 80-89: 40-44.5% bonus
-- Score 90-100: 45-50% bonus
+**Bonificación por Score (factor 0.5):**
+
+`BONUS_SCORE = rewardXP × 0.5 × (score / 100)`
+
+- Score 100 → +50% del base
+- Score 80 → +40% del base
+- Score 50 → +25% del base
+- Score 0 → 0%
 
 **Bonificación por Velocidad:**
-```javascript
-tiempoUsado = submittedAt - startDate (en segundos)
-tiempoEstimado = estimatedTimeSec
 
-if (tiempoUsado < tiempoEstimado × 0.7) {
-  BONIFICACIÓN = -30% (penaliza velocidad excesiva)
-}
+```javascript
+const ratio = timeTakenSec / estimatedTimeSec;
+
+if (ratio <= 0.7) xp += rewardXP * 0.30;  // BONUS_FAST: rápido +30%
+else if (ratio <= 1.0) xp += rewardXP * 0.10;  // BONUS_OK: dentro de tiempo +10%
+// ratio > 1.0 → sin bonus (no hay penalización)
 ```
-*Nota: La penalización previene que usuarios envíen sin hacer el trabajo real.*
+
+| Ratio (tiempoUsado / estimatedTimeSec) | Bonus |
+|----------------------------------------|-------|
+| ≤ 0.7 | +30% del base (rápido) |
+| 0.7 – 1.0 | +10% del base (a tiempo) |
+| > 1.0 | 0% (sin penalización) |
+
+*Nota: el sistema premia velocidad sin penalizar a quien tarda más. La calidad de la entrega se controla via score (AI grading), no por tiempo.*
 
 ---
 
@@ -347,11 +358,12 @@ equippedCoverId: { type: String, default: 'default' },
 unlockedCovers: [
   {
     coverId: String,
-    unlockedAt: Date,
-    source: String  // "purchase", "chest", etc.
+    unlockedDate: Date  // Fecha en que se desbloqueó
   }
 ]
 ```
+
+*Nota: el campo en MongoDB se llama `unlockedDate` (no `unlockedAt`). El `source` (purchase/chest/etc.) no se persiste actualmente; se infiere por contexto.*
 
 ---
 

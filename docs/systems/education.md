@@ -6,8 +6,13 @@ El sistema educativo de STANNUM Game está diseñado para ofrecer una experienci
 
 El sistema se estructura en 4 niveles jerárquicos:
 
-1. **Programs** - Cursos completos (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA, DEMO_TRENNO)
-2. **Sections** - Agrupaciones temáticas de módulos (actualmente no implementadas en código, solo conceptuales)
+1. **Programs** - Cursos completos. IDs definidos en `src/config/programRegistry.js`:
+   - `VALID_PROGRAMS`: `tia`, `tmd`, `tia_summer`, `tia_pool`, `trenno_ia`
+   - `DEMO_PROGRAMS`: `demo_trenno`
+   - `RANKABLE_PROGRAMS`: todos los `VALID_PROGRAMS`
+   - `SUBSCRIPTION_PROGRAMS`: `trenno_ia`
+   - `PURCHASE_PROGRAMS`: `tia`, `tmd`, `tia_summer`, `tia_pool`
+2. **Sections** - Agrupaciones temáticas de módulos (gestión via `programRoutes`/dashboard admin)
 3. **Modules** - Unidades de aprendizaje con lecciones e instrucciones
 4. **Activities** - Lecciones (videos) e Instrucciones (tareas prácticas)
 
@@ -21,14 +26,16 @@ El sistema se estructura en 4 niveles jerárquicos:
 
 ### Lista de Programas
 
-| ID | Nombre | Tipo | Descripción |
-|-----|---------|------|-------------|
-| **tia** | TRENNO IA | Compra única | Programa principal sobre inteligencia artificial |
-| **tia_summer** | TRENNO IA SUMMER | Compra única | Versión especial del programa TIA |
-| **tmd** | TRENNO MARKETING DIGITAL | Compra única | Programa de marketing digital |
-| **trenno_ia** | TRENNO IA (Suscripción) | Suscripción mensual | Programa IA accesible por suscripción |
-| **tia_pool** | TRENNO IA POOL | Compra única | Programa IA edición POOL |
-| **demo_trenno** | DEMO TRENNO | Demo gratuito | Demo de trenno_ia con contenido limitado |
+| ID | Nombre | Tipo | Acepta instrucciones | Descripción |
+|-----|---------|------|----------------------|-------------|
+| **tia** | TRENNO IA | Compra única | ✅ | Programa principal sobre inteligencia artificial |
+| **tia_summer** | TRENNO IA SUMMER | Compra única | ✅ | Versión especial del programa TIA |
+| **tmd** | TRENNO MARKETING DIGITAL | Compra única | ✅ | Programa de marketing digital |
+| **tia_pool** | TRENNO IA POOL | Compra única | ✅ | Programa IA edición POOL |
+| **trenno_ia** | TRENNO IA (Suscripción) | Suscripción mensual | ❌ | Programa IA accesible por suscripción |
+| **demo_trenno** | DEMO TRENNO | Demo gratuito | ❌ | Demo de trenno_ia con contenido limitado |
+
+> **Importante:** las rutas de instrucciones (`/api/instruction/*`) validan contra una lista local en `instructionController.js` que incluye solo los 4 programas marcados con ✅. `trenno_ia` y `demo_trenno` quedan fuera del flujo de submission/grading.
 
 ### Estructura de un Programa
 
@@ -204,7 +211,8 @@ Las instrucciones son **actividades prácticas** que permiten al estudiante apli
   requiredActivityId: null,         // Instrucción previa requerida
   deliverableType: "file",          // "file" o "text"
   acceptedFormats: [".jpg", ".jpeg", ".png"],
-  maxFileSizeMB: 15
+  maxFileSizeMB: 15,
+  maxFiles: 1                       // Cantidad máxima de archivos (default 1, hasta 10)
 }
 ```
 
@@ -216,6 +224,8 @@ Las instrucciones son **actividades prácticas** que permiten al estudiante apli
 | **requiredActivityId** | ID de instrucción previa que debe estar completada |
 | **deliverableType** | Tipo de entrega: `"file"` o `"text"` |
 | **acceptedFormats** | Formatos de archivo permitidos |
+| **maxFiles** | Cantidad máxima de archivos (default 1; el endpoint admite hasta 10) |
+| **maxFileSizeMB** | Tamaño máximo por archivo (default 10 MB) |
 | **rewardXP** | XP base que se otorga (bonificado por score y velocidad) |
 | **estimatedTimeSec** | Tiempo estimado de completado (usado para bonos) |
 
@@ -329,10 +339,12 @@ programs: {
         score: Number (0-100),
         xpGrantedAt: Date,
         xpGained: Number,
-        observations: String,
+        observations: String (max 500),
         referencedLessons: [String],
-        fileUrl: String,
-        submittedText: String,
+        fileUrl: String,                  // legacy (single-file)
+        fileUrls: [String],               // multi-file (1-10 archivos S3)
+        submittedText: String (max 5000),
+        retryCount: Number,               // intentos de retry tras ERROR (max 3)
         status: "IN_PROCESS" | "SUBMITTED" | "GRADED" | "ERROR"
       }
     ],
@@ -425,20 +437,25 @@ POST /api/instruction/start/:programName/:instructionId
   ↓
 Usuario trabaja en la tarea
   ↓
-(Opcional) GET /api/instruction/presigned-url
-  ├─ Generar URL firmada S3
-  └─ Subir archivo directamente a S3
+(Si deliverableType === "file") POST /api/instruction/presign/:programName/:instructionId
+  Body: { files: [{ fileName, contentType }, ...] }   // 1 a 10 archivos
+  ├─ Validar formato y MIME contra config.acceptedFormats
+  ├─ Generar 1+ URLs firmadas S3 (expiresIn 300s)
+  └─ Response: { presignedUrls: [{ presignedUrl, s3Key }, ...] }
+  ↓
+Frontend sube archivos directamente a S3 con las URLs firmadas
   ↓
 POST /api/instruction/submit/:programName/:instructionId
+  Body: { s3Keys: [...] }  // o { s3Key } legacy / { submittedText }
   ├─ Validar entregable (file o text)
-  ├─ Verificar tamaño (maxFileSizeMB)
-  ├─ Guardar fileUrl o submittedText
+  ├─ HEAD a S3 para verificar tamaño (maxFileSizeMB) y existencia
+  ├─ Guardar fileUrls[] (o fileUrl legacy) o submittedText
   ├─ status = "SUBMITTED"
-  └─ Disparar gradeWithAI() en background
+  └─ Disparar gradeWithAI() en background (con retry exponencial 3 intentos)
   ↓
 AI Grading Service (background)
   ├─ Construir prompt con contexto de lecciones previas
-  ├─ Llamar OpenAI GPT-4o
+  ├─ Llamar OpenAI GPT-4o (responses.create)
   ├─ Recibir score (0-100) y feedback
   ├─ status = "GRADED" / "ERROR"
   └─ Calcular y otorgar XP (si GRADED)
@@ -453,9 +470,9 @@ Frontend polling / notificación
 | Endpoint | Método | Descripción |
 |----------|--------|-------------|
 | `/api/instruction/start/:programName/:instructionId` | POST | Inicia una instrucción |
-| `/api/instruction/presigned-url/:programName/:instructionId` | GET | Genera URL firmada S3 para subir archivo |
+| `/api/instruction/presign/:programName/:instructionId` | POST | Genera URLs firmadas S3 para subir 1-10 archivos |
 | `/api/instruction/submit/:programName/:instructionId` | POST | Envía la instrucción completada |
-| `/api/instruction/retry/:programName/:instructionId` | POST | Reintenta calificación AI en caso de ERROR |
+| `/api/instruction/retry/:programName/:instructionId` | POST | Reintenta calificación AI en caso de ERROR (max 3 retries del usuario) |
 
 ---
 

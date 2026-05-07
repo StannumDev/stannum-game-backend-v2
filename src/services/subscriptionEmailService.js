@@ -339,7 +339,100 @@ const retryFailedEmails = async () => {
   }
 };
 
+// --- Magic link activation (auto-enroll flow) ---
+const PROGRAM_DISPLAY_NAMES = {
+  tia: "TRENNO IA",
+  tia_summer: "TRENNO IA SUMMER",
+  tia_pool: "TRENNO IA POOL",
+  tmd: "TRENNO MARK DIGITAL",
+  trenno_ia: "TRENNO IA",
+};
+
+const sendMagicLinkActivationEmail = ({ to, fullName, activationUrl, programId, diagnosis, guideLink, whatsappLink }) => {
+  const programName = PROGRAM_DISPLAY_NAMES[programId] || "STANNUM Game";
+  const safeName = fullName || "";
+
+  const diagnosisBlock = diagnosis ? `
+    <div style="background:#1a1a1a;border-left:4px solid #00FFCC;padding:20px;border-radius:8px;margin:0 0 24px;">
+      <h2 style="color:#00FFCC;font-size:18px;margin:0 0 8px;font-weight:600;">Tu Diagnóstico de Dominio en IA</h2>
+      <p style="color:#ffffffb3;font-size:14px;line-height:1.7;margin:0;white-space:pre-line;">${diagnosis}</p>
+    </div>` : '';
+
+  const guideBlock = guideLink ? `
+    <div style="background:#1a1a1a;padding:18px;border-radius:8px;margin:0 0 12px;">
+      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Guía del Participante</h3>
+      <p style="color:#ffffffb3;font-size:13px;line-height:1.6;margin:0 0 12px;">Descargá tu guía completa para prepararte antes del entrenamiento.</p>
+      <a href="${guideLink}" style="display:inline-block;background:#00A896;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Ver Guía</a>
+    </div>` : '';
+
+  const whatsappBlock = whatsappLink ? `
+    <div style="background:#1a1a1a;padding:18px;border-radius:8px;">
+      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Comunidad del Entrenamiento</h3>
+      <p style="color:#ffffffb3;font-size:13px;line-height:1.6;margin:0 0 12px;">Conectá con otros líderes y emprendedores que están viviendo la experiencia.</p>
+      <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Unirme al Grupo</a>
+    </div>` : '';
+
+  const preparationBlock = (guideLink || whatsappLink) ? `
+    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
+    <h2 style="color:#00FFCC;font-size:18px;margin:0 0 16px;font-weight:600;">Preparate para el Entrenamiento</h2>
+    ${guideBlock}${whatsappBlock}` : '';
+
+  enqueueEmail(to, `¡Tu acceso a STANNUM Game está listo${safeName ? `, ${safeName}` : ''}!`, wrap(`
+    <h1 style="color:#fff;font-size:24px;margin:0 0 12px;">¡Bienvenido${safeName ? `, ${safeName}` : ''}!</h1>
+    <p style="color:#ffffffb3;font-size:14px;line-height:1.6;margin:0 0 24px;">
+      Te dimos acceso a <strong style="color:#fff;">${programName}</strong> dentro de STANNUM Game. Activá tu cuenta con un solo click.
+    </p>
+    ${diagnosisBlock}
+    <div style="text-align:center;margin:0 0 24px;">
+      <a href="${activationUrl}" style="display:inline-block;background:#00FFCC;color:#1f1f1f;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.3px;">Activar mi cuenta</a>
+    </div>
+    <p style="color:#ffffff80;font-size:12px;line-height:1.6;margin:0 0 24px;text-align:center;">
+      Al activar la cuenta vas a elegir tu nombre de usuario y contraseña. El enlace expira en 7 días.
+    </p>
+    ${preparationBlock}
+    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
+    <p style="color:#ffffff80;font-size:12px;line-height:1.6;margin:0;text-align:center;">
+      ¿No solicitaste este acceso? Ignorá este correo.
+    </p>
+  `));
+};
+
+const sendProductActivatedForExistingUserEmail = ({ to, fullName, programId, guideLink, whatsappLink }) => {
+  const programName = PROGRAM_DISPLAY_NAMES[programId] || "STANNUM Game";
+  const safeName = fullName || "";
+  const loginUrl = `${process.env.FRONTEND_URL}/login`;
+
+  const guideBlock = guideLink ? `
+    <div style="background:#1a1a1a;padding:18px;border-radius:8px;margin:0 0 12px;">
+      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Guía del Participante</h3>
+      <a href="${guideLink}" style="display:inline-block;background:#00A896;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Ver Guía</a>
+    </div>` : '';
+
+  const whatsappBlock = whatsappLink ? `
+    <div style="background:#1a1a1a;padding:18px;border-radius:8px;">
+      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Comunidad del Entrenamiento</h3>
+      <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Unirme al Grupo</a>
+    </div>` : '';
+
+  const preparationBlock = (guideLink || whatsappLink) ? `
+    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
+    <h2 style="color:#00FFCC;font-size:18px;margin:0 0 16px;font-weight:600;">Preparate para el Entrenamiento</h2>
+    ${guideBlock}${whatsappBlock}` : '';
+
+  enqueueEmail(to, `Tu nuevo programa está activo — ${programName}`, wrap(`
+    <h1 style="color:#fff;font-size:24px;margin:0 0 12px;">¡Hola${safeName ? `, ${safeName}` : ''}!</h1>
+    <p style="color:#ffffffb3;font-size:14px;line-height:1.6;margin:0 0 24px;">
+      Acabamos de activar <strong style="color:#fff;">${programName}</strong> en tu cuenta de STANNUM Game. Iniciá sesión con tus credenciales habituales para empezar.
+    </p>
+    <div style="text-align:center;margin:0 0 24px;">
+      <a href="${loginUrl}" style="display:inline-block;background:#00FFCC;color:#1f1f1f;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;">Iniciar Sesión</a>
+    </div>
+    ${preparationBlock}
+  `));
+};
+
 module.exports = {
+  enqueueEmail,
   sendSubscriptionActivatedEmail,
   sendPaymentSuccessEmail,
   sendPaymentRejectedEmail,
@@ -348,5 +441,7 @@ module.exports = {
   sendSubscriptionExpiredEmail,
   sendPurchaseConfirmationEmail,
   sendPreRenewalNotifications,
+  sendMagicLinkActivationEmail,
+  sendProductActivatedForExistingUserEmail,
   retryFailedEmails,
 };

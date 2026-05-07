@@ -2,59 +2,70 @@
 
 Documentación completa de todos los endpoints del backend de STANNUM Game.
 
-**Base URL:** `http://localhost:8000/api` (desarrollo) | `https://api.stannumgame.com/api` (producción)
+**Base URL:** `http://localhost:4000/api` (desarrollo, default si no hay `PORT` en `.env`) | `https://api.stannumgame.com/api` (producción)
 
-**Autenticación:** JWT access token en header `Authorization: Bearer {token}` (15 min de expiración, renovable con refresh token)
+**Autenticación:**
+- **JWT cookie-based**: el access token se setea como cookie `access_token` (httpOnly) y el refresh como `refresh_token`. El backend usa `cookie-parser` con `process.env.SECRET` y `setAuthCookies` para emitirlas. Algunos endpoints internos siguen aceptando `Authorization: Bearer` para compatibilidad.
+- **Activation JWT**: cookie temporal con `scope: "activation"` para completar el onboarding del flujo magic link (ver [authentication.md](./systems/authentication.md#magic-link--auto-enroll)).
+- **API Key**: header `x-api-key` para endpoints internos (admin, product-key/generate, programs, feedback/error). Definido en `validateAPIKey` middleware.
+
+> Todas las requests no-GET con CORS deben venir desde un origin permitido en `ALLOWED_ORIGINS` o llevar `x-api-key`. Caso contrario el middleware CSRF las bloquea con `403 CSRF_ORIGIN_MISMATCH`.
 
 ---
 
 ## Indice
 
-1. [Autenticacion](#autenticacion)
+1. [Autenticación](#autenticacion)
 2. [Usuario](#usuario)
 3. [Lecciones](#lecciones)
 4. [Instrucciones](#instrucciones)
 5. [Product Keys](#product-keys)
 6. [Rankings](#rankings)
-7. [Prompts](#prompts-comunidad)
-8. [Assistants](#assistants-comunidad)
+7. [Prompts (Comunidad)](#prompts-comunidad)
+8. [Assistants (Comunidad)](#assistants-comunidad)
 9. [Profile Photo](#profile-photo)
 10. [Cofres](#cofres)
 11. [Tienda](#tienda)
-12. [Pagos](#pagos---mercado-pago)
-13. [Suscripciones](#suscripciones---mercado-pago)
+12. [Pagos - Mercado Pago](#pagos---mercado-pago)
+13. [Suscripciones - Mercado Pago](#suscripciones---mercado-pago)
 14. [Webhooks](#webhooks)
+15. [Programas (Admin/Trenno Dashboard)](#programas-admin--trenno-dashboard)
+16. [Admin](#admin)
+17. [Feedback](#feedback)
 
 ---
 
 ## Autenticacion
 
+> Todos los endpoints de auth setean (o limpian) las cookies httpOnly `access_token` y `refresh_token` mediante `setAuthCookies` / `clearAuthCookies`. Los tokens **NO** vuelven en el body de la respuesta — el frontend solo recibe metadata (`success`, `achievementsUnlocked`, `profileStatus`). Ver [systems/authentication.md](./systems/authentication.md) para el detalle del flujo.
+
 ### POST `/auth`
-**Login con username/email y contraseña**
+**Login con username/email y contraseña** (rate limited: `authLimiter`)
 
 **Body:**
 ```json
 {
-  "username": "usuario123",
-  "password": "contraseña123"
+  "username": "usuario123_o_email@example.com",
+  "password": "Contraseña123"
 }
 ```
 
-**Response 200:**
+**Response 200:** (cookies seteadas)
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
-  "achievementsUnlocked": [],
-  "profileStatus": "complete" | "incomplete"
+  "achievementsUnlocked": []
 }
 ```
+
+**Errors:**
+- `401 AUTH_INVALID_CREDENTIALS` — username/password inválidos o usuario inactivo
+- `403 AUTH_PASSWORD_LOGIN_DISABLED` — el usuario solo puede entrar con Google
 
 ---
 
 ### POST `/auth/register`
-**Registro de cuenta nueva**
+**Registro de cuenta nueva** (rate limited: `authLimiter`)
 
 **Body:**
 ```json
@@ -72,179 +83,227 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 }
 ```
 
-**Response 201:**
+**Validaciones:** username 6-25 chars `[a-zA-Z0-9._]`, password 8-50 con mayúscula+minúscula+número, edad ≥ 18, name 2-50 chars solo letras+espacios, aboutme max 2600.
+
+**Response 201:** (cookies seteadas)
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
-  "userId": "507f1f77bcf86cd799439011"
+  "message": "User created successfully"
 }
 ```
+
+**Errors:** `409 AUTH_EMAIL_ALREADY_EXISTS`, `409 AUTH_USERNAME_ALREADY_EXISTS`.
+
+---
+
+### POST `/auth/check-email`
+**Validar disponibilidad de email** (rate limited: `validationLimiter`)
+
+**Body:** `{ "email": "..." }`
+
+**Response 200:** `{ "success": true, "message": "Email is available." }`
+
+**Error 409 `AUTH_EMAIL_ALREADY_EXISTS`** si el email ya está registrado.
+
+---
+
+### POST `/auth/validate-username`
+**Validar disponibilidad y formato de username** (rate limited: `validationLimiter`)
+
+**Body:** `{ "username": "..." }` (6-25 chars, solo `[a-zA-Z0-9._]`)
+
+**Response 200:** `{ "success": true, "message": "Username is available." }`
+
+**Errors:** `400 VALIDATION_USERNAME_*`, `400 VALIDATION_USERNAME_OFFENSIVE`, `409 AUTH_USERNAME_ALREADY_EXISTS`.
+
+---
+
+### POST `/auth/validate-recaptcha`
+**Verificar token de reCAPTCHA v3 contra Google**
+
+**Body:** `{ "token": "<recaptcha_token>" }`
+
+**Response 200:** `{ "success": true, "message": "ReCAPTCHA validated successfully." }`
 
 ---
 
 ### POST `/auth/google`
-**Login con Google OAuth**
+**Login con Google OAuth** (rate limited: `authLimiter`)
 
-**Body:**
-```json
-{
-  "token": "google_oauth_credential_token"
-}
-```
+**Body:** `{ "token": "<google_access_token>" }`
 
-**Response 200:**
+**Response 200:** (cookies seteadas)
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "a1b2c3d4e5f6...80_hex_chars",
   "username": "usuario123",
-  "achievementsUnlocked": [],
-  "profileStatus": "complete" | "incomplete"
+  "achievementsUnlocked": []
 }
 ```
+
+> Si el user no existe, lo crea como Google account (`isGoogleAccount: true`, `allowPasswordLogin: false`) e intenta importar la foto de Google.
 
 ---
 
 ### GET `/auth/auth-user`
-**Obtener usuario autenticado (verificar token)**
+**Verificar token y obtener achievements/profile status**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Response 200:**
 ```json
 {
   "success": true,
   "achievementsUnlocked": [],
-  "profileStatus": "complete" | "incomplete"
+  "profileStatus": "complete" | "needs_activation"
 }
 ```
 
 ---
 
 ### POST `/auth/refresh-token`
-**Renovar access token usando refresh token**
+**Renovar access token usando el refresh token de la cookie** (rate limited: `refreshLimiter`)
 
-No requiere `Authorization` header (el access token está expirado).
+No requiere `Authorization` ni body — el refresh token se lee de la cookie `refresh_token`.
 
-**Body:**
+**Validación interna:** `refresh_token` cookie debe existir, ser exactamente 80 chars y matchear `^[a-f0-9]+$`.
+
+**Response 200:** (cookies rotadas)
 ```json
-{
-  "refreshToken": "a1b2c3d4e5f6...80_hex_chars"
-}
-```
-
-**Validación:**
-- `refreshToken` requerido, exactamente 80 caracteres, solo hex (`[a-f0-9]`)
-
-**Response 200:**
-```json
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "nuevo_refresh_token_80_hex_chars"
-}
+{ "success": true }
 ```
 
 **Notas:**
-- Implementa **rotación de tokens**: el refresh token anterior se invalida y se genera uno nuevo
-- Si el refresh token expiró (>7 días) retorna error `JWT_009`
-- Si el refresh token no existe/es inválido retorna error `JWT_008`
-- Rate limited
+- Implementa **rotación de tokens**: el refresh anterior se invalida y se genera uno nuevo en la misma operación atómica.
+- Errors: `400 REFRESH_TOKEN_MISSING`, `400 REFRESH_TOKEN_INVALID`, `401 REFRESH_TOKEN_INVALID`, `401 REFRESH_TOKEN_EXPIRED`.
 
 ---
 
 ### POST `/auth/logout`
-**Cerrar sesión (invalida refresh token en servidor)**
+**Cerrar sesión** (limpia `refreshToken` en DB y cookies)
 
-**Headers:** `Authorization: Bearer {token}`
-
-**Response 200:**
-```json
-{
-  "success": true,
-  "message": "Sesión cerrada exitosamente"
-}
-```
-
-**Notas:**
-- Elimina el refresh token del usuario en la base de datos
-- El access token sigue vigente hasta su expiración (15 min) pero el refresh token ya no podrá renovarlo
-
----
-
-### POST `/auth/recovery-password`
-**Solicitar OTP para recuperación de contraseña**
-
-**Body:**
-```json
-{
-  "email": "usuario@example.com"
-}
-```
+**Auth:** middleware `resolveUserByRefreshToken` (resuelve user por la cookie `refresh_token`).
 
 **Response 200:**
 ```json
-{
-  "success": true,
-  "message": "OTP enviado al correo"
-}
+{ "success": true, "message": "Logged out successfully." }
 ```
 
 ---
 
-### POST `/auth/verify-otp`
-**Verificar OTP**
+### PUT `/auth/update-username`
+**Cambiar el username del user logueado**
 
-**Body:**
-```json
-{
-  "email": "usuario@example.com",
-  "otp": "123456"
-}
-```
+**Auth:** cookie `access_token` (validateJWT)
+
+**Body:** `{ "username": "nuevo_username" }` (6-25 chars `[a-zA-Z0-9._]`)
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "token": "temporal_token_for_password_reset"
+  "message": "Username updated successfully",
+  "profileStatus": "complete" | "needs_activation"
 }
 ```
+
+**Errors:** `409 AUTH_USERNAME_ALREADY_EXISTS`, `400 VALIDATION_USERNAME_*`.
 
 ---
 
-### POST `/auth/reset-password`
-**Resetear contraseña con token temporal**
+### POST `/auth/password-recovery`
+**Solicitar OTP para recuperación de contraseña** (rate limited: `otpLimiter` + `passwordLimiter`)
+
+**Body:** `{ "username": "usuario_o_email" }`
+
+**Response 200:** `{ "success": true, "message": "Si el usuario existe, recibirá un correo." }`
+
+> Siempre devuelve 200 para no filtrar si el usuario existe. Envía un OTP de 6 dígitos al email asociado, válido por 30 minutos.
+
+---
+
+### POST `/auth/verify-recovery-otp`
+**Verificar OTP de recuperación** (rate limited: `otpLimiter`)
+
+**Body:** `{ "username": "usuario_o_email", "otp": "123456" }`
+
+**Response 200:** `{ "success": true, "message": "OTP validado con éxito." }`
+
+> Marca `otp.recoveryVerified = true` para habilitar el reset. Tras 5 intentos fallidos se borra el OTP completo.
+
+---
+
+### POST `/auth/password-reset`
+**Resetear contraseña** (rate limited: `otpLimiter` + `passwordLimiter`)
 
 **Body:**
 ```json
 {
-  "token": "temporal_token",
-  "newPassword": "nueva_contraseña"
+  "username": "usuario_o_email",
+  "otp": "123456",
+  "password": "NuevaPassword123"
 }
 ```
 
-**Response 200:**
+**Response 200:** `{ "success": true, "message": "Contraseña actualizada exitosamente." }`
+
+> Operación atómica vía `findOneAndUpdate` que requiere `recoveryVerified: true` y OTP no expirado. Tras el reset se invalida el `refreshToken` y se setean cookies vacías → el usuario debe volver a loguearse.
+
+---
+
+### GET `/auth/magic-link/:token`
+**Consumir magic link (auto-enroll)** (rate limited: `authLimiter`)
+
+**Params:** `token` — 64 hex chars (regex `^[a-f0-9]{64}$`)
+
+**Response 200 — user completo (login automático):** (cookies de sesión seteadas)
+```json
+{ "success": true, "scope": "full", "profileStatus": "complete" }
+```
+
+**Response 200 — user stub (necesita completar perfil):** (cookie `access_token` con scope `activation` por `ONBOARDING_JWT_TTL_MINUTES`)
 ```json
 {
   "success": true,
-  "message": "Contraseña actualizada"
+  "scope": "activation",
+  "profileStatus": "needs_activation",
+  "email": "lead@example.com"
 }
 ```
+
+**Errors:** `400 MAGIC_LINK_INVALID`, `404 MAGIC_LINK_INVALID`, `410 MAGIC_LINK_EXPIRED`, `403 AUTH_ACCOUNT_DISABLED`.
+
+> Single-use: el magic link se invalida en DB inmediatamente al consumir. Ver [authentication.md § Magic Link](./systems/authentication.md#magic-link--auto-enroll).
+
+---
+
+### POST `/auth/complete-activation`
+**Completar onboarding del stub user** (auth: `validateActivationJWT`)
+
+**Body:** mismos campos que `/auth/register` (`username, password, name, birthdate, country, region, enterprise, enterpriseRole, aboutme`).
+
+**Response 200:** (cookies de sesión real seteadas)
+```json
+{
+  "success": true,
+  "achievementsUnlocked": [],
+  "profileStatus": "complete"
+}
+```
+
+**Errors:** `409 USER_ALREADY_ACTIVATED`, `409 AUTH_USERNAME_ALREADY_EXISTS`, `400 VALIDATION_USERNAME_INVALID` (si arranca con `pending_` o `google_`), `400 VALIDATION_USERNAME_OFFENSIVE`.
 
 ---
 
 ## Usuario
 
-> **Nota:** El modelo User utiliza un transform `toJSON` que excluye automáticamente los campos `password`, `otp` y `refreshToken` de todas las respuestas JSON.
+> **Nota:** El transform `toJSON` del schema excluye automáticamente `password`, `otp`, `refreshToken` y `magicLink` de todas las respuestas. Los endpoints del game frontend usan `getGameUserDetails()` (sanitizado) en vez de devolver el documento crudo. Ver [user-profiles.md](./systems/user-profiles.md).
 
 ### GET `/user`
-**Obtener datos completos del usuario autenticado**
+**Obtener datos completos del usuario autenticado** (sanitizado vía `getGameUserDetails`, cacheado por user)
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Response 200:**
 ```json
@@ -434,10 +493,10 @@ No requiere `Authorization` header (el access token está expirado).
 ### POST `/lesson/complete/:programName/:lessonId`
 **Completar lección y ganar XP**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
+- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia` | `demo_trenno`
 - `lessonId`: ID de la lección (ej: `TIAM01L01`)
 
 **Response 200:**
@@ -464,11 +523,11 @@ No requiere `Authorization` header (el access token está expirado).
 ### GET `/lesson/playback/:programName/:lessonId`
 **Obtener playback ID de Mux para reproducir video**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia` | `trenno_ia`
-- `lessonId`: ID de la leccion
+- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia` | `demo_trenno`
+- `lessonId`: ID de la lección
 
 **Response 200:**
 ```json
@@ -523,47 +582,58 @@ No requiere `Authorization` header (el access token está expirado).
 
 ---
 
-### GET `/instruction/presigned-url/:programName/:instructionId`
-**Obtener URL firmada para subir archivo a S3**
+### POST `/instruction/presign/:programName/:instructionId`
+**Obtener URLs firmadas para subir 1-10 archivos a S3** (rate limited: `submissionLimiter`)
 
-**Headers:** `Authorization: Bearer {token}`
+> **Importante:** método `POST`, path `/presign` (no `/presigned-url`).
 
 **Body:**
 ```json
 {
-  "fileName": "captura.png",
-  "contentType": "image/png"
+  "files": [
+    { "fileName": "captura1.png", "contentType": "image/png" },
+    { "fileName": "captura2.jpg", "contentType": "image/jpeg" }
+  ]
 }
 ```
+
+**Validaciones:**
+- `files`: array, mínimo 1, máximo 10 (cap del endpoint, además de `config.maxFiles` por instrucción)
+- `programName`: `tia | tia_summer | tia_pool | tmd` (instrucciones solo para programas de compra única)
+- `contentType` validado contra `acceptedFormats` de la config
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "presignedUrl": "https://s3...presigned-url",
-  "s3Key": "instructions/userId/instructionId/timestamp.png"
+  "presignedUrls": [
+    { "presignedUrl": "https://s3...", "s3Key": "instructions/userId/instructionId/{ts}-0.png" },
+    { "presignedUrl": "https://s3...", "s3Key": "instructions/userId/instructionId/{ts}-1.jpg" }
+  ]
 }
 ```
 
-**Uso:**
-```javascript
-// Frontend: subir archivo directamente a S3
-await axios.put(presignedUrl, file, {
-  headers: { 'Content-Type': contentType }
-});
-```
+> Cada URL firmada expira en 300 segundos. El frontend debe hacer `PUT` directo a S3 con el `Content-Type` exacto y luego pasar los `s3Key` a `/submit`.
 
 ---
 
 ### POST `/instruction/submit/:programName/:instructionId`
-**Enviar instrucción completada**
+**Enviar instrucción completada** (rate limited: `submissionLimiter`)
 
-**Headers:** `Authorization: Bearer {token}`
-
-**Body (si deliverable = file):**
+**Body (si deliverable = file, multi-file):**
 ```json
 {
-  "s3Key": "instructions/userId/instructionId/timestamp.png"
+  "s3Keys": [
+    "instructions/userId/instructionId/{ts}-0.png",
+    "instructions/userId/instructionId/{ts}-1.jpg"
+  ]
+}
+```
+
+**Body (si deliverable = file, single legacy):**
+```json
+{
+  "s3Key": "instructions/userId/instructionId/{ts}.png"
 }
 ```
 
@@ -578,11 +648,13 @@ await axios.put(presignedUrl, file, {
 ```json
 {
   "success": true,
-  "message": "Instrucción entregada correctamente"
+  "message": "Instrucción entregada correctamente."
 }
 ```
 
-**Nota:** La calificación AI se ejecuta en background. El status cambiará a `GRADED` o `ERROR` automáticamente.
+**Notas:**
+- El backend hace `HEAD` a S3 para validar tamaño (`maxFileSizeMB`) y existencia antes de aceptar.
+- La calificación AI se dispara en background con retry exponencial x3. Status pasa a `GRADED` o `ERROR` automáticamente.
 
 ---
 
@@ -603,88 +675,69 @@ await axios.put(presignedUrl, file, {
 
 ## Product Keys
 
-### POST `/product-key/activate`
-**Activar código de producto**
+> Producto válido: `tia | tia_summer | tia_pool | tmd`. **No** se aceptan `trenno_ia` (suscripción) ni `demo_trenno`.
 
-**Headers:** `Authorization: Bearer {token}`
+### GET `/product-key/:code`
+**Pre-verificar código antes de activar (usuario logueado)**
 
-**Body:**
-```json
-{
-  "code": "ABCD-1234-EFGH-5678"
-}
-```
+**Auth:** cookie `access_token` (validateJWT)
+
+**Params:** `code` formato `XXXX-XXXX-XXXX-XXXX` (validado por regex)
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "message": "Producto activado exitosamente",
-  "achievementsUnlocked": [
-    {
-      "achievementId": "first_program_acquired",
-      "unlockedAt": "2025-01-15T10:30:00.000Z",
-      "xpReward": 50
-    }
-  ],
-  "product": {
+  "data": {
     "code": "ABCD-1234-EFGH-5678",
     "product": "tia",
-    "team": "equipo_alpha"
+    "team": "equipo_alpha",
+    "used": false,
+    "usedAt": null,
+    "email": "comprador@example.com"
   }
 }
 ```
 
-**Errors:**
-- `404`: Código no encontrado
-- `400`: Código ya usado
-- `400`: Usuario ya tiene el programa
+**Errors:** `404 VALIDATION_PRODUCT_KEY_NOT_FOUND`, `404 VALIDATION_PRODUCT_KEY_ALREADY_USED`.
 
 ---
 
-### POST `/product-key/generate-and-send`
-**Generar product key y enviar por email**
+### POST `/product-key/activate`
+**Activar código de producto** (transacción MongoDB con rollback automático)
 
-**Headers:** `X-API-Key: {api_key}`
+**Auth:** cookie `access_token` (validateJWT)
 
-**Body:**
-```json
-{
-  "product": "tia",
-  "team": "equipo_alpha",
-  "email": "comprador@example.com",
-  "name": "Juan Perez",
-  "message": "Bienvenido al programa"
-}
-```
+**Body:** `{ "code": "ABCD-1234-EFGH-5678" }`
 
-**Response 201:**
+**Response 200:**
 ```json
 {
   "success": true,
-  "code": "ABCD-1234-EFGH-5678"
+  "message": "Programa activado correctamente.",
+  "achievementsUnlocked": [
+    {
+      "achievementId": "first_program_acquired",
+      "unlockedAt": "2026-05-05T10:30:00.000Z",
+      "xpReward": 50
+    }
+  ]
 }
 ```
 
----
-
-### POST `/product-key/generate-and-send-make`
-**Generar y enviar product key desde Make.com**
-
-**Headers:** `X-API-Key: {api_key}`
-
-**Body:** Datos en Base64 (nombre, mensaje)
+**Errors:** `404 VALIDATION_PRODUCT_KEY_NOT_FOUND`, `400 VALIDATION_PRODUCT_KEY_ALREADY_USED`, `400 VALIDATION_PRODUCT_ALREADY_OWNED`.
 
 ---
 
 ### POST `/product-key/generate`
-**Generar product key sin enviar**
+**Generar product key sin enviar (admin/integraciones)**
 
-**Headers:** `X-API-Key: {api_key}`
+**Auth:** header `x-api-key`
 
 **Body:**
 ```json
 {
+  "email": "comprador@example.com",
   "product": "tia",
   "team": "equipo_alpha"
 }
@@ -694,41 +747,113 @@ await axios.put(presignedUrl, file, {
 ```json
 {
   "success": true,
-  "code": "ABCD-1234-EFGH-5678"
+  "code": "ABCD-1234-EFGH-5678",
+  "email": "comprador@example.com"
 }
 ```
 
 ---
 
-### GET `/product-key/check/:code`
-**Verificar estado de product key**
+### POST `/product-key/generate-and-send`
+**Generar product key y enviar email simple**
 
-**Headers:** `X-API-Key: {api_key}`
+**Auth:** header `x-api-key`
+
+**Body:**
+```json
+{
+  "email": "comprador@example.com",
+  "product": "tia",
+  "team": "equipo_alpha"
+}
+```
+
+**Response 201:** `{ "code": "...", "email": "..." }` + envía email con template HTML.
+
+---
+
+### POST `/product-key/generate-and-send-make`
+**Generar y enviar product key desde Make.com (con diagnóstico personalizado)**
+
+**Auth:** header `x-api-key`
+
+**Body:**
+```json
+{
+  "email": "comprador@example.com",
+  "fullName": "SnVhbiBQw6lyZXo=",
+  "message": "VHUgZGlhZ27Ds3N0aWNvLi4u",
+  "product": "tia",
+  "team": "no_team",
+  "guideLink": "https://...",
+  "whatsappLink": "https://wa.me/..."
+}
+```
+
+> `fullName` y `message` deben venir codificados en Base64. Producto restringido a `tia | tia_summer | tia_pool` en este endpoint específico (sin `tmd`). Ver [teams-productkeys.md § Método 3](./systems/teams-productkeys.md#método-3-generar-con-diagnóstico-makecom).
+
+**Response 201:** `{ "code": "...", "email": "..." }` + envía email enriquecido (diagnóstico, pasos de activación, CTA opcionales).
+
+---
+
+### POST `/product-key/auto-enroll`
+**Crear/reusar user stub + activar programa + magic link** (transaccional)
+
+**Auth:** header `x-api-key`
+
+**Body:** mismos campos que `generate-and-send-make`. Producto válido: `tia | tmd | tia_summer | tia_pool`.
+
+**Response 201/200 según caso:**
+```json
+{
+  "success": true,
+  "status": "new_user" | "existing_stub_resent" | "activated_for_existing_user" | "already_owned",
+  "email": "lead@example.com"
+}
+```
+
+> Ver flujo completo en [teams-productkeys.md § Método 4](./systems/teams-productkeys.md#método-4-auto-enroll-magic-link-activation) y consumo del link en [authentication.md § Magic Link](./systems/authentication.md#magic-link--auto-enroll).
+
+---
+
+### GET `/product-key/check/:code`
+**Verificar estado de product key (soporte / integración externa)**
+
+**Auth:** header `x-api-key`
 
 **Response 200:**
 ```json
 {
   "success": true,
-  "key": {
+  "data": {
     "code": "ABCD-1234-EFGH-5678",
+    "email": "comprador@example.com",
     "product": "tia",
-    "team": "equipo_alpha",
-    "used": false
+    "isActivated": true,
+    "activatedAt": "2026-05-05T10:30:00.000Z",
+    "user": {
+      "name": "Juan Pérez",
+      "email": "usuario@example.com"
+    }
   }
 }
 ```
+
+**Error:** `404 VALIDATION_PRODUCT_KEY_NOT_FOUND`.
 
 ---
 
 ## Rankings
 
+> Programas rankeables (`RANKABLE_PROGRAMS`): `tmd | tia | tia_summer | tia_pool | trenno_ia`. Resultados cacheados in-memory (`node-cache`) con TTL definido en `cacheService`.
+
 ### GET `/ranking/individual`
 **Ranking individual (global)**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Query params:**
-- `limit`: Cantidad de usuarios (default: 10, max: 1000)
+- `limit`: cantidad de usuarios (default: 10, **max efectivo: 100** — el validator acepta hasta 1000 pero el controller hace `Math.min(limit, 100)`)
 
 **Response 200:**
 ```json
@@ -751,13 +876,26 @@ await axios.put(presignedUrl, file, {
 
 ---
 
+### GET `/ranking/individual/:programName`
+**Ranking individual por programa específico**
+
+**Auth:** cookie `access_token` (validateJWT)
+
+**Params:** `programName` ∈ `RANKABLE_PROGRAMS`
+
+**Query params:** `limit` (default 10, max efectivo 100)
+
+**Response:** misma forma que `/individual` pero ordenado por `programs[programName].totalXp`. Solo incluye usuarios con acceso a ese programa específico.
+
+---
+
 ### GET `/ranking/team/:programName`
 **Ranking por equipos de un programa**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tmd` | `trenno_ia`
+- `programName`: `tmd` | `tia` | `tia_summer` | `tia_pool` | `trenno_ia`
 
 **Response 200:**
 ```json
@@ -1221,8 +1359,8 @@ await axios.put(presignedUrl, file, {
 **Headers:** `Authorization: Bearer {token}`
 
 **Params:**
-- `programId`: `tia` | `tia_summer` | `tmd` | `trenno_ia` | `trenno_ia`
-- `chestId`: ID del cofre (ej: `M01C01`)
+- `programId`: `tia` | `tia_summer` | `tia_pool` | `tmd`
+- `chestId`: ID del cofre (ej: `TIAM01C01`)
 
 **Response 200:**
 ```json
@@ -1484,9 +1622,9 @@ await axios.put(presignedUrl, file, {
 ---
 
 ### POST `/payment/order/:orderId/resend-email`
-**Reenviar email de regalo**
+**Reenviar email de regalo** (rate limited: `sensitiveOperationLimiter`)
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Response 200:**
 ```json
@@ -1495,6 +1633,19 @@ await axios.put(presignedUrl, file, {
   "message": "Email reenviado"
 }
 ```
+
+---
+
+### GET `/payment/order/:orderId/receipt`
+**Descargar comprobante PDF de la orden** (rate limited: `sensitiveOperationLimiter`)
+
+**Auth:** cookie `access_token` (validateJWT)
+
+**Params:** `orderId` validado con `isMongoId()`.
+
+**Response 200:** stream PDF (header `Content-Type: application/pdf`, `Content-Disposition: attachment; filename="..."`).
+
+> El frontend debe leer `Content-Disposition` para extraer el filename. CORS lo expone via `exposedHeaders: ['Content-Disposition']` en `src/index.js`.
 
 ---
 
@@ -1634,10 +1785,10 @@ await axios.put(presignedUrl, file, {
 ### GET `/subscription/payments/:programId`
 **Historial de pagos de suscripcion**
 
-**Headers:** `Authorization: Bearer {token}`
+**Auth:** cookie `access_token` (validateJWT)
 
 **Query params:**
-- `page`: Numero de pagina (default: 1)
+- `page`: número de página (default: 1)
 
 **Response 200:**
 ```json
@@ -1647,7 +1798,7 @@ await axios.put(presignedUrl, file, {
     {
       "amount": 30000,
       "status": "approved",
-      "date": "2025-01-15T10:30:00.000Z",
+      "date": "2026-05-05T10:30:00.000Z",
       "mpPaymentId": "12345678"
     }
   ],
@@ -1658,6 +1809,17 @@ await axios.put(presignedUrl, file, {
   }
 }
 ```
+
+---
+
+### GET `/subscription/payment/:paymentId/receipt`
+**Descargar comprobante PDF de un pago de suscripción** (rate limited: `sensitiveOperationLimiter`)
+
+**Auth:** cookie `access_token` (validateJWT)
+
+**Params:** `paymentId` validado con `isMongoId()`.
+
+**Response 200:** stream PDF (mismas headers que receipt de orden).
 
 ---
 
@@ -1697,12 +1859,125 @@ Maneja notificaciones de:
 
 ---
 
+## Programas (Admin / Trenno Dashboard)
+
+> Todos los endpoints admin de `/api/programs` requieren `x-api-key`. Las dos rutas públicas (`/public` y `/public/:programId`) son JWT-only y las consume el game frontend.
+
+### GET `/programs/public`
+**Listar programas visibles para el game frontend**
+
+**Auth:** cookie `access_token` (validateJWT)
+
+### GET `/programs/public/:programId`
+**Detalle público de un programa**
+
+**Auth:** cookie `access_token` (validateJWT)
+
+---
+
+### Endpoints administrados (todos `x-api-key`)
+
+| Método | Path | Descripción |
+|--------|------|-------------|
+| GET | `/programs` | Listar todos los programas |
+| GET | `/programs/full` | Listar programas con todo el contenido |
+| GET | `/programs/:programId` | Detalle completo de un programa |
+| PUT | `/programs/:programId` | Actualizar programa |
+| PUT | `/programs/:programId/sections/:sectionId` | Actualizar sección |
+| PUT | `/programs/:programId/sections/:sectionId/modules/:moduleId` | Actualizar módulo |
+| PUT | `/programs/:programId/sections/:sectionId/modules/:moduleId/lessons/:lessonId` | Actualizar lección |
+| PUT | `/programs/:programId/sections/:sectionId/modules/:moduleId/instructions/:instructionId` | Actualizar instrucción |
+| POST | `/programs/:programId/sections/:sectionId/resources` | Crear recurso de sección |
+| PUT | `/programs/:programId/sections/:sectionId/resources/:resourceId` | Actualizar recurso |
+| DELETE | `/programs/:programId/sections/:sectionId/resources/:resourceId` | Eliminar recurso |
+| POST | `/programs/:programId/sections/:sectionId/modules/:moduleId/instructions/:instructionId/resources` | Crear recurso de instrucción |
+| PUT | `…/instructions/:instructionId/resources/:resourceId` | Actualizar recurso de instrucción |
+| DELETE | `…/instructions/:instructionId/resources/:resourceId` | Eliminar recurso de instrucción |
+
+> Tipos de recurso válidos: `document | video | presentation | folder | activity | submission`.
+
+---
+
+## Admin
+
+> Todos los endpoints requieren `x-api-key` + rate limit propio (`adminLimiter`: 60 req / 15 min).
+
+### GET `/admin/user`
+**Buscar un user puntual**
+
+**Query:** `email` (opcional, validado isEmail) o `username` (opcional, 1-50 chars).
+
+### GET `/admin/users`
+**Listar users con filtros y paginación**
+
+**Query:** `enterprise` (max 100), `search` (max 100), `page` (≥1), `limit` (1-100).
+
+### GET `/admin/stats`
+**Stats agregadas de la plataforma**
+
+### GET `/admin/enterprises`
+**Listar enterprises distintas presentes en la base**
+
+---
+
+## Feedback
+
+> Endpoints para captar feedback del game frontend (NPS, lecciones, instrucciones, onboarding) y errores client-side.
+
+### POST `/feedback/error`
+**Ingestar errores client-side** (auth: `x-api-key`, rate limit: `errorIngestLimiter`)
+
+Recibe payload arbitrario para reportar errores capturados en el frontend (ej. `ErrorFeedbackReporter`). No requiere JWT — sirve para errores que ocurren antes/después de la sesión válida.
+
+### POST `/feedback`
+**Crear feedback del usuario** (auth: cookie `access_token` + rate limit dinámico según tipo)
+
+**Body:**
+```json
+{
+  "type": "lesson" | "instruction" | "nps" | "onboarding",
+  "rating": 8.5,            // opcional, 0-10 (NPS)
+  "reaction": "up" | "down", // opcional (lesson/instruction)
+  "message": "...",          // opcional, max 2000
+  "requestId": "uuid",       // opcional, max 80
+  "context": { ... }         // opcional, objeto libre
+}
+```
+
+> Rate limiter aplicado según `type`: `feedbackNpsLimiter`, `feedbackOnboardingLimiter`, `feedbackInteractionLimiter`. El usuario actualiza `feedbackState.lastNpsAt` / `lastOnboardingFeedbackAt` para evitar prompts repetidos.
+
+### GET `/feedback`
+**Listar feedback (admin)** — auth: cookie `access_token` + `isAdmin`.
+
+### PATCH `/feedback/:id/resolve`
+**Marcar feedback como resuelto (admin)** — auth: cookie `access_token` + `isAdmin`.
+
+---
+
 ## Notas Generales
 
 ### Rate Limiting
-- General: 1000 requests/hora por IP
-- OTP verification: 5 intentos/15 minutos
-- Búsquedas: límite especial con `searchRateLimiter`
+
+Configurado en `src/middlewares/rateLimiter.js`. Limiters principales:
+
+| Limiter | Aplica a |
+|---------|----------|
+| `globalLimiter` | Todos los requests (montado en `app.use`) |
+| `authLimiter` | Login, register, Google, magic link |
+| `validationLimiter` | check-email, validate-username, validate-recaptcha |
+| `otpLimiter` | password-recovery, verify-recovery-otp, password-reset |
+| `passwordLimiter` | password-recovery + password-reset |
+| `refreshLimiter` | refresh-token |
+| `searchLimiter` | búsquedas (users, prompts, assistants) |
+| `submissionLimiter` | presign + submit de instrucciones |
+| `gradingRetryLimiter` | retry de instrucción |
+| `paymentLimiter` | create-preference, verify, subscription/create |
+| `sensitiveOperationLimiter` | edit user, store purchases, receipts, resend-email, cancel suscripción |
+| `contentCreationLimiter` | crear prompts/assistants |
+| `feedbackNpsLimiter` / `feedbackOnboardingLimiter` / `feedbackInteractionLimiter` | feedback según tipo |
+| `errorIngestLimiter` | feedback/error |
+| `adminLimiter` | endpoints `/admin/*` (60 req / 15 min) |
+| `webhookLimiter` | webhooks MP (60 req / min) |
 
 ### Paginación
 Todos los endpoints paginados retornan:

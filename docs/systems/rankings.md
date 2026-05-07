@@ -4,7 +4,7 @@ El sistema de rankings de STANNUM Game permite competencia sana entre estudiante
 
 ## 📊 Visión General
 
-STANNUM Game tiene dos tipos de rankings:
+STANNUM Game tiene tres tipos de rankings:
 
 1. **Ranking Individual (Global)** - Top usuarios por XP total
 2. **Ranking Individual por Programa** - Top usuarios por XP de un programa específico
@@ -13,10 +13,11 @@ STANNUM Game tiene dos tipos de rankings:
 **Funcionalidades:**
 - ✅ Ranking individual por experienceTotal
 - ✅ Ranking por equipos con suma de puntos
-- ✅ Privacidad de datos (profanity filter en nombres)
+- ✅ Privacidad de datos (profanity filter en nombres + uppercase en enterprise)
 - ✅ Posiciones numeradas
+- ✅ Cache in-memory con TTL (`node-cache`) para reducir carga MongoDB
 - ✅ Paginación configurable
-- ✅ Solo usuarios con programas comprados
+- ✅ Solo usuarios con acceso a programas (compra, product key o suscripción activa)
 
 ---
 
@@ -27,19 +28,21 @@ STANNUM Game tiene dos tipos de rankings:
 **GET** `/api/ranking/individual`
 
 **Query params:**
-- `limit`: Cantidad de usuarios a retornar (default: 10, max: 1000)
+- `limit`: Cantidad de usuarios a retornar (default: 10, max efectivo: 100)
+
+> El validator de la ruta acepta hasta `1000`, pero el controller hace `Math.min(limit, 100)`. El cap real para clientes es **100**.
 
 ### Criterios
 
 **Usuarios incluidos:**
-- Que tengan al menos 1 programa comprado (`isPurchased: true`)
+- Que tengan acceso a al menos 1 programa rankeable (`hasAccessFlag: true`)
 - Que estén activos (`status: true`)
 
-**Programas considerados:**
+**Programas considerados (`RANKABLE_PROGRAMS`):**
+- `tmd`
 - `tia`
 - `tia_summer`
 - `tia_pool`
-- `tmd`
 - `trenno_ia`
 
 **Orden:**
@@ -108,14 +111,26 @@ const users = await User.find({
 userSchema.methods.getRankingUserDetails = function () {
   return {
     id: this._id,
-    name: censor(this.profile.name),        // Oculta parte del nombre
+    name: censor(this.profile.name),                                  // Oculta parte del nombre
     username: this.username,
     photo: this.profilePhotoUrl,
-    enterprise: censor(this.enterprise?.name) || "",  // Oculta parte de empresa
+    enterprise: (censor(this.enterprise?.name) || "").toUpperCase(),  // Censura + UPPERCASE
     points: this.level.experienceTotal,
     level: this.level.currentLevel
   };
 };
+```
+
+**Nota:** el ranking por equipos arma la `photo` directamente en el aggregation (no usa `profilePhotoUrl` virtual). Construye la URL S3 condicionalmente según `preferences.hasProfilePhoto`:
+
+```javascript
+photo: {
+  $cond: [
+    { $eq: [{ $ifNull: ['$preferences.hasProfilePhoto', false] }, true] },
+    { $concat: [process.env.AWS_S3_BASE_URL, '/', process.env.AWS_S3_FOLDER_NAME, '/', { $toString: '$_id' }] },
+    null
+  ]
+}
 ```
 
 ### Privacidad - Profanity Filter
@@ -153,10 +168,12 @@ const censor = (text) => {
 **GET** `/api/ranking/individual/:programName`
 
 **Params:**
-- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia`
+- `programName`: `tia` | `tia_summer` | `tia_pool` | `tmd` | `trenno_ia` (validado contra `RANKABLE_PROGRAMS`)
 
 **Query params:**
-- `limit`: Cantidad de usuarios a retornar (default: 10, max: 1000)
+- `limit`: Cantidad de usuarios a retornar (default: 10, max efectivo: 100)
+
+> Mismo cap real que `/individual`: validator hasta 1000, controller hace `Math.min(limit, 100)`.
 
 ### Criterios
 
@@ -551,11 +568,11 @@ Frontend renderiza ranking de equipos
 ### Limitaciones
 
 **Individual:**
-- Max 1000 usuarios por request (previene carga excesiva)
-- Validación de limit en controller
+- Validator de la ruta acepta `limit` hasta 1000, pero el controller hace `Math.min(limit, 100)` → cap real **100 usuarios** por request
+- Aplica al ranking global (`/individual`) y al de programa (`/individual/:programName`)
 
 **Equipos:**
-- Sin límite artificial (depende de cantidad de equipos)
+- Sin parámetro `limit`. La aggregation devuelve todos los equipos del programa
 - Típicamente: 2-10 equipos por programa
 
 ---
@@ -582,17 +599,28 @@ user.index({ 'programs.trenno_ia.hasAccessFlag': 1 });
 
 ### Caching
 
-**No implementado actualmente**, pero podría agregarse:
+Implementado con `node-cache` (in-memory) en `src/cache/cacheService.js`. Cada endpoint cachea su respuesta antes de retornar y la sirve directo si hay hit:
 
 ```javascript
-// Pseudo-código
-const cacheKey = `ranking:individual:${limit}`;
-const cached = await redis.get(cacheKey);
-if (cached) return JSON.parse(cached);
+const cacheKey = KEYS.RANKING_GLOBAL(limit);
+const cached = cache.get(cacheKey);
+if (cached) return res.status(200).json(cached);
 
-const ranking = await calculateRanking();
-await redis.set(cacheKey, JSON.stringify(ranking), 'EX', 300); // 5 min
+// ... query MongoDB + map ...
+
+const response = { success: true, data: rankedUsers };
+cache.set(cacheKey, response, TTL.RANKING);
+return res.status(200).json(response);
 ```
+
+**Keys usadas:**
+- `KEYS.RANKING_GLOBAL(limit)` — ranking individual global
+- `KEYS.RANKING_PROGRAM(programName, limit)` — ranking individual por programa
+- `KEYS.RANKING_TEAM(programName)` — ranking de equipos
+
+**TTL:** definido en `TTL.RANKING` del cacheService.
+
+**Invalidación:** el cache es time-based, no event-based. Cambios en XP de usuarios se reflejan al expirar el TTL (no inmediato).
 
 ### Escalabilidad
 

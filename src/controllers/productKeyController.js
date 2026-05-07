@@ -2,8 +2,13 @@ const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
+const User = require("../models/userModel");
 const ProductKey = require("../models/productKeyModel");
 const { activateProgramForUser } = require("../services/programActivationService");
+const { sendMagicLinkActivationEmail, sendProductActivatedForExistingUserEmail } = require("../services/subscriptionEmailService");
+const { getProfileStatus } = require("../helpers/getProfileStatus");
+const { invalidateUser } = require("../cache/cacheService");
+const { hasAccess } = require("../utils/accessControl");
 const { getError } = require("../helpers/getError");
 
 const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -426,11 +431,167 @@ const checkProductKeyStatus = async (req, res) => {
     }
 };
 
+const MAGIC_LINK_TTL_DAYS = parseInt(process.env.MAGIC_LINK_TTL_DAYS, 10) || 7;
+const ACTIVATION_PRODUCTS = ["tia", "tmd", "tia_summer", "tia_pool"];
+
+const generateMagicLinkRawToken = () => crypto.randomBytes(32).toString("hex");
+const hashMagicLinkToken = (rawToken) => crypto.createHash("sha256").update(rawToken).digest("hex");
+
+const autoEnroll = async (req, res) => {
+    const { email, fullName, message, product = "tia", team = "no_team", guideLink, whatsappLink } = req.body;
+    const session = await mongoose.startSession();
+
+    try {
+        if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+        if (!fullName) return res.status(400).json(getError("VALIDATION_FULLNAME_REQUIRED"));
+        if (!ACTIVATION_PRODUCTS.includes(product)) return res.status(400).json(getError("VALIDATION_GENERIC_ERROR"));
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return res.status(400).json(getError("VALIDATION_EMAIL_INVALID"));
+
+        let decodedFullName;
+        try {
+            decodedFullName = Buffer.from(fullName, "base64").toString("utf-8").trim();
+        } catch (err) {
+            return res.status(400).json(getError("VALIDATION_FULLNAME_INVALID_ENCODING"));
+        }
+        if (!decodedFullName || decodedFullName.length < 2) {
+            decodedFullName = email.split("@")[0].slice(0, 50);
+        }
+        if (decodedFullName.length > 50) decodedFullName = decodedFullName.slice(0, 50);
+
+        let decodedDiagnosis = null;
+        if (message) {
+            try {
+                decodedDiagnosis = Buffer.from(message, "base64").toString("utf-8").trim();
+            } catch (err) {
+                return res.status(400).json(getError("VALIDATION_MESSAGE_INVALID_ENCODING"));
+            }
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        const safeGuideLink = guideLink && /^https?:\/\//i.test(guideLink) ? guideLink : null;
+        const safeWhatsappLink = whatsappLink && /^https?:\/\//i.test(whatsappLink) ? whatsappLink : null;
+        const safeDiagnosis = decodedDiagnosis ? escapeHtml(decodedDiagnosis) : null;
+        const safeFullName = escapeHtml(decodedFullName);
+
+        // Atomic find-or-create stub user (idempotente por email)
+        const pendingUsername = `pending_${crypto.randomBytes(4).toString("hex")}`;
+        let user = await User.findOneAndUpdate(
+            { email: normalizedEmail },
+            {
+                $setOnInsert: {
+                    email: normalizedEmail,
+                    username: pendingUsername,
+                    profile: { name: decodedFullName },
+                    preferences: { allowPasswordLogin: false },
+                },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        const profileStatus = getProfileStatus(user);
+        const isStub = profileStatus === "needs_activation";
+        const alreadyHasProduct = hasAccess(user.programs?.[product]);
+
+        // Caso: user completo + ya tiene este producto → no-op idempotente
+        if (!isStub && alreadyHasProduct) {
+            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail });
+        }
+
+        // Generar y consumir ProductKey + activar producto en una transacción
+        let productCode;
+        let activationResult;
+
+        await session.withTransaction(async () => {
+            for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+                const candidate = generateProductCode();
+                try {
+                    const [created] = await ProductKey.create([{
+                        code: candidate,
+                        email: normalizedEmail,
+                        product,
+                        team,
+                        used: true,
+                        usedAt: new Date(),
+                        usedBy: user._id,
+                    }], { session });
+                    productCode = created.code;
+                    break;
+                } catch (err) {
+                    if (err.code === 11000) continue;
+                    throw err;
+                }
+            }
+            if (!productCode) throw { statusCode: 500, errorKey: "SERVER_INTERNAL_ERROR" };
+
+            activationResult = await activateProgramForUser(user._id, product, team, session);
+        });
+
+        invalidateUser(user._id);
+
+        // Caso: user completo SIN este producto → activar y mandar mail simple (sin magic link)
+        if (!isStub) {
+            sendProductActivatedForExistingUserEmail({
+                to: normalizedEmail,
+                fullName: safeFullName,
+                programId: product,
+                guideLink: safeGuideLink,
+                whatsappLink: safeWhatsappLink,
+            });
+            return res.status(200).json({
+                success: true,
+                status: "activated_for_existing_user",
+                email: normalizedEmail,
+            });
+        }
+
+        // Caso stub: regenerar magic link (incluso si había uno previo) y enviar mail
+        const rawToken = generateMagicLinkRawToken();
+        const hashedToken = hashMagicLinkToken(rawToken);
+        const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+        await User.updateOne(
+            { _id: user._id },
+            { $set: { "magicLink.token": hashedToken, "magicLink.expiresAt": expiresAt } }
+        );
+        invalidateUser(user._id);
+
+        const activationUrl = `${process.env.FRONTEND_URL}/activate/${rawToken}`;
+
+        sendMagicLinkActivationEmail({
+            to: normalizedEmail,
+            fullName: safeFullName,
+            activationUrl,
+            programId: product,
+            diagnosis: safeDiagnosis,
+            guideLink: safeGuideLink,
+            whatsappLink: safeWhatsappLink,
+        });
+
+        const wasNewUser = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 5000);
+        return res.status(201).json({
+            success: true,
+            status: wasNewUser ? "new_user" : "existing_stub_resent",
+            email: normalizedEmail,
+        });
+    } catch (error) {
+        if (error.statusCode && error.errorKey) {
+            return res.status(error.statusCode).json(getError(error.errorKey));
+        }
+        console.error("❌ Error en autoEnroll:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    } finally {
+        session.endSession();
+    }
+};
+
 module.exports = {
     verifyProductKey,
     activateProductKey,
     generateAndSendProductKeyMake,
     generateAndSendProductKey,
     generateProductKey,
-    checkProductKeyStatus
+    checkProductKeyStatus,
+    autoEnroll,
 };

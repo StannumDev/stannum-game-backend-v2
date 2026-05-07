@@ -6,12 +6,15 @@ El sistema de Product Keys permite la activación de programas mediante códigos
 
 **Product Keys** son códigos alfanuméricos únicos (`XXXX-XXXX-XXXX-XXXX`) que permiten:
 
-- ✅ Activar acceso a programas (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA)
+- ✅ Activar acceso a programas de compra única (TIA, TMD, TIA_SUMMER, TIA_POOL)
 - ✅ Asignar usuarios a equipos automáticamente
 - ✅ Tracking de uso (usado/no usado, quién activó, cuándo)
 - ✅ Envío automático por email con templates HTML
-- ✅ Prevención de uso duplicado (race conditions)
+- ✅ Prevención de uso duplicado (transacciones MongoDB con session)
 - ✅ Integración con Make.com para automatización
+- ✅ Auto-enroll con magic link para usuarios stub (lead → activación sin password)
+
+> **Importante:** `trenno_ia` se activa por suscripción (Mercado Pago), no por product key. El enum del modelo solo acepta `tmd | tia | tia_summer | tia_pool`.
 
 ---
 
@@ -23,15 +26,22 @@ El sistema de Product Keys permite la activación de programas mediante códigos
 
 ```javascript
 {
-  code: String,              // "ABCD-1234-EFGH-5678" (formato fijo)
+  code: String,              // "ABCD-1234-EFGH-5678" (formato fijo, regex enforced)
   email: String,             // Email del comprador
-  createdAt: Date,           // Fecha de generación
+  createdAt: Date,           // Fecha de generación (auto via timestamps)
   used: Boolean,             // ¿Fue activado?
   usedAt: Date,              // Cuándo se activó
   usedBy: ObjectId (User),   // Quién lo activó
-  product: Enum ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia'],
+  product: Enum ['tmd', 'tia', 'tia_summer', 'tia_pool'],
   team: String               // Nombre del equipo o "no_team"
 }
+```
+
+**Índices:**
+```javascript
+productKeySchema.index({ product: 1, used: 1 });  // claves disponibles por producto
+productKeySchema.index({ usedBy: 1 });             // claves usadas por user
+// + index único auto en `code` por unique:true
 ```
 
 ### Formato de Código
@@ -47,13 +57,13 @@ XXXX-XXXX-XXXX-XXXX
 
 ### Generación de Código
 
-**Función:** `generateProductCode()`
+**Función:** `generateProductCode()` (usa `crypto.randomInt` para entropía segura)
 
 ```javascript
 const generateProductCode = () => {
   const segment = () =>
     Array.from({ length: 4 }, () =>
-      Math.floor(Math.random() * 36).toString(36).toUpperCase()
+      crypto.randomInt(36).toString(36).toUpperCase()
     ).join("");
   return `${segment()}-${segment()}-${segment()}-${segment()}`;
 };
@@ -117,7 +127,7 @@ if (key.team && key.team !== 'no_team') {
 
 ```javascript
 const teamSchema = new Schema({
-  programName: String,  // "tia", "tia_summer", "tia_pool", "tmd", "trenno_ia"
+  programName: String,  // "tia", "tia_summer", "tia_pool", "tmd"
   teamName: String,     // "equipo_alpha", "equipo_ventas", etc.
   role: String          // "member", "leader" (actualmente solo member)
 }, { _id: false });
@@ -175,81 +185,56 @@ validateJWT → extraer userId
   ↓
 productKeyController.activateProductKey()
   ↓
-1. Buscar y marcar key como usada (operación atómica)
-   ProductKey.findOneAndUpdate(
-     { code: code.toUpperCase(), used: false },
-     { used: true, usedAt: now, usedBy: userId },
-     { new: true }
-   )
-  ↓
-2. Verificar resultado
-   ├─ Si null → código no existe o ya usado
-   └─ Si existe → continuar
-  ↓
-3. Cargar usuario
-   User.findById(userId)
-  ↓
-4. Verificar que no tenga el programa
-   if (user.programs[key.product].isPurchased) {
-     // Revertir key (rollback)
+session.withTransaction(async () => {
+  1. Buscar y marcar key como usada (atómico, dentro de transacción)
      ProductKey.findOneAndUpdate(
-       { code },
-       { used: false, usedAt: null, usedBy: null }
+       { code, used: false },
+       { used: true, usedAt: now, usedBy: userId },
+       { new: true, session }
      )
-     return ERROR
-   }
+     ├─ Si null → throw VALIDATION_PRODUCT_KEY_NOT_FOUND / ALREADY_USED
+     └─ Si OK → continuar
+
+  2. Activar programa con activateProgramForUser(userId, product, team, session)
+     ├─ Si user ya tiene acceso → throw VALIDATION_PRODUCT_ALREADY_OWNED
+     ├─ Setea programs[product].isPurchased = true
+     ├─ Setea programs[product].acquiredAt = now
+     ├─ Actualiza programs[product].hasAccessFlag = true
+     ├─ Asigna user.teams si team !== 'no_team'
+     └─ Desbloquea achievements (newlyUnlocked)
+})
   ↓
-5. Activar programa
-   user.programs[key.product].isPurchased = true
-   user.programs[key.product].acquiredAt = now
-  ↓
-6. Asignar a team (si corresponde)
-   if (key.team !== 'no_team') {
-     user.teams.push({
-       programName: key.product,
-       teamName: key.team,
-       role: 'member'
-     })
-   }
-  ↓
-7. Desbloquear achievements
-   unlockAchievements(user)
-   → Puede desbloquear "first_program_acquired"
-  ↓
-8. Guardar usuario
-   user.save()
+Si la transacción throwea → rollback automático (key vuelve a used: false)
   ↓
 Response: {
   success: true,
-  message: "Programa activado correctamente",
+  message: "Programa activado correctamente.",
   achievementsUnlocked: [...]
 }
 ```
 
 ### Prevención de Race Conditions
 
-**Problema:** Dos usuarios intentan activar el mismo código simultáneamente.
-
-**Solución:** Operación atómica de MongoDB
+**Solución:** transacción MongoDB con `session.withTransaction()`. Tanto el `findOneAndUpdate` de la key como la activación del programa corren en la misma sesión, así que cualquier error rollbackea ambos lados.
 
 ```javascript
-// Solo marca como usado SI used = false
-const key = await ProductKey.findOneAndUpdate(
-  { code: code.toUpperCase(), used: false },  // Condición
-  { used: true, usedAt: new Date(), usedBy: userId },
-  { new: true }
-);
+const session = await mongoose.startSession();
+await session.withTransaction(async () => {
+  const key = await ProductKey.findOneAndUpdate(
+    { code: code.toUpperCase(), used: false },
+    { used: true, usedAt: new Date(), usedBy: userId },
+    { new: true, session }
+  );
+  if (!key) throw { statusCode, errorKey };
 
-// Si key = null → ya estaba usado
-if (!key) {
-  // Verificar si existe
-  const exists = await ProductKey.findOne({ code: code.toUpperCase() });
-  if (!exists) return "código no encontrado";
-  return "código ya usado";
-}
+  const { newlyUnlocked, alreadyOwned } = await activateProgramForUser(userId, key.product, key.team, session);
+  if (alreadyOwned) throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_ALREADY_OWNED" };
+
+  result = { newlyUnlocked };
+});
 ```
 
-Esto garantiza que **solo un usuario puede activar el código**, incluso con requests concurrentes.
+Esto garantiza que **solo un usuario puede activar el código**, y que si la activación falla la key se libera automáticamente.
 
 ---
 
@@ -257,15 +242,16 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 
 ### Endpoints de Generación
 
-| Endpoint | Uso | Email |
-|----------|-----|-------|
-| `generateProductKey` | Crear sin enviar | No |
-| `generateAndSendProductKey` | Crear y enviar email simple | Sí |
-| `generateAndSendProductKeyMake` | Crear y enviar con diagnóstico | Sí |
+| Endpoint | Auth | Uso | Email |
+|----------|------|-----|-------|
+| `POST /api/product-key/generate` | API Key | Crear sin enviar | ❌ |
+| `POST /api/product-key/generate-and-send` | API Key | Crear y enviar email simple | ✅ |
+| `POST /api/product-key/generate-and-send-make` | API Key | Crear y enviar con diagnóstico (Make) | ✅ |
+| `POST /api/product-key/auto-enroll` | API Key | Crear key + activar programa + magic link / login | ✅ |
 
-### Método 1: Generar Sin Enviar (ADMIN)
+### Método 1: Generar Sin Enviar
 
-**POST** `/api/product-key/generate` (endpoint ADMIN, no público)
+**POST** `/api/product-key/generate` (auth: `validateAPIKey`)
 
 **Body:**
 ```json
@@ -291,7 +277,7 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 
 ### Método 2: Generar y Enviar Email Simple
 
-**POST** `/api/product-key/generate-and-send`
+**POST** `/api/product-key/generate-and-send` (auth: `validateAPIKey`)
 
 **Body:**
 ```json
@@ -318,7 +304,7 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 
 ### Método 3: Generar con Diagnóstico (Make.com)
 
-**POST** `/api/product-key/generate-make`
+**POST** `/api/product-key/generate-and-send-make` (auth: `validateAPIKey`)
 
 **Uso:** Integración con Make.com para automatización post-lead capture.
 
@@ -326,12 +312,12 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 ```json
 {
   "email": "comprador@example.com",
-  "fullName": "SnVhbiBQw6lyZXo=",      // Base64 encoded
-  "message": "VHUgZGlhZ27Ds3N0aWNvLi4u",  // Base64 encoded (diagnóstico IA)
-  "product": "tia",
+  "fullName": "SnVhbiBQw6lyZXo=",         // Base64 encoded
+  "message": "VHUgZGlhZ27Ds3N0aWNvLi4u",  // Base64 encoded (diagnóstico IA, opcional)
+  "product": "tia",                        // tia | tia_summer | tia_pool (sin tmd en este endpoint)
   "team": "no_team",
-  "guideLink": "https://...",           // Opcional
-  "whatsappLink": "https://wa.me/..."   // Opcional
+  "guideLink": "https://...",              // Opcional, URL validada
+  "whatsappLink": "https://wa.me/..."      // Opcional, URL validada
 }
 ```
 
@@ -340,23 +326,84 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 - ✅ Escapa HTML para prevenir XSS
 - ✅ Incluye diagnóstico personalizado en email
 - ✅ Secciones opcionales (guía, WhatsApp)
-- ✅ Template más completo
+- ✅ Template más completo (incluye instrucciones paso a paso de activación)
 
 **Template de Email:**
-- Asunto: "Tu Diagnóstico IA + Acceso a STANNUM Game"
+- Asunto: `"Tu Diagnóstico IA + Acceso a STANNUM Game"` (con diagnóstico) o `"Tu Acceso a STANNUM Game"` (sin diagnóstico)
 - Saludo personalizado con nombre
-- Sección de diagnóstico
+- Sección de diagnóstico (si `message` presente)
 - Código de activación destacado
-- Sección de guía (si guideLink presente)
-- Sección de comunidad WhatsApp (si whatsappLink presente)
+- Sección "Antes que nada..." explicando que la plataforma es gratuita
+- Pasos numerados para activar el código
+- Sección de guía (si `guideLink` presente)
+- Sección de comunidad WhatsApp (si `whatsappLink` presente)
+
+---
+
+### Método 4: Auto-Enroll (Magic Link Activation)
+
+**POST** `/api/product-key/auto-enroll` (auth: `validateAPIKey`)
+
+Crea (o reutiliza) un usuario stub, genera un product key, lo consume internamente activando el programa, y manda un email con magic link para que el usuario complete el onboarding sin código manual. Ideal para flujos lead → onboarding-friction-zero.
+
+**Body:**
+```json
+{
+  "email": "lead@example.com",
+  "fullName": "SnVhbiBQw6lyZXo=",         // Base64 encoded (requerido)
+  "message": "VHUgZGlhZ27Ds3N0aWNvLi4u",  // Base64 encoded (opcional)
+  "product": "tia",                        // tia | tmd | tia_summer | tia_pool
+  "team": "no_team",
+  "guideLink": "https://...",              // Opcional
+  "whatsappLink": "https://wa.me/..."      // Opcional
+}
+```
+
+**Flujo (transaccional con `session.withTransaction`):**
+
+1. **Find-or-create stub user** por email (`User.findOneAndUpdate` con upsert):
+   - Si crea: username `pending_<8hex>`, sin password, `allowPasswordLogin: false`
+   - Si existe: reutiliza el usuario existente
+2. **Detectar caso:**
+   - User completo + ya tiene producto → `status: "already_owned"` (no-op idempotente)
+   - User completo + sin producto → activar programa + email simple "producto activado" (sin magic link)
+   - User stub → continuar al paso 3
+3. **Generar y consumir product key** dentro de la transacción (key se crea con `used: true` directo)
+4. **Activar programa** vía `activateProgramForUser(userId, product, team, session)`
+5. **Generar magic link** (`crypto.randomBytes(32).hex` → 64 hex chars) con TTL `MAGIC_LINK_TTL_DAYS` (default 7), guarda hash SHA-256 en `user.magicLink.token`
+6. **Enviar email** con `${FRONTEND_URL}/activate/<rawToken>`
+
+**Response (stub user, magic link enviado):**
+```json
+{
+  "success": true,
+  "status": "new_user" | "existing_stub_resent",
+  "email": "lead@example.com"
+}
+```
+
+**Response (user completo):**
+```json
+{
+  "success": true,
+  "status": "activated_for_existing_user" | "already_owned",
+  "email": "lead@example.com"
+}
+```
+
+**Variables de entorno relacionadas:** `MAGIC_LINK_TTL_DAYS`, `FRONTEND_URL`.
+
+> El consumo del magic link y la activación de la cuenta del lado del usuario se documentan en [authentication.md § Magic Link](./authentication.md#magic-link--auto-enroll).
 
 ---
 
 ## 📊 5. TRACKING Y VERIFICACIÓN
 
-### Verificar Código (Antes de Activar)
+### Verificar Código (Antes de Activar — usuario logeado)
 
-**GET** `/api/product-key/verify/:code`
+**GET** `/api/product-key/:code` (auth: `validateJWT`)
+
+> El path es directamente `/:code` (no `/verify/:code`). Sirve para que el frontend muestre info del código antes de pedir confirmación de activación.
 
 **Response si disponible:**
 ```json
@@ -373,20 +420,15 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 }
 ```
 
-**Response si usado:**
-```json
-{
-  "success": false,
-  "code": "VALIDATION_PRODUCT_KEY_ALREADY_USED",
-  "msg": "Este código ya fue activado"
-}
-```
+**Errors:**
+- 404 `VALIDATION_PRODUCT_KEY_NOT_FOUND` — código no existe
+- 404 `VALIDATION_PRODUCT_KEY_ALREADY_USED` — código ya activado
 
 ---
 
-### Checar Estado (ADMIN)
+### Checar Estado (Soporte / Admin externo)
 
-**GET** `/api/product-key/status/:code`
+**GET** `/api/product-key/check/:code` (auth: `validateAPIKey`)
 
 **Response:**
 ```json
@@ -406,7 +448,7 @@ Esto garantiza que **solo un usuario puede activar el código**, incluso con req
 }
 ```
 
-**Uso:** Para soporte al cliente, verificar si un código fue activado y por quién.
+**Uso:** Para soporte al cliente o integración externa (Make/CRM), verificar si un código fue activado y por quién. No requiere JWT, solo API key.
 
 ---
 

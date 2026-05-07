@@ -75,6 +75,71 @@ Documentación del sistema de autenticación de STANNUM Game, basado en access t
 2. Backend limpia `user.refreshToken` (token = null, expiresAt = null)
 3. Frontend limpia cookies y redirige a `/`
 
+## Magic Link & Auto-Enroll
+
+Permite que un lead capturado externamente (Make/CRM) reciba un link mágico que le activa un programa y le abre el flujo de onboarding sin necesidad de password ni código manual. La generación del link se hace desde [`POST /api/product-key/auto-enroll`](./teams-productkeys.md#método-4-auto-enroll-magic-link-activation); esta sección documenta el lado de auth (consumo del link y completar la activación).
+
+### Flujo
+
+```
+Lead recibe email con link: ${FRONTEND_URL}/activate/<rawToken>
+  ↓ usuario hace click
+Frontend → GET /api/auth/magic-link/:token
+  ↓
+Backend valida token (regex 64 hex), busca user por hash SHA-256
+  ├─ user.status === false → 403 AUTH_ACCOUNT_DISABLED
+  ├─ magicLink.expiresAt < now → 410 MAGIC_LINK_EXPIRED (limpia link)
+  └─ token no matchea → 404 MAGIC_LINK_INVALID
+  ↓
+Single-use: invalida magicLink en DB (set null)
+  ↓
+profileStatus = getProfileStatus(user)
+  ├─ "needs_activation" (stub user) → emitir activation JWT + cookie
+  │     scope: "activation", TTL: ONBOARDING_JWT_TTL_MINUTES (default 30 min)
+  │     Response: { success: true, scope: "activation", profileStatus, email }
+  │
+  └─ user completo → login normal
+        Genera access + refresh tokens, los setea en cookies httpOnly
+        Response: { success: true, scope: "full", profileStatus }
+  ↓
+Frontend (stub) → muestra formulario de onboarding
+  └─ POST /api/auth/complete-activation con activation JWT + datos del perfil
+       │
+       Backend valida con validateActivationJWT middleware (scope === "activation")
+       ├─ Verifica profileStatus sigue siendo "needs_activation"
+       ├─ Username no puede empezar con "pending_" ni "google_"
+       ├─ Setea username, password, profile, enterprise, allowPasswordLogin: true
+       ├─ Limpia magicLink residual
+       ├─ Genera refresh token + nuevo access token (login real)
+       └─ Setea cookies de sesión normal
+       │
+       Response: { success: true, achievementsUnlocked, profileStatus: "complete" }
+```
+
+### Endpoints
+
+| Endpoint | Método | Auth | Body | Descripción |
+|----------|--------|------|------|-------------|
+| `/api/auth/magic-link/:token` | GET | Pública (`authLimiter`) | — | Consume magic link. Devuelve scope `activation` o `full` según el estado del user. |
+| `/api/auth/complete-activation` | POST | `validateActivationJWT` | `username, password, name, birthdate, country, region, enterprise, enterpriseRole, aboutme` | Completa el onboarding del stub user creado vía auto-enroll. |
+
+### Diferencias con el flujo de registro normal
+
+- **No requiere** `POST /auth/check-email` ni `POST /auth/validate-recaptcha`: el email ya fue validado en el lead capture y el usuario stub ya existe en DB.
+- **El programa ya está activado** antes de que el usuario complete su perfil (lo activa `auto-enroll` con product key auto-consumida).
+- **Username temporal** (`pending_<8hex>`) hasta que el usuario elija el suyo en `complete-activation`.
+- El JWT con `scope: "activation"` es **strictly limited**: solo sirve para `complete-activation`. `validateActivationJWT` rechaza cualquier otro endpoint.
+
+### Variables de Entorno
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `MAGIC_LINK_TTL_DAYS` | TTL del magic link (días) | 7 |
+| `ONBOARDING_JWT_TTL_MINUTES` | TTL del activation JWT (minutos) | 30 |
+| `FRONTEND_URL` | Base URL del frontend para construir el link | — |
+| `FORCE_SECURE_COOKIES` | Si `"true"`, fuerza cookies seguras incluso fuera de production | — |
+| `COOKIE_DOMAIN` | Domain de la cookie (opcional, ej. `.stannumgame.com`) | — |
+
 ## Rotación de Tokens
 
 Cada vez que se usa un refresh token para obtener nuevos tokens, el anterior se invalida y se genera uno nuevo. Esto minimiza la ventana de vulnerabilidad si un refresh token se compromete.
@@ -119,9 +184,14 @@ El archivo `src/lib/api.ts` implementa un cliente Axios centralizado con:
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `SECRET` | Secret para firmar access tokens JWT | `MiSecretJWT_2025` |
+| `SECRET` | Secret para firmar access tokens JWT (también usado para hashear OTP) | `MiSecretJWT_2025` |
 | `REFRESH_SECRET` | Secret para hashear refresh tokens (HMAC-SHA256) | `MiRefreshSecret_2025` |
-| `ACCESS_TOKEN_EXPIRY` | Duracion del access token | `15m` (fallback: `20s`) |
+| `ACCESS_TOKEN_EXPIRY` | Duración del access token | `15m` (fallback: `20s`) |
+| `MAGIC_LINK_TTL_DAYS` | TTL del magic link de auto-enroll | `7` |
+| `ONBOARDING_JWT_TTL_MINUTES` | TTL del activation JWT | `30` |
+| `FRONTEND_URL` | Base URL del frontend (usado para construir el link de activación) | `https://stannumgame.com` |
+| `FORCE_SECURE_COOKIES` | Forzar `Secure` flag en cookies aún sin `NODE_ENV=production` | `true` |
+| `COOKIE_DOMAIN` | Domain explícito para cookies | `.stannumgame.com` |
 
 ## Códigos de Error
 
@@ -149,21 +219,38 @@ Campo `otp` en el schema de usuario:
 
 ```javascript
 otp: {
-  code: { type: String, default: null },          // Código OTP hasheado
-  expiresAt: { type: Date, default: null },        // Fecha de expiración del OTP
+  recoveryOtp: { type: String, default: null },        // Código OTP hasheado (HMAC-SHA256)
+  otpExpiresAt: { type: Date, default: null },         // Fecha de expiración del OTP (30 min)
   recoveryVerified: { type: Boolean, default: false }, // Verificación de recuperación completada
+  // attempts es virtual / setteado dinámicamente: contador de intentos fallidos (max 5)
 }
 ```
 
 `recoveryVerified` se usa en el flujo de recuperación de contraseña:
-- Cuando el usuario verifica su OTP via `POST /auth/verify-recovery-otp`, `recoveryVerified` se setea a `true`.
-- El endpoint `POST /auth/password-reset` verifica que `recoveryVerified === true` antes de permitir el cambio de contraseña.
-- Después de resetear la contraseña exitosamente, `recoveryVerified` se vuelve a setear a `false`.
+- Cuando el usuario verifica su OTP via `POST /auth/verify-recovery-otp`, `recoveryVerified` se setea a `true` y `recoveryOtp` se borra.
+- El endpoint `POST /auth/password-reset` hace un `findOneAndUpdate` atómico que requiere `recoveryVerified === true` antes de permitir el cambio de contraseña.
+- Después de resetear la contraseña exitosamente, `recoveryVerified` se vuelve a setear a `false`, `attempts: 0` y se invalida el `refreshToken` actual.
+- Si el OTP falla 5 veces se borran todos los campos y el usuario debe pedir un nuevo OTP.
 
-Índice sparse para búsqueda eficiente:
+Campo `magicLink` en el schema de usuario (para flujo de auto-enroll):
+
+```javascript
+magicLink: {
+  token: { type: String, default: null },     // SHA-256 hash del token raw
+  expiresAt: { type: Date, default: null },   // TTL: MAGIC_LINK_TTL_DAYS (default 7)
+}
+```
+
+Índices:
 ```javascript
 userSchema.index({ 'refreshToken.token': 1 }, { sparse: true });
+userSchema.index(
+  { 'magicLink.token': 1 },
+  { partialFilterExpression: { 'magicLink.token': { $type: 'string' } } }
+);
 ```
+
+El `toJSON` transform también borra `magicLink` además de `password`, `otp` y `refreshToken`, para que nunca se serialice en responses de la API.
 
 ## Invalidación de Sesiones
 
@@ -176,12 +263,17 @@ Para invalidar todas las sesiones activas (ej: deploy con cambio de seguridad):
 ## Archivos Relevantes
 
 ### Backend
-- `src/helpers/newJWT.js` — Generación de access tokens
+- `src/helpers/newJWT.js` — Generación de access tokens (acepta `extraPayload` y `expiresIn` para activation tokens)
 - `src/helpers/newRefreshToken.js` — Generación y hash de refresh tokens
-- `src/controllers/authController.js` — Login, register, Google, refreshTokenHandler, logoutHandler
+- `src/helpers/authCookies.js` — `setAuthCookies` / `clearAuthCookies` para manejar cookies httpOnly
+- `src/helpers/getProfileStatus.js` — Calcula si el user es `needs_activation` o `complete`
+- `src/controllers/authController.js` — login, register, Google, refresh, logout, consumeMagicLink, completeActivation
+- `src/controllers/productKeyController.js` — `autoEnroll` (genera magic link)
 - `src/routes/authRoutes.js` — Rutas de autenticación
-- `src/middlewares/validateJWT.js` — Middleware de validación de access token
-- `src/models/userModel.js` — Schema con campo refreshToken
+- `src/middlewares/validateJWT.js` — Middleware de validación de access token (scope normal)
+- `src/middlewares/validateActivationJWT.js` — Middleware específico para activation tokens (scope === "activation")
+- `src/middlewares/resolveUserByRefreshToken.js` — Resuelve user a partir del refresh token (para logout)
+- `src/models/userModel.js` — Schema con campos refreshToken, otp, magicLink
 
 ### Frontend
 - `src/lib/api.ts` — Cliente Axios centralizado con interceptores

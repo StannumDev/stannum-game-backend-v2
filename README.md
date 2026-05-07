@@ -35,7 +35,7 @@ npm run dev
 npm start
 ```
 
-El servidor estara disponible en `http://localhost:8000`.
+El servidor estara disponible en `http://localhost:4000` (default si no se setea `PORT` en `.env`).
 
 ## Stack Tecnologico
 
@@ -60,7 +60,7 @@ src/
 ├── index.js                 # Entry point (Express setup, CORS, MongoDB connect)
 │
 ├── config/                  # Configuraciones estaticas
-│   ├── achievementsConfig.js   # 28 achievements con condiciones
+│   ├── achievementsConfig.js   # 22 achievements generales + 9 program-specific (ver gamification.md)
 │   ├── coinsConfig.js          # Economia de Tins (moneda virtual)
 │   ├── xpConfig.js             # Tabla de XP por nivel (30 niveles)
 │   ├── chestsConfig.js         # Cofres por modulo (recompensas XP, Tins, portadas)
@@ -75,7 +75,7 @@ src/
 │   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA, DEMO_TRENNO)
 │
 ├── models/                  # Schemas MongoDB (Mongoose)
-│   ├── userModel.js            # User: perfil, nivel, XP, achievements, programas, streaks
+│   ├── userModel.js            # User: perfil, nivel, XP, achievements, programas, streaks, magicLink, otp
 │   ├── programModel.js         # Catalogo de programas (secciones, modulos, lecciones, instrucciones)
 │   ├── productKeyModel.js      # Product keys para activar programas
 │   ├── promptModel.js          # Prompts de comunidad
@@ -85,14 +85,15 @@ src/
 │   ├── subscriptionPaymentModel.js  # Pagos de suscripcion
 │   ├── subscriptionAuditLogModel.js # Audit log de suscripciones
 │   ├── cancelTokenModel.js     # Tokens de cancelacion (TTL)
-│   └── failedEmailModel.js     # Emails fallidos (retry)
+│   ├── failedEmailModel.js     # Emails fallidos (retry)
+│   └── feedbackModel.js        # Feedback de usuarios (NPS, lecciones, errores)
 │
-├── routes/                  # Definicion de endpoints
+├── routes/                  # Definicion de endpoints (montados desde src/index.js)
 │   ├── authRoutes.js           # /api/auth/*
 │   ├── userRoutes.js           # /api/user/*
 │   ├── lessonRoutes.js         # /api/lesson/*
 │   ├── instructionRoutes.js    # /api/instruction/*
-│   ├── productKeyRoutes.js     # /api/product-key/*
+│   ├── productKeyRoutes.js     # /api/product-key/*  (incluye auto-enroll + check)
 │   ├── rankingRoutes.js        # /api/ranking/*
 │   ├── promptRoutes.js         # /api/prompt/*
 │   ├── assistantRoutes.js      # /api/assistant/*
@@ -101,47 +102,58 @@ src/
 │   ├── storeRoutes.js          # /api/store/*
 │   ├── paymentRoutes.js        # /api/payment/*
 │   ├── subscriptionRoutes.js   # /api/subscription/*
-│   └── webhookRoutes.js        # /api/webhooks/*
+│   ├── webhookRoutes.js        # /api/webhooks/*
+│   ├── programRoutes.js        # /api/programs/*  (publico JWT + admin x-api-key)
+│   ├── adminRoutes.js          # /api/admin/*  (x-api-key, lookup users/enterprises/stats)
+│   └── feedbackRoutes.js       # /api/feedback/*  (NPS, lessons, instructions, errors)
 │
 ├── controllers/             # Request handlers (logica de cada endpoint)
-│   ├── authController.js       # Login, register, Google OAuth, OTP, password reset
-│   ├── userController.js       # CRUD usuario, busqueda, tutoriales
-│   ├── lessonController.js     # Completar leccion, guardar progreso
-│   ├── instructionController.js # Start, submit (S3 presigned), retry grading
-│   ├── productKeyController.js  # Activar/listar product keys, emails
-│   ├── rankingController.js     # Rankings individuales y por equipo
-│   ├── promptController.js      # CRUD prompts, likes, favorites, copy
-│   ├── assistantController.js   # CRUD assistants, likes, favorites, clicks
+│   ├── authController.js       # Login, register, Google, OTP, magic link, complete activation
+│   ├── userController.js       # CRUD usuario, busqueda (Mongo text + Fuse), tutoriales
+│   ├── lessonController.js     # Completar leccion, guardar progreso, playback Mux
+│   ├── instructionController.js # Start, presign (multi-file), submit, retry grading
+│   ├── productKeyController.js  # Activar, generar, auto-enroll (con magic link), check
+│   ├── rankingController.js     # Rankings (cache in-memory con TTL)
+│   ├── promptController.js      # CRUD prompts, likes, favorites, copy, stats, top
+│   ├── assistantController.js   # CRUD assistants, likes, favorites, clicks, stats, top
 │   ├── profilePhotoController.js # Upload/delete foto de perfil (S3)
 │   ├── chestController.js       # Abrir cofres (validacion, recompensas)
-│   ├── storeController.js       # Portadas: listar, comprar, equipar. Streak shield y recovery
-│   ├── paymentController.js     # Mercado Pago: preferencias, verificacion, ordenes, cupones
-│   ├── subscriptionController.js # Suscripciones: crear, cancelar, estado, historial
-│   └── webhookController.js     # Webhook handler de Mercado Pago
+│   ├── storeController.js       # Portadas, streak shield y recovery
+│   ├── paymentController.js     # Mercado Pago: preferencias, verificacion, ordenes, cupones, recibos
+│   ├── subscriptionController.js # Suscripciones: crear, cancelar, estado, historial, recibos
+│   ├── webhookController.js     # Webhook handler de Mercado Pago
+│   ├── programController.js     # CRUD programas (publico + admin)
+│   ├── adminController.js       # Lookup users, enterprises, stats
+│   └── feedbackController.js    # Crear feedback (rate limited por tipo), listar, resolver
 │
 ├── services/                # Logica de negocio core
 │   ├── experienceService.js    # Calculo y asignacion de XP + niveles
 │   ├── coinsService.js         # Calculo y asignacion de Tins
 │   ├── achievementsService.js  # Evaluacion y desbloqueo de logros
-│   ├── aiGradingService.js     # Calificacion con OpenAI GPT-4o
+│   ├── aiGradingService.js     # Calificacion con OpenAI GPT-4o (responses.create + vision)
 │   ├── paymentService.js       # Mercado Pago: pagos unicos, ordenes, cupones
 │   ├── subscriptionService.js  # Suscripciones: creacion, cancelacion, state machine
-│   ├── subscriptionEmailService.js      # Emails de renovacion y notificaciones
+│   ├── subscriptionEmailService.js      # Emails transaccionales de suscripcion + magic link
 │   ├── subscriptionReconciliationService.js # Reconciliacion con Mercado Pago
-│   ├── streakService.js        # Gestion de daily streaks
+│   ├── streakService.js        # Gestion de daily streaks (apply shield, recovery)
 │   ├── programActivationService.js # Activacion de programas (product keys, compras)
 │   ├── programCacheService.js  # Cache en memoria del catalogo de programas
-│   ├── receiptService.js       # Generacion de recibos de compra y suscripcion
+│   ├── receiptService.js       # Generacion de recibos PDF (pdfkit)
+│   ├── feedbackEmailService.js # Notificaciones de feedback (FEEDBACK_NOTIFICATION_EMAILS)
 │   └── demoTransferService.js  # Transferencia de progreso demo → programa completo
 │
 ├── middlewares/             # Middlewares Express
-│   ├── validateJWT.js          # Verificacion de access token
-│   ├── resolveUserByRefreshToken.js # Resolucion de usuario por refresh token
+│   ├── validateJWT.js          # Verificacion de access token (cookie o Authorization header)
+│   ├── validateActivationJWT.js # Verifica JWT con scope:"activation" (magic link onboarding)
+│   ├── resolveUserByRefreshToken.js # Resolucion de usuario por refresh token (logout)
 │   ├── fieldsValidate.js       # Validacion de campos (express-validator)
-│   ├── rateLimiter.js          # 10 rate limiters configurados
-│   ├── validateAPIKey.js       # Validacion de API key (Make.com)
-│   ├── isAdmin.js              # Verificacion de rol admin
-│   └── webhookVerify.js        # Verificacion de firma de webhook Mercado Pago
+│   ├── rateLimiter.js          # ~15 rate limiters (auth, OTP, search, feedback, etc.)
+│   ├── validateAPIKey.js       # Validacion de header x-api-key (admin/integraciones)
+│   ├── isAdmin.js              # Verificacion de rol admin (USER/ADMIN)
+│   └── webhookVerify.js        # Verificacion de firma de webhook Mercado Pago (HMAC)
+│
+├── cache/                   # Cache layer
+│   └── cacheService.js         # node-cache wrapper con KEYS, TTL e invalidación por user
 │
 ├── helpers/                 # Funciones utilitarias
 │   ├── newJWT.js               # Generar access token JWT
@@ -175,19 +187,28 @@ src/
 ## Variables de Entorno
 
 ```env
-# Base
+# ── Base ──
 NODE_ENV=production
-PORT=8000
+PORT=4000                       # Default si no se setea
 
-# MongoDB
+# ── MongoDB ──
 DB_URL=mongodb+srv://user:pass@cluster.mongodb.net/stannum-game
 
-# JWT & Auth
+# ── JWT & Auth ──
 SECRET=clave_secreta_jwt_y_otp
 REFRESH_SECRET=clave_secreta_refresh_token
-ACCESS_TOKEN_EXPIRY=15m
+ACCESS_TOKEN_EXPIRY=15m         # Fallback: 20s si no se setea
 
-# AWS S3
+# ── Magic Link / Auto-enroll (ver authentication.md) ──
+MAGIC_LINK_TTL_DAYS=7           # Default: 7
+ONBOARDING_JWT_TTL_MINUTES=30   # Default: 30
+FRONTEND_URL=http://localhost:3000
+
+# ── Cookies ──
+FORCE_SECURE_COOKIES=false      # true para forzar Secure flag fuera de production
+COOKIE_DOMAIN=.stannumgame.com  # Opcional
+
+# ── AWS S3 ──
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=us-east-1
@@ -195,32 +216,34 @@ AWS_BUCKET_NAME=tu-bucket
 AWS_S3_BASE_URL=https://tu-bucket.s3.us-east-1.amazonaws.com
 AWS_S3_FOLDER_NAME=profile-photos
 
-# OpenAI (AI Grading)
+# ── OpenAI (AI Grading) ──
 OPENAI_API_KEY=sk-...
 
-# Email (SMTP)
+# ── Email (SMTP) ──
 SMTP_EMAIL=noreply@tudominio.com
 SMTP_PASSWORD=app_password
+FEEDBACK_NOTIFICATION_EMAILS=ops@stannum.com,product@stannum.com  # CSV opcional
 
-# Google OAuth
+# ── Google OAuth ──
 GOOGLE_USERINFO_API=https://www.googleapis.com/oauth2/v3/userinfo
 
-# reCAPTCHA
+# ── reCAPTCHA ──
 RECAPTCHA_SECRET_KEY=tu_secret_key
 
-# CORS
+# ── CORS / CSRF ──
 ALLOWED_ORIGINS=["http://localhost:3000","https://stannumgame.com"]
 
-# Cookies (opcional)
-COOKIE_DOMAIN=.stannumgame.com
-
-# Make.com (integracion externa)
+# ── Make.com / API Key (admin endpoints + product-key generate + feedback/error + programs admin) ──
 MAKE_API_KEY=tu_api_key
 
-# Mercado Pago (pagos y suscripciones)
+# ── Mercado Pago (pagos y suscripciones) ──
 MP_ACCESS_TOKEN=APP_USR-...
 MP_NOTIFICATION_URL=https://api.tudominio.com/api/webhooks/mercadopago
-FRONTEND_URL=http://localhost:3000
+MP_WEBHOOK_SECRET=tu_webhook_secret  # HMAC-SHA256 para verificar webhooks de MP
+
+# ── Debug / utilidades (opcionales) ──
+CACHE_DEBUG=false
+CONFIRM_CLEAN=false
 ```
 
 ## Endpoints
@@ -231,14 +254,19 @@ FRONTEND_URL=http://localhost:3000
 |--------|------|-------------|------|
 | POST | `/auth` | Login con username/email + password | No |
 | POST | `/auth/register` | Registro de cuenta nueva | No |
+| POST | `/auth/check-email` | Validar disponibilidad de email | No |
+| POST | `/auth/validate-username` | Validar username (formato, ofensivo, único) | No |
+| POST | `/auth/validate-recaptcha` | Verificar token reCAPTCHA v3 | No |
 | POST | `/auth/google` | Login/registro con Google OAuth | No |
 | GET | `/auth/auth-user` | Verificar token y obtener status | Si |
-| POST | `/auth/refresh-token` | Renovar access token | No (usa refresh) |
-| POST | `/auth/logout` | Cerrar sesion (invalida refresh token) | Si |
-| POST | `/auth/recovery-password` | Solicitar OTP por email | No |
-| POST | `/auth/verify-otp` | Verificar OTP | No |
-| POST | `/auth/reset-password` | Resetear contrasena | No (usa token temporal) |
-| PUT | `/auth/username` | Actualizar username | Si |
+| POST | `/auth/refresh-token` | Renovar access token (lee cookie `refresh_token`) | No (usa cookie) |
+| POST | `/auth/logout` | Cerrar sesion (invalida refresh token) | Cookie refresh |
+| POST | `/auth/password-recovery` | Solicitar OTP por email | No |
+| POST | `/auth/verify-recovery-otp` | Verificar OTP | No |
+| POST | `/auth/password-reset` | Resetear contraseña | No |
+| PUT | `/auth/update-username` | Actualizar username | Si |
+| GET | `/auth/magic-link/:token` | Consumir magic link de auto-enroll | No |
+| POST | `/auth/complete-activation` | Completar onboarding del stub user | Activation JWT |
 
 ### Usuario (`/api/user`)
 
@@ -265,20 +293,25 @@ FRONTEND_URL=http://localhost:3000
 | Metodo | Ruta | Descripcion | Auth |
 |--------|------|-------------|------|
 | POST | `/instruction/start/:programName/:instructionId` | Iniciar instruccion | Si |
-| GET | `/instruction/presigned-url/:programName/:instructionId` | URL firmada para upload S3 | Si |
-| POST | `/instruction/submit/:programName/:instructionId` | Enviar instruccion | Si |
-| POST | `/instruction/retry/:programName/:instructionId` | Reintentar calificacion AI | Si |
+| POST | `/instruction/presign/:programName/:instructionId` | URLs firmadas para upload S3 (1-10 archivos) | Si |
+| POST | `/instruction/submit/:programName/:instructionId` | Enviar instruccion (s3Keys[] o submittedText) | Si |
+| POST | `/instruction/retry/:programName/:instructionId` | Reintentar calificacion AI (max 3 retries) | Si |
+
+> Programas válidos para instrucciones: `tia | tia_summer | tia_pool | tmd` (no `trenno_ia` ni `demo_trenno`).
 
 ### Product Keys (`/api/product-key`)
 
 | Metodo | Ruta | Descripcion | Auth |
 |--------|------|-------------|------|
-| GET | `/product-key/:code` | Verificar product key | Si |
-| POST | `/product-key/activate` | Activar product key | Si |
-| POST | `/product-key/generate-and-send` | Generar y enviar key por email | API Key |
-| POST | `/product-key/generate-and-send-make` | Generar y enviar desde Make.com | API Key |
+| GET | `/product-key/:code` | Pre-verificar product key (antes de activar) | JWT |
+| POST | `/product-key/activate` | Activar product key (transacción Mongo) | JWT |
 | POST | `/product-key/generate` | Generar key sin enviar | API Key |
-| GET | `/product-key/check/:code` | Verificar estado de key | API Key |
+| POST | `/product-key/generate-and-send` | Generar y enviar key por email | API Key |
+| POST | `/product-key/generate-and-send-make` | Generar y enviar desde Make.com (con diagnóstico) | API Key |
+| POST | `/product-key/auto-enroll` | Crear stub user + activar + magic link | API Key |
+| GET | `/product-key/check/:code` | Verificar estado de key (soporte) | API Key |
+
+> Producto válido en el modelo: `tmd | tia | tia_summer | tia_pool` (no `trenno_ia`).
 
 ### Rankings (`/api/ranking`)
 
@@ -364,6 +397,7 @@ FRONTEND_URL=http://localhost:3000
 | GET | `/payment/my-orders` | Historial de ordenes del usuario | Si |
 | POST | `/payment/order/:orderId/cancel` | Cancelar orden | Si |
 | POST | `/payment/order/:orderId/resend-email` | Reenviar email de regalo | Si |
+| GET | `/payment/order/:orderId/receipt` | Descargar comprobante PDF | Si |
 | POST | `/payment/apply-coupon` | Aplicar cupon de descuento | Si |
 | POST | `/payment/coupon` | Crear cupon (ADMIN) | Si (Admin) |
 | GET | `/payment/coupons` | Listar cupones (ADMIN) | Si (Admin) |
@@ -377,6 +411,7 @@ FRONTEND_URL=http://localhost:3000
 | POST | `/subscription/cancel` | Cancelar suscripcion | Si |
 | GET | `/subscription/status/:programId` | Estado de suscripcion | Si |
 | GET | `/subscription/payments/:programId` | Historial de pagos de suscripcion | Si |
+| GET | `/subscription/payment/:paymentId/receipt` | Descargar comprobante PDF de un pago | Si |
 | GET | `/subscription/health` | Health stats de suscripciones (ADMIN) | Si (Admin) |
 | POST | `/subscription/admin/:userId/:programId/cancel` | Cancelar suscripcion de usuario (ADMIN) | Si (Admin) |
 | GET | `/subscription/admin/:userId/:programId/history` | Historial de pagos de usuario (ADMIN) | Si (Admin) |
@@ -385,7 +420,41 @@ FRONTEND_URL=http://localhost:3000
 
 | Metodo | Ruta | Descripcion | Auth |
 |--------|------|-------------|------|
-| POST | `/webhooks/mercadopago` | Webhook de notificaciones de Mercado Pago | Firma MP |
+| POST | `/webhooks/mercadopago` | Webhook de notificaciones de Mercado Pago | HMAC firma MP (`MP_WEBHOOK_SECRET`) |
+
+### Programas (`/api/programs`) - Trenno Dashboard / Game
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| GET | `/programs/public` | Listar programas (game frontend) | JWT |
+| GET | `/programs/public/:programId` | Detalle público de un programa | JWT |
+| GET | `/programs` | Listar todos los programas (admin) | API Key |
+| GET | `/programs/full` | Listar con todo el contenido (admin) | API Key |
+| GET | `/programs/:programId` | Detalle completo (admin) | API Key |
+| PUT | `/programs/:programId` | Actualizar programa | API Key |
+| PUT | `/programs/:programId/sections/:sectionId` | Actualizar sección | API Key |
+| PUT | `…/modules/:moduleId` | Actualizar módulo | API Key |
+| PUT | `…/lessons/:lessonId` | Actualizar lección | API Key |
+| PUT | `…/instructions/:instructionId` | Actualizar instrucción | API Key |
+| POST/PUT/DELETE | `…/resources/:resourceId?` | CRUD recursos (sección o instrucción) | API Key |
+
+### Admin (`/api/admin`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| GET | `/admin/user?email=&username=` | Buscar user puntual | API Key |
+| GET | `/admin/users?enterprise=&search=&page=&limit=` | Listar users con filtros | API Key |
+| GET | `/admin/stats` | Stats agregadas | API Key |
+| GET | `/admin/enterprises` | Listar enterprises distintas | API Key |
+
+### Feedback (`/api/feedback`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/feedback/error` | Ingestar errores client-side | API Key |
+| POST | `/feedback` | Crear feedback (NPS, lesson, instruction, onboarding) | JWT |
+| GET | `/feedback` | Listar feedback | JWT + Admin |
+| PATCH | `/feedback/:id/resolve` | Marcar resuelto | JWT + Admin |
 
 Ver [API Reference completa](./docs/api-reference.md) para detalles de request/response bodies.
 
@@ -397,7 +466,7 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 - **Tins:** Moneda virtual. Se gana con lecciones (5), instrucciones (10-25 segun score), modulos (30), programas (100), cofres (10-15). Se gastan en la Tienda de portadas.
 - **Cofres:** Nodos de recompensa en el PathMap. Se desbloquean al completar la actividad previa (`afterItemId`). Otorgan XP, Tins y opcionalmente una portada. Operacion atomica anti double-open.
 - **Tienda de Portadas:** 12 portadas cosmeticas (common a legendary, 0-1500 Tins). Compra atomica anti-overspend. Equip/unequip de portada activa.
-- **Achievements:** 28 logros verificados en backend. Se evaluan en cada accion relevante.
+- **Achievements:** 31 logros (22 generales + 9 program-specific) verificados en backend. Loop hasta 10 iteraciones para desbloqueos en cadena.
 - **Daily Streaks:** Dias consecutivos con actividad. Bonus de XP creciente (cap 7 dias).
 - **Rankings:** Individual global, individual por programa, por equipos.
 
@@ -405,30 +474,31 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 
 ### 2. Sistema Educativo
 
-- **Programas:** TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA (suscripcion), DEMO_TRENNO (demo)
+- **Programas:** TIA, TMD, TIA_SUMMER, TIA_POOL (compra única), TRENNO_IA (suscripción), DEMO_TRENNO (demo)
 - **Estructura:** Program → Section → Module → Lesson/Instruction
-- **Progreso:** Tracking completo por leccion e instruccion
-- **Modulos bloqueados:** Se desbloquean al completar el modulo anterior
+- **Progreso:** Tracking completo por lección e instrucción
+- **Módulos bloqueados:** Se desbloquean al completar el módulo anterior
 
 [Documentacion completa](./docs/systems/education.md)
 
 ### 3. AI Grading
 
-- **Motor:** OpenAI GPT-4o
-- **Context injection:** Lecciones previas del modulo + consigna de la instruccion
-- **Soporta:** Texto y archivos (imagenes via S3)
-- **Output:** Score 0-100 + observaciones constructivas en espanol
-- **Retry:** En caso de error, el usuario puede reintentar
+- **Motor:** OpenAI GPT-4o (`responses.create()` con vision multi-imagen)
+- **Context injection:** Lecciones previas del módulo + consigna de la instrucción + criterios pedagógicos en SYSTEM_PROMPT
+- **Soporta:** Texto y archivos (1-10 imágenes via S3 → base64 data URLs)
+- **Output:** Score 0-100 + observaciones constructivas en español + lecciones recomendadas
+- **Retry:** automático x3 con backoff exponencial; manual del usuario hasta 3 veces más
 
 [Documentacion completa](./docs/systems/ai-grading.md)
 
 ### 4. Autenticacion
 
-- **Access token:** JWT firmado, 15 min de expiracion
-- **Refresh token:** 80 chars hex, hasheado con HMAC-SHA256, 7 dias de expiracion
-- **Rotacion:** Cada refresh genera un nuevo par de tokens
-- **Google OAuth:** Login/registro automatico con datos de Google
-- **Password recovery:** OTP por email (6 digitos, 10 min de expiracion)
+- **Access token:** JWT firmado, 15 min de expiración (cookie httpOnly `access_token`)
+- **Refresh token:** 80 chars hex, hash HMAC-SHA256 en DB, 7 días de expiración (cookie httpOnly `refresh_token`)
+- **Rotacion:** Cada refresh genera un nuevo par de tokens en operación atómica
+- **Google OAuth:** Login/registro automático con datos de Google + import de foto
+- **Password recovery:** OTP de 6 dígitos por email (HMAC-SHA256, 30 min de expiración, cap 5 intentos)
+- **Magic link / Auto-enroll:** Lead capture externo crea stub user, recibe link `/activate/<token>` (TTL `MAGIC_LINK_TTL_DAYS`), y completa onboarding con activation JWT (TTL `ONBOARDING_JWT_TTL_MINUTES`)
 
 [Documentacion completa](./docs/systems/authentication.md)
 
@@ -458,33 +528,41 @@ Todas las tareas corren en timezone `America/Argentina/Buenos_Aires`:
 
 ## Seguridad
 
-- Contrasenas hasheadas con bcryptjs
-- Access tokens JWT de corta duracion (15 min)
-- Refresh tokens opacos con rotacion y hash HMAC-SHA256
-- Logout server-side (invalidacion de refresh token)
-- 10 rate limiters configurados (general, auth, OTP, busqueda, creacion de contenido, etc.)
-- CORS por whitelist (`ALLOWED_ORIGINS`)
-- Helmet para headers de seguridad
+- Contraseñas hasheadas con bcryptjs (10 rounds)
+- Access tokens JWT de corta duración (15 min)
+- Refresh tokens opacos con rotación y hash HMAC-SHA256
+- Magic link tokens single-use con SHA-256 hash, TTL configurable
+- Logout server-side (invalidación de refresh token)
+- ~15 rate limiters configurados (auth, OTP, búsqueda, feedback por tipo, creación de contenido, etc.)
+- CORS por whitelist (`ALLOWED_ORIGINS`) + middleware CSRF custom (origin/referer check) en mutaciones sin `x-api-key`
+- Helmet para headers de seguridad (Permissions-Policy: camera/mic/geolocation deshabilitados)
 - express-validator en todas las rutas
 - Google reCAPTCHA v3 en registro
-- Deteccion de profanidad (@2toad/profanity)
-- AWS S3 URLs presignadas (no se exponen credenciales)
-- Cookie httpOnly + secure + sameSite para tokens
+- Detección de profanidad (@2toad/profanity, configurable wholeWord)
+- AWS S3 URLs presignadas (no se exponen credenciales, TTL 300s)
+- Cookies httpOnly + Secure (en prod o `FORCE_SECURE_COOKIES=true`) + sameSite para tokens
+- Webhooks MP verificados con HMAC-SHA256 (`MP_WEBHOOK_SECRET`) + ventana temporal ±5 min + comparación timing-safe
+- transform `toJSON` en User schema borra `password`, `otp`, `refreshToken`, `magicLink` antes de serializar
 
 ## Modelos MongoDB
 
 ### User (`userModel.js`)
-Modelo principal (~860 lineas). Incluye:
-- Perfil (nombre, pais, empresa, aboutMe, socialLinks)
+Modelo principal (~1130 líneas con métodos). Incluye:
+- Perfil (nombre, país, empresa, aboutMe, socialLinks max 5)
 - Nivel y XP (currentLevel, experienceTotal, xpHistory)
 - Achievements desbloqueados
-- Programas inscritos con progreso (lecciones, instrucciones, modulos, chestsOpened)
-- Daily streaks
+- Programas inscritos con progreso (lecciones, instrucciones con `fileUrls[]`, módulos, chestsOpened)
+- Daily streaks (count, shields, recovery window, lostCount/lostAt)
 - Preferencias y tutorials completados
 - Favoritos (prompts, assistants)
 - Equipo(s) por programa
-- Portadas (unlockedCovers, equippedCoverId)
-- Transform `toJSON` que excluye password, otp y refreshToken
+- Portadas (`unlockedCovers` con `unlockedDate`, `equippedCoverId`)
+- `magicLink: { token, expiresAt }` para auto-enroll
+- `otp: { recoveryOtp, otpExpiresAt, recoveryVerified }` para password recovery
+- `feedbackState: { lastNpsAt, lastOnboardingFeedbackAt }` para evitar prompts repetidos
+- `communityStats: { promptsCount, assistantsCount, totalFavoritesReceived }`
+- Transform `toJSON` que excluye `password`, `otp`, `refreshToken`, `magicLink`
+- Métodos: `getGameUserDetails()` (game frontend), `getFullUserDetails()` (interno), `getPublicUserDetails()`, `getRankingUserDetails()`, `getSearchUserDetails()`, `getUserSidebarDetails()`
 
 ### ProductKey (`productKeyModel.js`)
 Codigos de activacion de programas con estado (usado/disponible).
@@ -515,6 +593,9 @@ Tokens de un solo uso para cancelacion de suscripciones via link en email. Inclu
 
 ### FailedEmail (`failedEmailModel.js`)
 Emails que fallaron al enviarse, con datos para retry automatico.
+
+### Feedback (`feedbackModel.js`)
+Feedback de usuarios capturado desde el game frontend: NPS, reacciones de lección/instrucción, onboarding, y errores client-side. Incluye `type`, `rating`, `reaction`, `message`, `requestId`, `context` y estado `resolved` para gestión.
 
 ## Documentacion Adicional
 

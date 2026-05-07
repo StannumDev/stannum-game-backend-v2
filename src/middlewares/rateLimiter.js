@@ -114,4 +114,57 @@ const gradingRetryLimiter = rateLimit({
     keyGenerator: (req) => req.userAuth?.id || req.ip,
 });
 
-module.exports = { globalLimiter, authLimiter, searchLimiter, otpLimiter, submissionLimiter, validationLimiter, refreshLimiter, contentCreationLimiter, sensitiveOperationLimiter, passwordLimiter, paymentLimiter, gradingRetryLimiter };
+const feedbackNpsLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 1,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id?.toString() || req.ip,
+});
+
+const feedbackOnboardingLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id?.toString() || req.ip,
+});
+
+const feedbackInteractionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id?.toString() || req.ip,
+});
+
+const errorIngestLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.ip,
+});
+
+module.exports = {
+    globalLimiter,
+    authLimiter,
+    searchLimiter,
+    otpLimiter,
+    submissionLimiter,
+    validationLimiter,
+    refreshLimiter,
+    contentCreationLimiter,
+    sensitiveOperationLimiter,
+    passwordLimiter,
+    paymentLimiter,
+    gradingRetryLimiter,
+    feedbackNpsLimiter,
+    feedbackOnboardingLimiter,
+    feedbackInteractionLimiter,
+    errorIngestLimiter,
+};

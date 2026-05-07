@@ -566,4 +566,147 @@ const logoutHandler = async (req , res) => {
   }
 };
 
-module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser, refreshTokenHandler, logoutHandler };
+const ONBOARDING_JWT_TTL_MINUTES = parseInt(process.env.ONBOARDING_JWT_TTL_MINUTES, 10) || 30;
+
+const hashMagicLinkToken = (rawToken) => crypto.createHash("sha256").update(rawToken).digest("hex");
+
+const consumeMagicLink = async (req, res) => {
+  try {
+    const { token: rawToken } = req.params;
+    if (!rawToken || typeof rawToken !== "string" || !/^[a-f0-9]{64}$/.test(rawToken)) {
+      return res.status(400).json(getError("MAGIC_LINK_INVALID"));
+    }
+
+    const hashedToken = hashMagicLinkToken(rawToken);
+    const user = await User.findOne({ "magicLink.token": hashedToken });
+    if (!user) return res.status(404).json(getError("MAGIC_LINK_INVALID"));
+    if (!user.status) return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
+    if (!user.magicLink?.expiresAt || user.magicLink.expiresAt < new Date()) {
+      await User.updateOne({ _id: user._id }, { $set: { "magicLink.token": null, "magicLink.expiresAt": null } });
+      return res.status(410).json(getError("MAGIC_LINK_EXPIRED"));
+    }
+
+    // Single-use: invalidate immediately
+    await User.updateOne(
+      { _id: user._id, "magicLink.token": hashedToken },
+      { $set: { "magicLink.token": null, "magicLink.expiresAt": null } }
+    );
+    invalidateUser(user._id);
+
+    const profileStatus = getProfileStatus(user);
+
+    // User ya completo → login automático con JWT normal
+    if (profileStatus !== "needs_activation") {
+      const accessToken = await newJWT(user.id, user.role);
+      if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+
+      const { token: refreshTokenRaw, hashedToken: hashedRefresh, expiresAt } = newRefreshToken();
+      await User.updateOne({ _id: user._id }, { $set: { refreshToken: { token: hashedRefresh, expiresAt } } });
+      invalidateUser(user._id);
+
+      setAuthCookies(res, accessToken, refreshTokenRaw);
+      return res.status(200).json({ success: true, scope: "full", profileStatus });
+    }
+
+    // Stub user → JWT con scope:"activation" para completar perfil
+    const activationToken = await newJWT(user.id, user.role, {
+      extraPayload: { scope: "activation" },
+      expiresIn: `${ONBOARDING_JWT_TTL_MINUTES}m`,
+    });
+    if (!activationToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+
+    res.cookie("access_token", activationToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production" || process.env.FORCE_SECURE_COOKIES === "true",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ONBOARDING_JWT_TTL_MINUTES * 60 * 1000,
+      ...(process.env.COOKIE_DOMAIN && { domain: process.env.COOKIE_DOMAIN }),
+    });
+
+    return res.status(200).json({
+      success: true,
+      scope: "activation",
+      profileStatus,
+      email: user.email,
+    });
+  } catch (error) {
+    console.error("Error consuming magic link:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+const completeActivation = async (req, res) => {
+  const { username, password, name, birthdate, country, region, enterprise, enterpriseRole, aboutme } = req.body;
+  try {
+    const user = req.userAuth;
+    const profileStatus = getProfileStatus(user);
+    if (profileStatus !== "needs_activation") {
+      return res.status(409).json(getError("USER_ALREADY_ACTIVATED"));
+    }
+
+    const normalizedUsername = username.trim().toLowerCase();
+    if (normalizedUsername.startsWith("pending_") || normalizedUsername.startsWith("google_")) {
+      return res.status(400).json(getError("VALIDATION_USERNAME_INVALID"));
+    }
+    if (isOffensive(normalizedUsername)) return res.status(400).json(getError("VALIDATION_USERNAME_OFFENSIVE"));
+
+    const existingUsername = await User.findOne({ username: normalizedUsername, _id: { $ne: user._id } });
+    if (existingUsername) return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+
+    const birthDateObject = new Date(birthdate);
+    if (isNaN(birthDateObject.getTime())) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+    const now = new Date();
+    let age = now.getFullYear() - birthDateObject.getFullYear();
+    if (now.getMonth() < birthDateObject.getMonth() || (now.getMonth() === birthDateObject.getMonth() && now.getDate() < birthDateObject.getDate())) age--;
+    if (age < 18) return res.status(400).json(getError("VALIDATION_BIRTHDATE_INVALID"));
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
+
+    user.username = normalizedUsername;
+    user.password = hashedPassword;
+    if (name?.trim()) user.profile.name = name.trim();
+    user.profile.birthdate = birthDateObject;
+    user.profile.country = country.trim();
+    user.profile.region = region.trim();
+    user.profile.aboutMe = aboutme.trim();
+    user.enterprise.name = enterprise.trim();
+    user.enterprise.jobPosition = enterpriseRole.trim();
+    user.preferences.allowPasswordLogin = true;
+    user.refreshToken = { token: hashedToken, expiresAt };
+    user.magicLink = { token: null, expiresAt: null };
+    // NOTA: no setear passwordChangedAt — es la primera vez que se setea password (no un cambio)
+
+    try {
+      await user.save();
+    } catch (err) {
+      if (err.code === 11000) {
+        const field = Object.keys(err.keyPattern || {})[0];
+        if (field === "username") return res.status(409).json(getError("AUTH_USERNAME_ALREADY_EXISTS"));
+      }
+      throw err;
+    }
+
+    invalidateUser(user._id);
+
+    const accessToken = await newJWT(user.id, user.role);
+    if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
+
+    setAuthCookies(res, accessToken, refreshTokenRaw);
+
+    let newlyUnlocked = [];
+    try {
+      ({ newlyUnlocked } = await unlockAchievements(user, true));
+    } catch (err) {
+      console.error("Achievement unlock failed during activation:", err);
+    }
+
+    return res.status(200).json({ success: true, achievementsUnlocked: newlyUnlocked, profileStatus: "complete" });
+  } catch (error) {
+    console.error("Error completing activation:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser, refreshTokenHandler, logoutHandler, consumeMagicLink, completeActivation };

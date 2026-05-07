@@ -3,11 +3,11 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const { getError } = require("../helpers/getError");
 
-const validateJWT = async (req = request, res = response, next) => {
+const validateActivationJWT = async (req = request, res = response, next) => {
   try {
     const authHeader = req.header('Authorization');
     const token = req.cookies?.access_token || (authHeader && authHeader.split(' ')[1]);
-    if (!token) return res.status(401).json(getError("JWT_MISSING_TOKEN"));
+    if (!token) return res.status(401).json(getError("ACTIVATION_TOKEN_REQUIRED"));
 
     let decodedToken;
     try {
@@ -18,28 +18,18 @@ const validateJWT = async (req = request, res = response, next) => {
       return res.status(401).json(getError("JWT_CORRUPTED_TOKEN"));
     }
 
-    if (decodedToken.scope) return res.status(401).json(getError("JWT_INVALID_TOKEN"));
+    if (decodedToken.scope !== "activation") return res.status(401).json(getError("ACTIVATION_TOKEN_REQUIRED"));
 
-    const { id } = decodedToken;
-    const user = await User.findById(id);
-
+    const user = await User.findById(decodedToken.id);
     if (!user) return res.status(401).json(getError("JWT_INVALID_TOKEN"));
     if (!user.status) return res.status(401).json(getError("AUTH_ACCOUNT_DISABLED"));
-
-    if (user.passwordChangedAt) {
-      const tokenIssuedAt = decodedToken.iat * 1000;
-      if (tokenIssuedAt < new Date(user.passwordChangedAt).getTime()) {
-        return res.status(401).json(getError("JWT_EXPIRED_TOKEN"));
-      }
-    }
 
     req.userAuth = user;
     next();
   } catch (error) {
-    console.error("Error validating JWT:", error);
-    const serverError = getError("SERVER_INTERNAL_ERROR");
-    return res.status(500).json(serverError);
+    console.error("Error validating activation JWT:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
   }
 };
 
-module.exports = { validateJWT };
+module.exports = { validateActivationJWT };

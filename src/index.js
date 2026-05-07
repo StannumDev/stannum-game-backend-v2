@@ -21,6 +21,7 @@ const programRouter = require("./routes/programRoutes");
 const adminRouter = require("./routes/adminRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
 const subscriptionRouter = require("./routes/subscriptionRoutes");
+const feedbackRouter = require("./routes/feedbackRoutes");
 const cron = require("node-cron");
 const { reconcilePayments } = require("./services/paymentService");
 const { expireCancelledSubscriptions, retryFailedDemoTransfers } = require("./services/subscriptionService");
@@ -111,6 +112,7 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/subscription", subscriptionRouter);
 app.use("/api/programs", programRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/feedback", feedbackRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
