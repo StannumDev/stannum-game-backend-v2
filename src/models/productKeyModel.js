@@ -11,7 +11,7 @@ const productKeySchema = new Schema(
     email: {
       type: String,
       required: [true, "El correo electrónico del comprador es obligatorio"],
-      match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Debe ser un correo válido"],
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Debe ser un correo válido"],
       trim: true,
     },
     createdAt: {
