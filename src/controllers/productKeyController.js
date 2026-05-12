@@ -475,9 +475,10 @@ const autoEnroll = async (req, res) => {
         const safeDiagnosis = decodedDiagnosis ? escapeHtml(decodedDiagnosis) : null;
         const safeFullName = escapeHtml(decodedFullName);
 
-        // Atomic find-or-create stub user (idempotente por email)
+        // Atomic find-or-create stub user (idempotente por email).
+        // includeResultMetadata permite distinguir insert vs find sin heurísticas frágiles.
         const pendingUsername = `pending_${crypto.randomBytes(4).toString("hex")}`;
-        let user = await User.findOneAndUpdate(
+        const upsertResult = await User.findOneAndUpdate(
             { email: normalizedEmail },
             {
                 $setOnInsert: {
@@ -487,8 +488,15 @@ const autoEnroll = async (req, res) => {
                     preferences: { allowPasswordLogin: false },
                 },
             },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
+            { upsert: true, new: true, setDefaultsOnInsert: true, includeResultMetadata: true }
         );
+        const user = upsertResult.value;
+        const wasNewUser = !!upsertResult.lastErrorObject?.upserted;
+
+        // Cuenta deshabilitada: abortar antes de tocar nada (evita gastar ProductKey)
+        if (user.status === false) {
+            return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
+        }
 
         const profileStatus = getProfileStatus(user);
         const isStub = profileStatus === "needs_activation";
@@ -499,11 +507,56 @@ const autoEnroll = async (req, res) => {
             return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail });
         }
 
-        // Generar y consumir ProductKey + activar producto en una transacción
+        // Si es stub y el admin pasa un nombre completo distinto, actualizarlo (last-write-wins en stubs)
+        if (isStub && !wasNewUser && decodedFullName && decodedFullName !== user.profile?.name) {
+            await User.updateOne({ _id: user._id }, { $set: { "profile.name": decodedFullName } });
+            invalidateUser(user._id);
+        }
+
+        // Caso: stub que ya tiene el producto (Make ya hizo enroll antes y user nunca activó)
+        // → no crear nueva ProductKey, solo regenerar magic link
+        if (isStub && alreadyHasProduct) {
+            const rawToken = generateMagicLinkRawToken();
+            const hashedToken = hashMagicLinkToken(rawToken);
+            const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+            await User.updateOne(
+                { _id: user._id },
+                { $set: { "magicLink.token": hashedToken, "magicLink.expiresAt": expiresAt } }
+            );
+            invalidateUser(user._id);
+
+            sendMagicLinkActivationEmail({
+                to: normalizedEmail,
+                fullName: safeFullName,
+                activationUrl: `${process.env.FRONTEND_URL}/activate/${rawToken}`,
+                programId: product,
+                diagnosis: safeDiagnosis,
+                guideLink: safeGuideLink,
+                whatsappLink: safeWhatsappLink,
+            });
+
+            return res.status(201).json({
+                success: true,
+                status: "existing_stub_resent",
+                email: normalizedEmail,
+            });
+        }
+
+        // Generar y consumir ProductKey + activar producto en una transacción.
+        // El re-check dentro de la sesión protege contra races concurrentes: si otro request
+        // activó el producto entre nuestro chequeo inicial y la transacción, evitamos crear
+        // una ProductKey huérfana.
         let productCode;
-        let activationResult;
+        let raceSkipped = false;
 
         await session.withTransaction(async () => {
+            const fresh = await User.findById(user._id, "programs", { session });
+            if (hasAccess(fresh.programs?.[product])) {
+                raceSkipped = true;
+                return;
+            }
+
             for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
                 const candidate = generateProductCode();
                 try {
@@ -525,10 +578,17 @@ const autoEnroll = async (req, res) => {
             }
             if (!productCode) throw { statusCode: 500, errorKey: "SERVER_INTERNAL_ERROR" };
 
-            activationResult = await activateProgramForUser(user._id, product, team, session);
+            await activateProgramForUser(user._id, product, team, session);
         });
 
         invalidateUser(user._id);
+
+        // Race detectada post-transacción: el producto ya estaba activado por otro request.
+        // Para !stub esto equivale a "already_owned". Para stub, seguimos al envío del magic link
+        // (el user sigue necesitando completar la activación).
+        if (raceSkipped && !isStub) {
+            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail });
+        }
 
         // Caso: user completo SIN este producto → activar y mandar mail simple (sin magic link)
         if (!isStub) {
@@ -569,7 +629,6 @@ const autoEnroll = async (req, res) => {
             whatsappLink: safeWhatsappLink,
         });
 
-        const wasNewUser = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 5000);
         return res.status(201).json({
             success: true,
             status: wasNewUser ? "new_user" : "existing_stub_resent",

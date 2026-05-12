@@ -664,22 +664,31 @@ const completeActivation = async (req, res) => {
     const hashedPassword = await bcryptjs.hash(password, 10);
     const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
 
-    user.username = normalizedUsername;
-    user.password = hashedPassword;
-    if (name?.trim()) user.profile.name = name.trim();
-    user.profile.birthdate = birthDateObject;
-    user.profile.country = country.trim();
-    user.profile.region = region.trim();
-    user.profile.aboutMe = aboutme.trim();
-    user.enterprise.name = enterprise.trim();
-    user.enterprise.jobPosition = enterpriseRole.trim();
-    user.preferences.allowPasswordLogin = true;
-    user.refreshToken = { token: hashedToken, expiresAt };
-    user.magicLink = { token: null, expiresAt: null };
-    // NOTA: no setear passwordChangedAt — es la primera vez que se setea password (no un cambio)
-
+    // Atomic update con guard `username: /^pending_/` — protege contra dobles submits concurrentes:
+    // si otro request ya completó la activación, este updatedUser será null y respondemos 409.
+    // NOTA: no se setea passwordChangedAt — es la primera vez que se setea password (no un cambio).
+    let updatedUser;
     try {
-      await user.save();
+      updatedUser = await User.findOneAndUpdate(
+        { _id: user._id, username: { $regex: /^pending_/ } },
+        {
+          $set: {
+            username: normalizedUsername,
+            password: hashedPassword,
+            ...(name?.trim() ? { "profile.name": name.trim() } : {}),
+            "profile.birthdate": birthDateObject,
+            "profile.country": country.trim(),
+            "profile.region": region.trim(),
+            "profile.aboutMe": aboutme.trim(),
+            "enterprise.name": enterprise.trim(),
+            "enterprise.jobPosition": enterpriseRole.trim(),
+            "preferences.allowPasswordLogin": true,
+            refreshToken: { token: hashedToken, expiresAt },
+            magicLink: { token: null, expiresAt: null },
+          },
+        },
+        { new: true }
+      );
     } catch (err) {
       if (err.code === 11000) {
         const field = Object.keys(err.keyPattern || {})[0];
@@ -687,17 +696,20 @@ const completeActivation = async (req, res) => {
       }
       throw err;
     }
+    if (!updatedUser) {
+      return res.status(409).json(getError("USER_ALREADY_ACTIVATED"));
+    }
 
     invalidateUser(user._id);
 
-    const accessToken = await newJWT(user.id, user.role);
+    const accessToken = await newJWT(updatedUser.id, updatedUser.role);
     if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
     setAuthCookies(res, accessToken, refreshTokenRaw);
 
     let newlyUnlocked = [];
     try {
-      ({ newlyUnlocked } = await unlockAchievements(user, true));
+      ({ newlyUnlocked } = await unlockAchievements(updatedUser, true));
     } catch (err) {
       console.error("Achievement unlock failed during activation:", err);
     }
