@@ -6,3 +6,4 @@ node_modules/
 
 # Production database backups (contain sensitive user data)
 production.*.json
+src/scripts/backups/
