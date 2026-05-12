@@ -6,11 +6,22 @@ const { isValidProgram } = require("../config/programRegistry");
 const { hasAccess } = require("../utils/accessControl");
 const { invalidateUser, invalidateRankingsForProgram } = require("../cache/cacheService");
 
-const markLessonAsCompleted = async (req, res) => {
-    try {
-        const { programName, lessonId } = req.params;
-        const userId = req.userAuth.id;
+// App-level mutex to reject concurrent mark-completed requests for the same (user, program, lesson).
+// Prevents double-click races from reaching MongoDB at all.
+const inFlightLessonMarks = new Set();
+const lessonLockKey = (userId, programName, lessonId) => `${userId}:${programName}:${lessonId}`;
 
+const markLessonAsCompleted = async (req, res) => {
+    const { programName, lessonId } = req.params;
+    const userId = req.userAuth.id;
+    const lockKey = lessonLockKey(userId, programName, lessonId);
+
+    if (inFlightLessonMarks.has(lockKey)) {
+        return res.status(409).json(getError("VALIDATION_LESSON_ALREADY_COMPLETED"));
+    }
+    inFlightLessonMarks.add(lockKey);
+
+    try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
 
@@ -70,6 +81,14 @@ const markLessonAsCompleted = async (req, res) => {
 
         const xpResult = await addExperience(atomicPush, 'LESSON_COMPLETED', { programId: programName, lessonId });
 
+        // Force $set on arrays mutated by addExperience so two concurrent saves
+        // produce a last-writer-wins outcome (1 entry) instead of two $push ops
+        // that would duplicate entries. The mutex above already prevents this
+        // for double-clicks; this is the belt-and-suspenders for any other race.
+        atomicPush.markModified('xpHistory');
+        atomicPush.markModified('coinsHistory');
+        atomicPush.markModified(`programs.${programName}.lessonsCompleted`);
+
         await atomicPush.save();
         invalidateUser(userId);
         invalidateRankingsForProgram(programName);
@@ -83,6 +102,8 @@ const markLessonAsCompleted = async (req, res) => {
     } catch (error) {
         console.error("Error marcando lección como completada:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    } finally {
+        inFlightLessonMarks.delete(lockKey);
     }
 };
 

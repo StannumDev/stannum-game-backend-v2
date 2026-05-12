@@ -431,7 +431,7 @@ const checkProductKeyStatus = async (req, res) => {
     }
 };
 
-const MAGIC_LINK_TTL_DAYS = parseInt(process.env.MAGIC_LINK_TTL_DAYS, 10) || 7;
+const MAGIC_LINK_TTL_HOURS = parseInt(process.env.MAGIC_LINK_TTL_HOURS, 10) || 24;
 const ACTIVATION_PRODUCTS = ["tia", "tmd", "tia_summer", "tia_pool"];
 
 const generateMagicLinkRawToken = () => crypto.randomBytes(32).toString("hex");
@@ -518,7 +518,7 @@ const autoEnroll = async (req, res) => {
         if (isStub && alreadyHasProduct) {
             const rawToken = generateMagicLinkRawToken();
             const hashedToken = hashMagicLinkToken(rawToken);
-            const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+            const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_HOURS * 60 * 60 * 1000);
 
             await User.updateOne(
                 { _id: user._id },
@@ -609,7 +609,7 @@ const autoEnroll = async (req, res) => {
         // Caso stub: regenerar magic link (incluso si había uno previo) y enviar mail
         const rawToken = generateMagicLinkRawToken();
         const hashedToken = hashMagicLinkToken(rawToken);
-        const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+        const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_HOURS * 60 * 60 * 1000);
 
         await User.updateOne(
             { _id: user._id },

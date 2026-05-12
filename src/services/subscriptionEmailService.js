@@ -348,53 +348,106 @@ const PROGRAM_DISPLAY_NAMES = {
   trenno_ia: "TRENNO IA",
 };
 
+const STANNUM_LOGO_URL = "https://drive.google.com/uc?export=view&id=1nAyByJSrn774hiOe5s594il7mUwMYgWy";
+
+const buildGuideSection = (guideLink) => guideLink ? `
+  <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+    <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Guía del Participante</h3>
+    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Descargá tu guía completa para prepararte antes del entrenamiento. Incluye todo lo que necesitás saber para aprovechar al máximo la experiencia.</p>
+    <a href="${guideLink}" target="_blank" style="display: inline-block; background-color: #00A896; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Ver Guía ahora</a>
+  </div>` : '';
+
+const buildWhatsappSection = (whatsappLink) => whatsappLink ? `
+  <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px;">
+    <h3 style="color: #ffffff; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">Comunidad del Entrenamiento</h3>
+    <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin: 0 0 15px 0;">Unite a la comunidad de líderes que están viviendo la experiencia. Conectá, compartí y entrená con otros líderes y emprendedores de alto rendimiento.</p>
+    <a href="${whatsappLink}" target="_blank" style="display: inline-block; background-color: #25D366; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Unirme al Grupo</a>
+  </div>` : '';
+
+const buildPreparationSection = (guideLink, whatsappLink) => (guideLink || whatsappLink) ? `
+  <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+  <div style="margin: 30px 0;">
+    <h2 style="color: #00FFCC; font-size: 24px; margin-bottom: 20px; font-weight: 600; text-align: center;">Preparate para el Entrenamiento</h2>
+    ${buildGuideSection(guideLink)}
+    ${buildWhatsappSection(whatsappLink)}
+  </div>` : '';
+
 const sendMagicLinkActivationEmail = ({ to, fullName, activationUrl, programId, diagnosis, guideLink, whatsappLink }) => {
   const programName = PROGRAM_DISPLAY_NAMES[programId] || "STANNUM Game";
   const safeName = fullName || "";
 
-  const diagnosisBlock = diagnosis ? `
-    <div style="background:#1a1a1a;border-left:4px solid #00FFCC;padding:20px;border-radius:8px;margin:0 0 24px;">
-      <h2 style="color:#00FFCC;font-size:18px;margin:0 0 8px;font-weight:600;">Tu Diagnóstico de Dominio en IA</h2>
-      <p style="color:#ffffffb3;font-size:14px;line-height:1.7;margin:0;white-space:pre-line;">${diagnosis}</p>
+  const diagnosisSection = diagnosis ? `
+    <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
+      <h2 style="color: #00FFCC; font-size: 24px; margin: 0 0 8px 0; font-weight: 600;">Tu Diagnóstico de Dominio en IA</h2>
+      <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0; white-space: pre-line;">${diagnosis}</p>
     </div>` : '';
 
-  const guideBlock = guideLink ? `
-    <div style="background:#1a1a1a;padding:18px;border-radius:8px;margin:0 0 12px;">
-      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Guía del Participante</h3>
-      <p style="color:#ffffffb3;font-size:13px;line-height:1.6;margin:0 0 12px;">Descargá tu guía completa para prepararte antes del entrenamiento.</p>
-      <a href="${guideLink}" style="display:inline-block;background:#00A896;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Ver Guía</a>
-    </div>` : '';
+  const subject = diagnosis
+    ? `Tu Diagnóstico IA + Acceso a STANNUM Game`
+    : `¡Tu acceso a STANNUM Game está listo${safeName ? `, ${safeName}` : ''}!`;
 
-  const whatsappBlock = whatsappLink ? `
-    <div style="background:#1a1a1a;padding:18px;border-radius:8px;">
-      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Comunidad del Entrenamiento</h3>
-      <p style="color:#ffffffb3;font-size:13px;line-height:1.6;margin:0 0 12px;">Conectá con otros líderes y emprendedores que están viviendo la experiencia.</p>
-      <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Unirme al Grupo</a>
-    </div>` : '';
-
-  const preparationBlock = (guideLink || whatsappLink) ? `
-    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
-    <h2 style="color:#00FFCC;font-size:18px;margin:0 0 16px;font-weight:600;">Preparate para el Entrenamiento</h2>
-    ${guideBlock}${whatsappBlock}` : '';
-
-  enqueueEmail(to, `¡Tu acceso a STANNUM Game está listo${safeName ? `, ${safeName}` : ''}!`, wrap(`
-    <h1 style="color:#fff;font-size:24px;margin:0 0 12px;">¡Bienvenido${safeName ? `, ${safeName}` : ''}!</h1>
-    <p style="color:#ffffffb3;font-size:14px;line-height:1.6;margin:0 0 24px;">
-      Te dimos acceso a <strong style="color:#fff;">${programName}</strong> dentro de STANNUM Game. Activá tu cuenta con un solo click.
-    </p>
-    ${diagnosisBlock}
-    <div style="text-align:center;margin:0 0 24px;">
-      <a href="${activationUrl}" style="display:inline-block;background:#00FFCC;color:#1f1f1f;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.3px;">Activar mi cuenta</a>
+  const html = `
+    <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="${STANNUM_LOGO_URL}" alt="STANNUM Logo" style="max-width: 150px; margin-bottom: 20px;" />
+        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido al entrenamiento,<br /><span style="color: #ffffff;">${safeName || 'líder'}</span>!</h1>
+      </div>
+      ${diagnosisSection}
+      <div style="text-align: center; margin: 40px 0;">
+        <p style="font-size: 16px; color: #ccc; margin: 0 0 8px 0;">Te damos acceso a</p>
+        <h2 style="color: #00FFCC; font-size: 28px; margin: 0 0 25px 0; font-weight: 700;">${programName}</h2>
+        <p style="font-size: 15px; color: #ccc; line-height: 1.6; max-width: 480px; margin: 0 auto 30px;">Tu programa ya está activo en STANNUM Game. Solo te falta activar tu cuenta para empezar.</p>
+        <a href="${activationUrl}" target="_blank" style="display: inline-block; background-color: #00FFCC; color: #000; padding: 18px 50px; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 17px; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">Activar mi cuenta</a>
+        <p style="font-size: 13px; color: #888; margin: 18px 0 0 0;">El enlace expira en 24 horas.</p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+      <div style="margin: 30px 0;">
+        <h2 style="color: #00FFCC; font-size: 22px; margin-bottom: 25px; font-weight: 600; text-align: center;">¿Cómo activo mi cuenta?</h2>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: top; padding: 0 15px 25px 0; width: 50px;">
+              <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">1</div>
+            </td>
+            <td style="vertical-align: top; padding-bottom: 25px;">
+              <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">Hacé clic en "Activar mi cuenta"</h4>
+              <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">El botón te lleva al formulario de activación. Si lo cerrás o le das por error, podés volver a entrar desde el mismo enlace mientras esté vigente.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; padding: 0 15px 25px 0; width: 50px;">
+              <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">2</div>
+            </td>
+            <td style="vertical-align: top; padding-bottom: 25px;">
+              <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">Elegí tu usuario y contraseña</h4>
+              <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">Vas a definir tu <b style="color: #ffffff;">nombre de usuario</b>, contraseña y completar unos datos de perfil. Es rápido.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; padding: 0 15px 0 0; width: 50px;">
+              <div style="background-color: #00FFCC; color: #000; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px; font-weight: 900; font-size: 18px;">3</div>
+            </td>
+            <td style="vertical-align: top;">
+              <h4 style="color: #ffffff; font-size: 16px; margin: 0 0 6px 0; font-weight: 600;">¡Listo, entrás directo!</h4>
+              <p style="font-size: 14px; color: #aaa; line-height: 1.6; margin: 0;">Al terminar el formulario quedás logueado en STANNUM Game con tu programa <b style="color: #ffffff;">${programName}</b> activo. Sin pegar códigos ni pasos extra.</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div style="background-color: #2a2a2a; border-left: 4px solid #f5a623; padding: 18px 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="font-size: 14px; color: #f5a623; font-weight: 700; margin: 0 0 6px 0;">IMPORTANTE</p>
+        <p style="font-size: 14px; color: #ccc; line-height: 1.6; margin: 0;">El enlace es válido durante <b style="color: #ffffff;">24 horas</b> desde que lo recibiste. Podés abrirlo varias veces hasta que actives tu cuenta. Una vez activada, el enlace se desactiva automáticamente.</p>
+      </div>
+      ${buildPreparationSection(guideLink, whatsappLink)}
+      <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+      <div style="text-align: center;">
+        <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste este acceso? Ignorá este correo.</p>
+        <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
+        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; ${new Date().getFullYear()} STANNUM Game. Todos los derechos reservados.</footer>
+      </div>
     </div>
-    <p style="color:#ffffff80;font-size:12px;line-height:1.6;margin:0 0 24px;text-align:center;">
-      Al activar la cuenta vas a elegir tu nombre de usuario y contraseña. El enlace expira en 7 días.
-    </p>
-    ${preparationBlock}
-    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
-    <p style="color:#ffffff80;font-size:12px;line-height:1.6;margin:0;text-align:center;">
-      ¿No solicitaste este acceso? Ignorá este correo.
-    </p>
-  `));
+  `;
+
+  enqueueEmail(to, subject, html.replace(/\n\s+/g, '').replace(/>\s+</g, '><'));
 };
 
 const sendProductActivatedForExistingUserEmail = ({ to, fullName, programId, guideLink, whatsappLink }) => {
@@ -402,33 +455,28 @@ const sendProductActivatedForExistingUserEmail = ({ to, fullName, programId, gui
   const safeName = fullName || "";
   const loginUrl = `${process.env.FRONTEND_URL}/login`;
 
-  const guideBlock = guideLink ? `
-    <div style="background:#1a1a1a;padding:18px;border-radius:8px;margin:0 0 12px;">
-      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Guía del Participante</h3>
-      <a href="${guideLink}" style="display:inline-block;background:#00A896;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Ver Guía</a>
-    </div>` : '';
-
-  const whatsappBlock = whatsappLink ? `
-    <div style="background:#1a1a1a;padding:18px;border-radius:8px;">
-      <h3 style="color:#fff;font-size:15px;margin:0 0 6px;font-weight:600;">Comunidad del Entrenamiento</h3>
-      <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;">Unirme al Grupo</a>
-    </div>` : '';
-
-  const preparationBlock = (guideLink || whatsappLink) ? `
-    <hr style="border:none;border-top:1px solid #ffffff20;margin:32px 0;" />
-    <h2 style="color:#00FFCC;font-size:18px;margin:0 0 16px;font-weight:600;">Preparate para el Entrenamiento</h2>
-    ${guideBlock}${whatsappBlock}` : '';
-
-  enqueueEmail(to, `Tu nuevo programa está activo — ${programName}`, wrap(`
-    <h1 style="color:#fff;font-size:24px;margin:0 0 12px;">¡Hola${safeName ? `, ${safeName}` : ''}!</h1>
-    <p style="color:#ffffffb3;font-size:14px;line-height:1.6;margin:0 0 24px;">
-      Acabamos de activar <strong style="color:#fff;">${programName}</strong> en tu cuenta de STANNUM Game. Iniciá sesión con tus credenciales habituales para empezar.
-    </p>
-    <div style="text-align:center;margin:0 0 24px;">
-      <a href="${loginUrl}" style="display:inline-block;background:#00FFCC;color:#1f1f1f;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;">Iniciar Sesión</a>
+  const html = `
+    <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="${STANNUM_LOGO_URL}" alt="STANNUM Logo" style="max-width: 150px; margin-bottom: 20px;" />
+        <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Hola${safeName ? `,<br /><span style="color: #ffffff;">${safeName}</span>` : ''}!</h1>
+      </div>
+      <div style="text-align: center; margin: 40px 0;">
+        <p style="font-size: 16px; color: #ccc; margin: 0 0 8px 0;">Activamos un nuevo programa en tu cuenta</p>
+        <h2 style="color: #00FFCC; font-size: 28px; margin: 0 0 25px 0; font-weight: 700;">${programName}</h2>
+        <p style="font-size: 15px; color: #ccc; line-height: 1.6; max-width: 480px; margin: 0 auto 30px;">Tu programa ya está disponible dentro de STANNUM Game. Iniciá sesión con tus credenciales habituales para empezar.</p>
+        <a href="${loginUrl}" target="_blank" style="display: inline-block; background-color: #00FFCC; color: #000; padding: 18px 50px; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 17px; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">Iniciar Sesión</a>
+      </div>
+      ${buildPreparationSection(guideLink, whatsappLink)}
+      <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+      <div style="text-align: center;">
+        <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
+        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; ${new Date().getFullYear()} STANNUM Game. Todos los derechos reservados.</footer>
+      </div>
     </div>
-    ${preparationBlock}
-  `));
+  `;
+
+  enqueueEmail(to, `Tu nuevo programa está activo — ${programName}`, html.replace(/\n\s+/g, '').replace(/>\s+</g, '><'));
 };
 
 module.exports = {

@@ -586,13 +586,8 @@ const consumeMagicLink = async (req, res) => {
       return res.status(410).json(getError("MAGIC_LINK_EXPIRED"));
     }
 
-    // Single-use: invalidate immediately
-    await User.updateOne(
-      { _id: user._id, "magicLink.token": hashedToken },
-      { $set: { "magicLink.token": null, "magicLink.expiresAt": null } }
-    );
-    invalidateUser(user._id);
-
+    // El link es time-based, no single-use: queda vigente hasta que expire o hasta que
+    // el user complete la activación (completeActivation borra magicLink.token).
     const profileStatus = getProfileStatus(user);
 
     // User ya completo → login automático con JWT normal
