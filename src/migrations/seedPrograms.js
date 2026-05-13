@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { Program } = require('../models/programModel');
+const { runDiff } = require('../scripts/applyProgramsDiff');
 
 const muxPlaybackIds = JSON.parse(process.env.NEXT_PUBLIC_MUX_IDS || '{}');
 
@@ -1945,35 +1946,13 @@ const seed = async ({ reuseConnection = false } = {}) => {
         console.log('All lessons have a non-empty muxPlaybackId.\n');
     }
 
-    // Upsert each program (flatten resources before saving)
-    for (const data of programsData) {
-        // Flatten nested children into parentId structure
-        for (const section of data.sections) {
-            if (section.resources && section.resources.length > 0) {
-                section.resources = flattenResources(section.resources);
-            }
-        }
+    // Idempotent diff-based apply: only $set fields that actually changed,
+    // $push new lessons/instructions with createdAt = updatedAt = NOW.
+    // Preserves timestamps of unmodified subdocs (fixes the "Actualizado"
+    // badge ghost-noise the old $set-based seed produced on every run).
+    const agg = await runDiff({ programsData, execute: true, verbose: true });
+    console.log(`\nSeed complete. Total ops: ${agg.totalOps}, lessons touched: ${agg.totalLessonsTouched}`);
 
-        const result = await Program.findOneAndUpdate(
-            { id: data.id },
-            { $set: data },
-            { upsert: true, new: true, runValidators: true }
-        );
-        const lessonCount = data.sections.reduce((acc, s) => {
-            return acc + (s.modules || []).reduce((a2, m) => a2 + (m.lessons || []).length, 0);
-        }, 0);
-        const instructionCount = data.sections.reduce((acc, s) => {
-            return acc + (s.modules || []).reduce((a2, m) => a2 + (m.instructions || []).length, 0);
-        }, 0);
-        const resourceCount = data.sections.reduce((acc, s) => {
-            return acc + (s.resources || []).length;
-        }, 0);
-        console.log(
-            `Upserted "${data.name}" (${data.id}) — ${lessonCount} lessons, ${instructionCount} instructions, ${resourceCount} resources — _id: ${result._id}`
-        );
-    }
-
-    console.log('\nSeed complete.');
     if (!reuseConnection) {
         await mongoose.disconnect();
     }
