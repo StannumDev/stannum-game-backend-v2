@@ -121,22 +121,50 @@ const buildOpsForProgram = (seedProg, dbProg, now) => {
             summary.details.push(`section ${seedSec.id} fields: ${Object.keys(secSet).join(', ')}`);
         }
 
+        // Resources: merge by id, never delete. Resources may be created from
+        // the admin panel (random ids like res_<rand>_<rand>) outside the seed —
+        // wiping the array would destroy that content. Strategy:
+        //  - push seed resources whose id is missing in DB
+        //  - $set per-field on existing resources from seed when content differs
+        //  - leave DB-only resources untouched
         const flattenedNewResources = seedSec.resources && seedSec.resources.length > 0
             ? flattenResources(seedSec.resources)
             : [];
-        const dbResNorm = (dbSec.resources || []).map(r => {
+        const dbResById = new Map((dbSec.resources || []).map(r => {
             const { _id, ...rest } = r;
-            return rest;
-        });
-        if (!isEqual(dbResNorm, flattenedNewResources)) {
-            ops.push({
-                updateOne: {
-                    filter: { id: seedProg.id },
-                    update: { $set: { 'sections.$[s].resources': flattenedNewResources } },
-                    arrayFilters: [{ 's.id': seedSec.id }],
-                },
-            });
-            summary.details.push(`section ${seedSec.id} resources replaced (count: ${flattenedNewResources.length})`);
+            return [rest.id, rest];
+        }));
+        const RES_FIELDS = ['parentId', 'title', 'description', 'link', 'type', 'order'];
+        for (const seedR of flattenedNewResources) {
+            const dbR = dbResById.get(seedR.id);
+            if (!dbR) {
+                ops.push({
+                    updateOne: {
+                        filter: { id: seedProg.id },
+                        update: { $push: { 'sections.$[s].resources': seedR } },
+                        arrayFilters: [{ 's.id': seedSec.id }],
+                    },
+                });
+                summary.details.push(`resource new: ${seedR.id} in section ${seedSec.id}`);
+                continue;
+            }
+            const resSet = {};
+            for (const f of RES_FIELDS) {
+                if (seedR[f] !== undefined && !isEqual(dbR[f], seedR[f])) {
+                    resSet[`sections.$[s].resources.$[r].${f}`] = seedR[f];
+                }
+            }
+            if (Object.keys(resSet).length > 0) {
+                ops.push({
+                    updateOne: {
+                        filter: { id: seedProg.id },
+                        update: { $set: resSet },
+                        arrayFilters: [{ 's.id': seedSec.id }, { 'r.id': seedR.id }],
+                    },
+                });
+                const fields = Object.keys(resSet).map(k => k.split('.').pop());
+                summary.details.push(`resource ${seedR.id} fields: ${fields.join(', ')}`);
+            }
         }
 
         const dbModulesById = new Map((dbSec.modules || []).map(m => [m.id, m]));
