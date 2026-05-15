@@ -262,6 +262,7 @@ const generateAndSendProductKeyMake = async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
+            console.log(`✅ Clave de producto enviada con éxito a ${email} (code: ${code})`);
         } catch (error) {
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
@@ -353,10 +354,11 @@ const generateAndSendProductKey = async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
+            console.log(`✅ Clave de producto enviada con éxito a ${email} (code: ${code})`);
         } catch (error) {
             return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
         }
-        
+
         return res.status(201).json({ code, email: email.toLowerCase().trim() });
     } catch (error) {
         console.error("❌ Error en generateAndSendProductKey:", error);
