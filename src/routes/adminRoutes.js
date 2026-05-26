@@ -1,10 +1,10 @@
 const { Router } = require("express");
-const { query } = require("express-validator");
+const { query, param, body } = require("express-validator");
 const rateLimit = require("express-rate-limit");
 const { getError } = require("../helpers/getError");
 const { validateAPIKey } = require("../middlewares/validateAPIKey");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { getUser, getUsers, getStats, getEnterprises } = require("../controllers/adminController");
+const { getUser, getUsers, getStats, getEnterprises, setProgramAccess } = require("../controllers/adminController");
 const { listFeedback, markResolved, getFeedbackStats } = require("../controllers/feedbackController");
 
 const router = Router();
@@ -70,6 +70,20 @@ router.get(
     "/enterprises",
     [validateAPIKey, adminLimiter],
     getEnterprises
+);
+
+// PATCH /api/admin/user/:username/programs/:programId/access
+router.patch(
+    "/user/:username/programs/:programId/access",
+    [
+        validateAPIKey,
+        adminLimiter,
+        param("username").trim().isLength({ min: 1, max: 50 }),
+        param("programId").trim().isLength({ min: 1, max: 50 }),
+        body("grant").exists().isBoolean({ strict: true }).toBoolean(),
+        fieldsValidate,
+    ],
+    setProgramAccess
 );
 
 // GET /api/admin/feedback

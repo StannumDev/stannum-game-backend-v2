@@ -3,6 +3,7 @@ const { getError } = require("../helpers/getError");
 const { VALID_PROGRAMS, SUBSCRIPTION_PROGRAMS } = require("../config/programRegistry");
 const { hasAccess } = require("../utils/accessControl");
 const { getProgramById } = require("../services/programCacheService");
+const { activateProgramForUser, deactivateProgramForUser } = require("../services/programActivationService");
 
 // ── Cache for stats (5 min TTL) ──
 let statsCache = null;
@@ -56,8 +57,7 @@ const getProgramTotals = async (programId) => {
 const buildUserPrograms = async (userPrograms) => {
     const result = {};
     for (const pid of VALID_PROGRAMS) {
-        const prog = userPrograms?.[pid];
-        if (!prog || !hasAccess(prog)) continue;
+        const prog = userPrograms?.[pid] || {};
 
         const totals = await getProgramTotals(pid);
         const gradedInstructions = (prog.instructions || []).filter(i => i.status === "GRADED");
@@ -71,6 +71,9 @@ const buildUserPrograms = async (userPrograms) => {
         const lastActivity = allDates.length > 0 ? new Date(Math.max(...allDates)).toISOString() : null;
 
         const entry = {
+            isPurchased: !!prog.isPurchased,
+            hasAccessFlag: !!prog.hasAccessFlag,
+            hasAccess: hasAccess(prog),
             totalXp: prog.totalXp || 0,
             acquiredAt: prog.acquiredAt || null,
             lessonsCompleted: (prog.lessonsCompleted || []).length,
@@ -321,4 +324,40 @@ const getEnterprises = async (req, res) => {
     }
 };
 
-module.exports = { getUser, getUsers, getStats, getEnterprises };
+// ── PATCH /api/admin/user/:username/programs/:programId/access ──
+const setProgramAccess = async (req, res) => {
+    try {
+        const { username, programId } = req.params;
+        const { grant } = req.body;
+
+        if (typeof grant !== "boolean") return res.status(400).json(getError("ADMIN_INVALID_PARAMS"));
+        if (!VALID_PROGRAMS.includes(programId)) return res.status(400).json(getError("ADMIN_INVALID_PARAMS"));
+
+        const user = await User.findOne({ username: username.toLowerCase().trim() }, { _id: 1 }).lean();
+        if (!user) return res.status(404).json(getError("ADMIN_USER_NOT_FOUND"));
+
+        const result = grant
+            ? await activateProgramForUser(user._id, programId)
+            : await deactivateProgramForUser(user._id, programId);
+
+        const prog = result.user.programs?.[programId] || {};
+        return res.status(200).json({
+            success: true,
+            program: {
+                programId,
+                isPurchased: !!prog.isPurchased,
+                hasAccessFlag: !!prog.hasAccessFlag,
+                hasAccess: hasAccess(prog),
+                acquiredAt: prog.acquiredAt || null,
+            },
+        });
+    } catch (error) {
+        if (error?.statusCode && error?.errorKey) {
+            return res.status(error.statusCode).json(getError(error.errorKey));
+        }
+        console.error("Error in admin setProgramAccess:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+module.exports = { getUser, getUsers, getStats, getEnterprises, setProgramAccess };

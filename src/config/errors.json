@@ -1052,6 +1052,15 @@
         "techMessage": "The specified program does not exist.",
         "friendlyMessage": "No se encontró el programa solicitado."
     },
+    "PROGRAM_HAS_ACTIVE_SUBSCRIPTION": {
+        "success": false,
+        "code": "PROGRAM_002",
+        "type": "error",
+        "showAlert": true,
+        "title": "Suscripción activa",
+        "techMessage": "Cannot revoke access while subscription is active.",
+        "friendlyMessage": "Esta cuenta tiene una suscripción activa. Cancelala primero desde MercadoPago."
+    },
     "CHEST_NOT_FOUND": {
         "success": false,
         "code": "CHEST_001",
