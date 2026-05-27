@@ -24,6 +24,18 @@ const authLimiter = rateLimit({
     keyGenerator: (req) => req.body?.username?.toLowerCase() || req.body?.email?.toLowerCase() || req.ip,
 });
 
+// Google login no expone username/email en el body (el email va dentro del access token
+// opaco de Google), así que solo se puede keyear por IP. Un límite alto evita que cohortes
+// presenciales detrás de una misma IP/NAT se autobloqueen (429) al loguearse con Google.
+const googleAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.ip,
+});
+
 const searchLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 50,
@@ -153,6 +165,7 @@ const errorIngestLimiter = rateLimit({
 module.exports = {
     globalLimiter,
     authLimiter,
+    googleAuthLimiter,
     searchLimiter,
     otpLimiter,
     submissionLimiter,
