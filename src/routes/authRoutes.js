@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { check } = require("express-validator");
 const authController = require("../controllers/authController");
 const { fieldsValidate } = require("../middlewares/fieldsValidate");
-const { authLimiter, otpLimiter, validationLimiter, refreshLimiter, passwordLimiter } = require("../middlewares/rateLimiter");
+const { authLimiter, googleAuthLimiter, otpLimiter, validationLimiter, refreshLimiter, passwordLimiter } = require("../middlewares/rateLimiter");
 const { validateJWT } = require("../middlewares/validateJWT");
 const { validateActivationJWT } = require("../middlewares/validateActivationJWT");
 const { resolveUserByRefreshToken } = require("../middlewares/resolveUserByRefreshToken");
@@ -121,7 +121,7 @@ router.post(
 
 router.post(
   '/google',
-  authLimiter,
+  googleAuthLimiter,
   authController.googleAuth
 );
 
