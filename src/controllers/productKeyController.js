@@ -39,6 +39,18 @@ const createProductKey = async () => {
     console.error("❌ No se pudo generar un código único después de", MAX_KEY_RETRIES, "intentos");
 };
 
+// Si Mongoose rechaza el documento (ej. team > 50 chars, email/product inválidos),
+// devolver 400 con el detalle concreto en vez de un 500 opaco que el caller (ej. el
+// dashboard de Trenno) no puede interpretar y termina mostrando "error interno".
+const validationErrorResponse = (res, error) => {
+    if (error?.name !== "ValidationError") return null;
+    const detail = Object.values(error.errors || {}).map((e) => e.message).join(", ");
+    return res.status(400).json(getError("VALIDATION_GENERIC_ERROR", {
+        techMessage: detail || "Document validation failed.",
+        friendlyMessage: detail || "Por favor, revisa los datos ingresados.",
+    }));
+};
+
 const verifyProductKey = async (req, res) => {
     try {
         const { code } = req.params;
@@ -269,6 +281,8 @@ const generateAndSendProductKeyMake = async (req, res) => {
 
         return res.status(201).json({ code, email });
     } catch (error) {
+        const handled = validationErrorResponse(res, error);
+        if (handled) return handled;
         console.error("❌ Error generando clave de producto con Make:", error.message);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
@@ -361,6 +375,8 @@ const generateAndSendProductKey = async (req, res) => {
 
         return res.status(201).json({ code, email: email.toLowerCase().trim() });
     } catch (error) {
+        const handled = validationErrorResponse(res, error);
+        if (handled) return handled;
         console.error("❌ Error en generateAndSendProductKey:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
@@ -398,6 +414,8 @@ const generateProductKey = async (req, res) => {
             email: email.toLowerCase().trim()
         });
     } catch (error) {
+        const handled = validationErrorResponse(res, error);
+        if (handled) return handled;
         console.error("❌ Error en generateProductKey:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     }
@@ -640,6 +658,8 @@ const autoEnroll = async (req, res) => {
         if (error.statusCode && error.errorKey) {
             return res.status(error.statusCode).json(getError(error.errorKey));
         }
+        const handled = validationErrorResponse(res, error);
+        if (handled) return handled;
         console.error("❌ Error en autoEnroll:", error);
         return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
     } finally {
