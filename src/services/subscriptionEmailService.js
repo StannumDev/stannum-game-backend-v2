@@ -398,7 +398,7 @@ const sendMagicLinkActivationEmail = ({ to, fullName, activationUrl, programId, 
         <h2 style="color: #00FFCC; font-size: 28px; margin: 0 0 25px 0; font-weight: 700;">${programName}</h2>
         <p style="font-size: 15px; color: #ccc; line-height: 1.6; max-width: 480px; margin: 0 auto 30px;">Tu programa ya está activo en STANNUM Game. Solo te falta activar tu cuenta para empezar.</p>
         <a href="${activationUrl}" target="_blank" style="display: inline-block; background-color: #00FFCC; color: #000; padding: 18px 50px; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 17px; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">Activar mi cuenta</a>
-        <p style="font-size: 13px; color: #888; margin: 18px 0 0 0;">El enlace expira en 24 horas.</p>
+        <p style="font-size: 13px; color: #888; margin: 18px 0 0 0;">El enlace expira en 72 horas.</p>
       </div>
       <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
       <div style="margin: 30px 0;">
@@ -435,7 +435,7 @@ const sendMagicLinkActivationEmail = ({ to, fullName, activationUrl, programId, 
       </div>
       <div style="background-color: #2a2a2a; border-left: 4px solid #f5a623; padding: 18px 20px; border-radius: 8px; margin: 30px 0;">
         <p style="font-size: 14px; color: #f5a623; font-weight: 700; margin: 0 0 6px 0;">IMPORTANTE</p>
-        <p style="font-size: 14px; color: #ccc; line-height: 1.6; margin: 0;">El enlace es válido durante <b style="color: #ffffff;">24 horas</b> desde que lo recibiste. Podés abrirlo varias veces hasta que actives tu cuenta. Una vez activada, el enlace se desactiva automáticamente.</p>
+        <p style="font-size: 14px; color: #ccc; line-height: 1.6; margin: 0;">El enlace es válido durante <b style="color: #ffffff;">72 horas</b> desde que lo recibiste. Podés abrirlo varias veces hasta que actives tu cuenta. Una vez activada, el enlace se desactiva automáticamente.</p>
       </div>
       ${buildPreparationSection(guideLink, whatsappLink)}
       <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />

@@ -120,6 +120,17 @@ router.post(
 );
 
 router.post(
+  "/resend-activation",
+  [
+    check("email", "Email is required and must be valid.").trim().not().isEmpty().withMessage("Email cannot be empty.").isEmail().withMessage("Email format is invalid."),
+    fieldsValidate,
+  ],
+  otpLimiter,
+  passwordLimiter,
+  authController.resendActivation
+);
+
+router.post(
   '/google',
   googleAuthLimiter,
   authController.googleAuth

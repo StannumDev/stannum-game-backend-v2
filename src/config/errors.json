@@ -341,6 +341,15 @@
         "techMessage": "Password login is disabled for this user.",
         "friendlyMessage": "Tu cuenta está configurada para iniciar sesión únicamente con Google. Si deseas usar una contraseña, habilita esta opción recuperando tu contraseña."
     },
+    "AUTH_ACCOUNT_NOT_ACTIVATED": {
+        "success": false,
+        "code": "AUTH_022",
+        "type": "error",
+        "showAlert": true,
+        "title": "Cuenta sin activar",
+        "techMessage": "The account has not been activated yet (pending username / needs_activation).",
+        "friendlyMessage": "Esta cuenta todavía no está activada. Revisá tu correo o pedí que te reenviemos el mail de activación."
+    },
     "PROGRAM_NOT_PURCHASED": {
         "success": false,
         "code": "PROGRAM_001",

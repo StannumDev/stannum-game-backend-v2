@@ -14,6 +14,7 @@ const { getProfileStatus } = require("../helpers/getProfileStatus");
 const { newRefreshToken, hashRefreshToken } = require("../helpers/newRefreshToken");
 const { setAuthCookies, clearAuthCookies } = require("../helpers/authCookies");
 const { invalidateUser } = require("../cache/cacheService");
+const { regenerateAndSendActivation, hashMagicLinkToken } = require("../helpers/magicLink");
 
 const login = async (req , res) => {
   const { username, password } = req.body;
@@ -33,7 +34,11 @@ const login = async (req , res) => {
     if (!user.password || !(await bcryptjs.compare(password, user.password))) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.status) return res.status(401).json(getError("AUTH_INVALID_CREDENTIALS"));
     if (!user.preferences?.allowPasswordLogin) return res.status(403).json(getError("AUTH_PASSWORD_LOGIN_DISABLED"));
-    
+
+    // Cuenta stub (creada por enrollment, nunca activada): aunque tenga password —p.ej. seteada
+    // vía recuperación de contraseña— no debe poder entrar y rebotar en el front. Avisamos claro.
+    if (getProfileStatus(user) === "needs_activation") return res.status(403).json(getError("AUTH_ACCOUNT_NOT_ACTIVATED"));
+
     const accessToken = await newJWT(user.id, user.role);
     if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
@@ -207,6 +212,19 @@ const sendPasswordRecoveryEmail = async (req , res) => {
 
     if (!user) return res.status(200).json({ success: true, message: "Si el usuario existe, recibirá un correo." });
 
+    // Cuenta stub (nunca activada): la recuperación de contraseña la dejaría con password +
+    // allowPasswordLogin pero seguiría sin activar (rebote en login). En vez de eso, le
+    // reenviamos el mail de activación, que es lo que realmente necesita. Respuesta genérica
+    // idéntica para no filtrar el estado de la cuenta.
+    if (getProfileStatus(user) === "needs_activation") {
+      try {
+        await regenerateAndSendActivation(user);
+      } catch (err) {
+        console.error("Error reenviando activación desde recuperación de contraseña:", err);
+      }
+      return res.status(200).json({ success: true, message: "Si el usuario existe, recibirá un correo." });
+    }
+
     const otp = crypto.randomInt(100000, 1000000).toString();
     const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
     user.otp = {
@@ -294,6 +312,7 @@ const verifyRecoveryOtp = async (req, res) => {
     });
 
     if (!user) return res.status(404).json(getError("AUTH_USER_NOT_FOUND"));
+    if (getProfileStatus(user) === "needs_activation") return res.status(403).json(getError("AUTH_ACCOUNT_NOT_ACTIVATED"));
     if (!user.otp || !user.otp.recoveryOtp) return res.status(400).json(getError("AUTH_OTP_MISSING"));
     if (user.otp.otpExpiresAt < new Date()) return res.status(400).json(getError("AUTH_OTP_EXPIRED"));
     const hashedOtp = crypto.createHmac("sha256", process.env.SECRET).update(otp).digest("hex");
@@ -330,6 +349,23 @@ const resetPassword = async (req, res) => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,50}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json(getError("VALIDATION_PASSWORD_INVALID"));
+    }
+
+    // Pre-check: si es stub, abortar ANTES de consumir el OTP (para que no lo pierda).
+    const preCheck = await User.findOne(
+      {
+        $or: [
+          { username: username.toLowerCase().trim() },
+          { email: username.toLowerCase().trim() },
+        ],
+        'otp.recoveryVerified': true,
+        'otp.otpExpiresAt': { $gt: new Date() },
+      },
+      'username'
+    );
+    if (!preCheck) return res.status(400).json(getError("AUTH_OTP_MISSING"));
+    if (getProfileStatus(preCheck) === "needs_activation") {
+      return res.status(403).json(getError("AUTH_ACCOUNT_NOT_ACTIVATED"));
     }
 
     // Atomic claim: only proceed if recoveryVerified is true and OTP hasn't expired
@@ -438,6 +474,7 @@ const googleAuth = async (req, res) => {
     }
 
     if (!user.status) return res.status(403).json(getError("AUTH_ACCOUNT_DISABLED"));
+    if (getProfileStatus(user) === "needs_activation") return res.status(403).json(getError("AUTH_ACCOUNT_NOT_ACTIVATED"));
 
     const accessToken = await newJWT(user.id, user.role);
     if (!accessToken) return res.status(500).json(getError('JWT_GENERATION_FAILED'));
@@ -567,8 +604,6 @@ const logoutHandler = async (req , res) => {
 };
 
 const ONBOARDING_JWT_TTL_MINUTES = parseInt(process.env.ONBOARDING_JWT_TTL_MINUTES, 10) || 30;
-
-const hashMagicLinkToken = (rawToken) => crypto.createHash("sha256").update(rawToken).digest("hex");
 
 const consumeMagicLink = async (req, res) => {
   try {
@@ -716,4 +751,28 @@ const completeActivation = async (req, res) => {
   }
 };
 
-module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser, refreshTokenHandler, logoutHandler, consumeMagicLink, completeActivation };
+// Reenvío self-service del mail de activación para cuentas stub (needs_activation).
+// Público: respuesta genérica idéntica exista o no la cuenta, para no filtrar su estado.
+const resendActivation = async (req, res) => {
+  const { email } = req.body;
+  const generic = { success: true, message: "Si la cuenta existe y está pendiente de activación, te reenviamos el correo." };
+  try {
+    if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user || !user.status) return res.status(200).json(generic);
+    if (getProfileStatus(user) !== "needs_activation") return res.status(200).json(generic);
+
+    try {
+      await regenerateAndSendActivation(user);
+    } catch (err) {
+      console.error("Error reenviando mail de activación:", err);
+    }
+    return res.status(200).json(generic);
+  } catch (error) {
+    console.error("Error en resendActivation:", error);
+    return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+  }
+};
+
+module.exports = { login, checkEmailExists, validateUsername, verifyReCAPTCHA, createUser, sendPasswordRecoveryEmail, verifyRecoveryOtp, resetPassword, googleAuth, updateUsername, authUser, refreshTokenHandler, logoutHandler, consumeMagicLink, completeActivation, resendActivation };

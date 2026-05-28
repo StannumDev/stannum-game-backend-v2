@@ -451,11 +451,9 @@ const checkProductKeyStatus = async (req, res) => {
     }
 };
 
-const MAGIC_LINK_TTL_HOURS = parseInt(process.env.MAGIC_LINK_TTL_HOURS, 10) || 24;
+// Fuente única para TTL y helpers de magic link (compartida con authController).
+const { MAGIC_LINK_TTL_HOURS, generateMagicLinkRawToken, hashMagicLinkToken } = require("../helpers/magicLink");
 const ACTIVATION_PRODUCTS = ["tia", "tmd", "tia_summer", "tia_pool"];
-
-const generateMagicLinkRawToken = () => crypto.randomBytes(32).toString("hex");
-const hashMagicLinkToken = (rawToken) => crypto.createHash("sha256").update(rawToken).digest("hex");
 
 const autoEnroll = async (req, res) => {
     const { email, fullName, message, product = "tia", team = "no_team", guideLink, whatsappLink } = req.body;
