@@ -84,6 +84,32 @@ router.post(
   productKeyController.autoEnroll
 );
 
+router.post(
+  "/generate-and-send-bulk",
+  [
+    validateAPIKey,
+    check("emails", "El array de emails es obligatorio.").isArray({ min: 1, max: 100 }).withMessage("Debe enviar entre 1 y 100 emails."),
+    check("emails.*", "Cada email debe ser válido.").isEmail().withMessage("El formato de algún email es inválido."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, TRENNO IA SUMMER o TRENNO IA POOL."),
+    check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
+    fieldsValidate,
+  ],
+  productKeyController.generateAndSendBulk
+);
+
+router.post(
+  "/auto-enroll-bulk",
+  [
+    validateAPIKey,
+    check("emails", "El array de emails es obligatorio.").isArray({ min: 1, max: 100 }).withMessage("Debe enviar entre 1 y 100 emails."),
+    check("emails.*", "Cada email debe ser válido.").isEmail().withMessage("El formato de algún email es inválido."),
+    check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, TRENNO IA SUMMER o TRENNO IA POOL."),
+    check("team", "El equipo debe ser un string válido.").optional().trim().customSanitizer(value => value.replace(/<[^>]*>?/gm, '')).customSanitizer(value => value.replace(/\s+/g, ' ')),
+    fieldsValidate,
+  ],
+  productKeyController.autoEnrollBulk
+);
+
 router.get(
   "/check/:code",
   [

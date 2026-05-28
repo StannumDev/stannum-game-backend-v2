@@ -665,6 +665,280 @@ const autoEnroll = async (req, res) => {
     }
 };
 
+// ── Bulk endpoints ────────────────────────────────────────────
+
+const BULK_BATCH_SIZE = 10;
+
+const runInBatches = async (items, fn) => {
+    const allSettled = [];
+    for (let i = 0; i < items.length; i += BULK_BATCH_SIZE) {
+        const batch = items.slice(i, i + BULK_BATCH_SIZE);
+        const settled = await Promise.allSettled(batch.map(fn));
+        allSettled.push(...settled);
+    }
+    return allSettled;
+};
+
+const generateAndSendBulk = async (req, res) => {
+    const { emails, product = "tia", team = "no_team" } = req.body;
+
+    if (!Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json(getError("VALIDATION_GENERIC_ERROR"));
+    }
+
+    // Dedup preservando el orden
+    const uniqueEmails = [...new Set(emails.map(e => e.toLowerCase().trim()))];
+
+    let transporter;
+    try {
+        transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
+            auth: { user: process.env.SMTP_EMAIL, pass: process.env.SMTP_PASSWORD },
+        });
+    } catch {
+        return res.status(500).json(getError("NETWORK_CONNECTION_ERROR"));
+    }
+
+    const processOne = async (email) => {
+        let createdKey = null;
+
+        try {
+            let code;
+            for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+                const candidate = generateProductCode();
+                try {
+                    createdKey = await ProductKey.create({ code: candidate, email, product, team });
+                    code = candidate;
+                    break;
+                } catch (err) {
+                    if (err.code === 11000) continue;
+                    throw err;
+                }
+            }
+            if (!code) throw new Error("No se pudo generar código único");
+
+            try {
+                await transporter.sendMail({
+                    from: `"STANNUM Game" <${process.env.SMTP_EMAIL}>`,
+                    to: email,
+                    subject: "¡Bienvenido a STANNUM Game! - Tu Clave de Acceso",
+                    html: `
+                        <div style="background-color: #1f1f1f; color: #fff; font-family: Arial, sans-serif; padding: 30px; border-radius: 12px; max-width: 700px; margin: auto;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <h1 style="color: #00FFCC; font-size: 32px; font-weight: 700; margin: 0;">¡Bienvenido a STANNUM Game!</h1>
+                            </div>
+                            <div style="background-color: #2a2a2a; padding: 25px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00FFCC;">
+                                <h2 style="color: #00FFCC; font-size: 20px; margin: 0 0 15px 0; font-weight: 600;">Tu acceso está listo</h2>
+                                <p style="font-size: 16px; color: #e0e0e0; line-height: 1.8; margin: 0;">Estamos felices de tenerte en STANNUM Game. Tu plataforma de entrenamiento digital de alto rendimiento ya está disponible.</p>
+                            </div>
+                            <div style="text-align: center; margin: 40px 0;">
+                                <h2 style="color: #ffffff; font-size: 24px; margin-bottom: 15px; font-weight: 600;">Tu Clave de Acceso</h2>
+                                <p style="font-size: 16px; color: #ccc; margin-bottom: 20px;">Activá esta clave para acceder a todo el contenido:</p>
+                                <div style="background: linear-gradient(135deg, #00FFCC 0%, #00A896 100%); padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);">
+                                    <h3 style="color: #1f1f1f; font-size: 36px; letter-spacing: 4px; font-weight: 900; margin: 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">${code}</h3>
+                                </div>
+                                <a href="https://stannumgame.com" style="display: inline-block; background-color: #00FFCC; color: #1f1f1f; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px;">Activar Clave Ahora</a>
+                            </div>
+                            <hr style="border: none; border-top: 1px solid #515151; margin: 40px 0;" />
+                            <div style="text-align: center;">
+                                <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste esta clave? Ignorá este correo.</p>
+                                <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
+                                <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; 2026 STANNUM Game. Todos los derechos reservados.</footer>
+                            </div>
+                        </div>
+                    `,
+                });
+            } catch (mailErr) {
+                // Rollback: eliminar la key para evitar huérfanas
+                if (createdKey) {
+                    await ProductKey.deleteOne({ _id: createdKey._id }).catch(e =>
+                        console.error(`⚠️ No se pudo eliminar key huérfana ${code}:`, e)
+                    );
+                }
+                throw mailErr;
+            }
+
+            console.log(`✅ Bulk: clave enviada a ${email} (code: ${code})`);
+            return { email, code };
+        } catch (err) {
+            throw err;
+        }
+    };
+
+    try {
+        const settled = await runInBatches(uniqueEmails, processOne);
+
+        const results = settled.map((r, i) =>
+            r.status === "fulfilled"
+                ? { email: r.value.email, status: "sent", code: r.value.code }
+                : { email: uniqueEmails[i], status: "error", message: r.reason?.message || "Error desconocido" }
+        );
+
+        const succeeded = results.filter(r => r.status === "sent").length;
+        const failed = results.length - succeeded;
+
+        console.log(`📊 Bulk generate-and-send: ${succeeded} enviados, ${failed} fallidos`);
+        return res.status(200).json({ success: true, results, summary: { succeeded, failed } });
+    } catch (error) {
+        console.error("❌ Error en generateAndSendBulk:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
+const autoEnrollBulk = async (req, res) => {
+    const { emails, product = "tia", team = "no_team" } = req.body;
+
+    if (!Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json(getError("VALIDATION_GENERIC_ERROR"));
+    }
+
+    if (!ACTIVATION_PRODUCTS.includes(product)) {
+        return res.status(400).json(getError("VALIDATION_GENERIC_ERROR"));
+    }
+
+    // Dedup preservando el orden
+    const uniqueEmails = [...new Set(emails.map(e => e.toLowerCase().trim()))];
+
+    const processOne = async (normalizedEmail) => {
+        const session = await mongoose.startSession();
+        try {
+            const fullName = normalizedEmail.split("@")[0].slice(0, 50);
+            const safeFullName = escapeHtml(fullName);
+
+            const pendingUsername = `pending_${crypto.randomBytes(4).toString("hex")}`;
+            const upsertResult = await User.findOneAndUpdate(
+                { email: normalizedEmail },
+                {
+                    $setOnInsert: {
+                        email: normalizedEmail,
+                        username: pendingUsername,
+                        profile: { name: fullName },
+                        preferences: { allowPasswordLogin: false },
+                    },
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true, includeResultMetadata: true }
+            );
+            const user = upsertResult.value;
+            const wasNewUser = !!upsertResult.lastErrorObject?.upserted;
+
+            if (user.status === false) throw Object.assign(new Error("Cuenta deshabilitada"), { code: "DISABLED" });
+
+            const profileStatus = getProfileStatus(user);
+            const isStub = profileStatus === "needs_activation";
+            const alreadyHasProduct = hasAccess(user.programs?.[product]);
+
+            if (!isStub && alreadyHasProduct) {
+                return { status: "already_owned", email: normalizedEmail };
+            }
+
+            if (isStub && !wasNewUser) {
+                await User.updateOne({ _id: user._id }, { $set: { "profile.name": fullName } });
+                invalidateUser(user._id);
+            }
+
+            if (isStub && alreadyHasProduct) {
+                const rawToken = generateMagicLinkRawToken();
+                const hashedToken = hashMagicLinkToken(rawToken);
+                const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_HOURS * 60 * 60 * 1000);
+                await User.updateOne({ _id: user._id }, { $set: { "magicLink.token": hashedToken, "magicLink.expiresAt": expiresAt } });
+                invalidateUser(user._id);
+                sendMagicLinkActivationEmail({
+                    to: normalizedEmail,
+                    fullName: safeFullName,
+                    activationUrl: `${process.env.FRONTEND_URL}/activate/${rawToken}`,
+                    programId: product,
+                });
+                return { status: "existing_stub_resent", email: normalizedEmail };
+            }
+
+            let productCode;
+            let raceSkipped = false;
+
+            await session.withTransaction(async () => {
+                const fresh = await User.findById(user._id, "programs", { session });
+                if (hasAccess(fresh.programs?.[product])) {
+                    raceSkipped = true;
+                    return;
+                }
+                for (let attempt = 0; attempt < MAX_KEY_RETRIES; attempt++) {
+                    const candidate = generateProductCode();
+                    try {
+                        const [created] = await ProductKey.create([{
+                            code: candidate,
+                            email: normalizedEmail,
+                            product,
+                            team,
+                            used: true,
+                            usedAt: new Date(),
+                            usedBy: user._id,
+                        }], { session });
+                        productCode = created.code;
+                        break;
+                    } catch (err) {
+                        if (err.code === 11000) continue;
+                        throw err;
+                    }
+                }
+                if (!productCode) throw new Error("No se pudo generar código único");
+                await activateProgramForUser(user._id, product, team, session);
+            });
+
+            invalidateUser(user._id);
+
+            if (raceSkipped && !isStub) {
+                return { status: "already_owned", email: normalizedEmail };
+            }
+
+            if (!isStub) {
+                sendProductActivatedForExistingUserEmail({
+                    to: normalizedEmail,
+                    fullName: safeFullName,
+                    programId: product,
+                });
+                return { status: "activated_for_existing_user", email: normalizedEmail };
+            }
+
+            const rawToken = generateMagicLinkRawToken();
+            const hashedToken = hashMagicLinkToken(rawToken);
+            const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_HOURS * 60 * 60 * 1000);
+            await User.updateOne({ _id: user._id }, { $set: { "magicLink.token": hashedToken, "magicLink.expiresAt": expiresAt } });
+            invalidateUser(user._id);
+
+            sendMagicLinkActivationEmail({
+                to: normalizedEmail,
+                fullName: safeFullName,
+                activationUrl: `${process.env.FRONTEND_URL}/activate/${rawToken}`,
+                programId: product,
+            });
+
+            return { status: wasNewUser ? "new_user" : "existing_stub_resent", email: normalizedEmail };
+        } finally {
+            session.endSession();
+        }
+    };
+
+    try {
+        const settled = await runInBatches(uniqueEmails, processOne);
+
+        const results = settled.map((r, i) =>
+            r.status === "fulfilled"
+                ? { email: r.value.email, status: r.value.status }
+                : { email: uniqueEmails[i], status: "error", message: r.reason?.message || "Error desconocido" }
+        );
+
+        const succeeded = results.filter(r => r.status !== "error").length;
+        const failed = results.length - succeeded;
+
+        console.log(`📊 Bulk auto-enroll: ${succeeded} activados, ${failed} fallidos`);
+        return res.status(200).json({ success: true, results, summary: { succeeded, failed } });
+    } catch (error) {
+        console.error("❌ Error en autoEnrollBulk:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
 module.exports = {
     verifyProductKey,
     activateProductKey,
@@ -673,4 +947,6 @@ module.exports = {
     generateProductKey,
     checkProductKeyStatus,
     autoEnroll,
+    generateAndSendBulk,
+    autoEnrollBulk,
 };
