@@ -7,3 +7,7 @@ node_modules/
 # Production database backups (contain sensitive user data)
 production.*.json
 src/scripts/backups/
+
+# Local analysis scripts and their generated output
+src/scripts/analyzeEnterprises.js
+src/scripts/out/
