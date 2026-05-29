@@ -178,6 +178,7 @@ const createUser = async (req , res) => {
         jobPosition: enterpriseRole.trim(),
       },
       refreshToken: { token: hashedToken, expiresAt },
+      lastLogin: new Date(),
     });
 
     await newUser.save();
