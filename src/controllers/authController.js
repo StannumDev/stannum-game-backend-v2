@@ -44,6 +44,7 @@ const login = async (req , res) => {
 
     const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
     user.refreshToken = { token: hashedToken, expiresAt };
+    user.lastLogin = new Date();
     await user.save();
     invalidateUser(user.id);
 
@@ -451,6 +452,7 @@ const googleAuth = async (req, res) => {
           allowPasswordLogin: false
         },
         refreshToken: { token: newHashedRefresh, expiresAt: newRefreshExpiry },
+        lastLogin: new Date(),
       });
 
       await user.save();
@@ -481,6 +483,7 @@ const googleAuth = async (req, res) => {
 
     const { token: refreshTokenRaw, hashedToken, expiresAt } = newRefreshToken();
     user.refreshToken = { token: hashedToken, expiresAt };
+    user.lastLogin = new Date();
     await user.save();
     invalidateUser(user._id);
 
@@ -631,7 +634,7 @@ const consumeMagicLink = async (req, res) => {
       if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 
       const { token: refreshTokenRaw, hashedToken: hashedRefresh, expiresAt } = newRefreshToken();
-      await User.updateOne({ _id: user._id }, { $set: { refreshToken: { token: hashedRefresh, expiresAt } } });
+      await User.updateOne({ _id: user._id }, { $set: { refreshToken: { token: hashedRefresh, expiresAt }, lastLogin: new Date() } });
       invalidateUser(user._id);
 
       setAuthCookies(res, accessToken, refreshTokenRaw);
@@ -715,6 +718,7 @@ const completeActivation = async (req, res) => {
             "preferences.allowPasswordLogin": true,
             refreshToken: { token: hashedToken, expiresAt },
             magicLink: { token: null, expiresAt: null },
+            lastLogin: new Date(),
           },
         },
         { new: true }

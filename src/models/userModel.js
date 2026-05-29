@@ -474,6 +474,10 @@ const userSchema = new Schema(
       type: Date,
       default: null,
     },
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
     role: {
       type: String,
       enum: {
