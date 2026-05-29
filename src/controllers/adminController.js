@@ -12,7 +12,7 @@ const STATS_TTL = 5 * 60 * 1000;
 
 // ── Projection for single user ──
 const ADMIN_USER_FIELDS = {
-    username: 1, email: 1, status: 1, createdAt: 1,
+    username: 1, email: 1, status: 1, createdAt: 1, lastLogin: 1,
     profile: { name: 1, country: 1, region: 1 },
     enterprise: 1,
     level: 1,
@@ -30,7 +30,7 @@ for (const pid of VALID_PROGRAMS) {
 
 // ── Projection for user list ──
 const ADMIN_USERS_LIST_FIELDS = {
-    username: 1, email: 1, createdAt: 1,
+    username: 1, email: 1, createdAt: 1, lastLogin: 1,
     'profile.name': 1,
     enterprise: 1,
     level: { currentLevel: 1, experienceTotal: 1, progress: 1 },
@@ -119,6 +119,7 @@ const getUser = async (req, res) => {
                 email: user.email,
                 status: user.status,
                 createdAt: user.createdAt,
+                lastLogin: user.lastLogin || null,
                 profile: user.profile || {},
                 enterprise: user.enterprise || {},
                 level: user.level || {},
@@ -184,6 +185,7 @@ const getUsers = async (req, res) => {
             achievementsCount: (u.achievements || []).length,
             programsActive: VALID_PROGRAMS.filter(pid => u.programs?.[pid]?.hasAccessFlag),
             createdAt: u.createdAt,
+            lastLogin: u.lastLogin || null,
         }));
 
         return res.status(200).json({
