@@ -360,7 +360,7 @@ const generateAndSendProductKey = async (req, res) => {
                     <div style="text-align: center;">
                         <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 10px;">¿No solicitaste esta clave? Ignorá este correo.</p>
                         <p style="font-size: 14px; color: #aaa; margin-top: 20px;">Nos vemos en el campo de juego,<br /> <span style="color: #00FFCC; font-weight: 600;">Equipo STANNUM</span></p>
-                        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; 2025 STANNUM Game. Todos los derechos reservados.</footer>
+                        <footer style="margin-top: 40px; font-size: 12px; color: #515151;">&copy; 2026 STANNUM Game. Todos los derechos reservados.</footer>
                     </div>
                 </div>
             `,
