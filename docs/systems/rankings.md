@@ -55,18 +55,14 @@ STANNUM Game tiene tres tipos de rankings:
 // RANKABLE_PROGRAMS = ['tmd', 'tia', 'tia_summer', 'tia_pool', 'trenno_ia']
 // Incluye usuarios con isPurchased: true O subscription activa
 const users = await User.find({
-  $or: [
-    { "programs.tmd.hasAccessFlag": true },
-    { "programs.tia.hasAccessFlag": true },
-    { "programs.tia_summer.hasAccessFlag": true },
-    { "programs.tia_pool.hasAccessFlag": true },
-    { "programs.trenno_ia.hasAccessFlag": true }
-  ],
+  $or: buildAccessQuery(RANKABLE_PROGRAMS),  // hasAccessFlag por programa
   status: true
 })
 .sort({ 'level.experienceTotal': -1 })
 .limit(limit)
-.select('level profile username enterprise profilePhotoUrl');
+.select('level profile username enterprise preferences.hasProfilePhoto');
+// Nota: se selecciona preferences.hasProfilePhoto (no profilePhotoUrl), porque
+// profilePhotoUrl es un virtual y getRankingUserDetails() lo deriva de ese flag.
 ```
 
 **Nota:** `hasAccessFlag` es un campo denormalizado que es `true` cuando el usuario tiene acceso al programa (ya sea por compra con product key, compra con Mercado Pago, o suscripción activa).
@@ -210,51 +206,50 @@ Mismo formato que el ranking individual global, pero los `points` reflejan el XP
 ### Criterios
 
 **Usuarios incluidos:**
-- Que tengan el programa específico comprado
-- Que estén asignados a un equipo en ese programa
+- Que tengan acceso al programa específico (`buildProgramAccessQuery` → `hasAccessFlag` o suscripción activa)
+- Que estén activos (`status: true`)
+- Que tengan un equipo asignado en ese programa (`teams` con `teamName` no vacío)
 
 **Agrupación:**
 - Por `teamName` del programa
 
 **Orden:**
-- Por `totalPoints` descendente (suma de XP de todos los miembros)
+- Por `totalPoints` descendente (suma de `level.experienceTotal` de todos los miembros)
 
 ### Lógica de Agregación
 
+A diferencia del ranking individual, el de equipos se resuelve con un **aggregation pipeline de MongoDB** (no con un loop en memoria). Suma `level.experienceTotal` (XP global, no el `totalXp` del programa) de cada miembro:
+
 ```javascript
-const users = await User.find({
-  [`programs.${programName}.isPurchased`]: true
-});
+const teamRanking = await User.aggregate([
+  { $match: {
+      ...buildProgramAccessQuery(programName),
+      status: true,
+      teams: { $elemMatch: { programName, teamName: { $exists: true, $ne: null, $ne: '' } } }
+  }},
+  { $unwind: '$teams' },
+  { $match: { 'teams.programName': programName } },
+  { $project: {
+      teamName: '$teams.teamName',
+      points: { $ifNull: ['$level.experienceTotal', 0] },
+      username: 1, name: '$profile.name',
+      photo: { $cond: [ /* URL S3 si hasProfilePhoto, si no null */ ] },
+      level: '$level.currentLevel', enterprise: '$enterprise.name',
+  }},
+  { $group: {
+      _id: '$teamName',
+      members: { $push: { id: '$_id', name: '$name', username: '$username', photo: '$photo', points: '$points', level: '$level', enterprise: '$enterprise' } },
+      totalPoints: { $sum: '$points' }
+  }},
+  { $sort: { totalPoints: -1 } },
+  { $project: { _id: 0, team: '$_id', points: '$totalPoints', members: 1 } }
+]);
 
-const teams = {};
-
-users.forEach(user => {
-  const teamInfo = user.teams.find(team => team.programName === programName);
-  if (!teamInfo || !teamInfo.teamName) return;
-
-  const teamName = teamInfo.teamName;
-  if (!teams[teamName]) {
-    teams[teamName] = {
-      team: teamName,
-      members: [],
-      totalPoints: 0
-    };
-  }
-
-  const details = user.getRankingUserDetails();
-  teams[teamName].members.push(details);
-  teams[teamName].totalPoints += details.points;
-});
-
-const teamRanking = Object.values(teams)
-  .sort((a, b) => b.totalPoints - a.totalPoints)
-  .map((team, index) => ({
-    position: index + 1,
-    team: team.team,
-    points: team.totalPoints,
-    members: team.members
-  }));
+// Post-proceso: position 1-based + censor() de name/enterprise por miembro.
+// Si no hay equipos → 404 RANKING_NO_TEAMS_FOUND.
 ```
+
+> La censura (`censor()` en `name` y `enterprise`) se aplica **después** del aggregation, recorriendo los miembros de cada equipo. El `enterprise` además se pasa a UPPERCASE.
 
 ### Formato de Respuesta
 
@@ -493,9 +488,10 @@ validateJWT middleware
   └─ Extraer userId (no usado en query pero requerido para auth)
   ↓
 rankingController.getIndividualRanking()
-  ├─ Validar limit (1-1000)
-  ├─ Query usuarios con programas comprados
-  ├─ Sort por experienceTotal desc
+  ├─ Normalizar limit: Math.min(Math.max(limit, 1), 100)
+  ├─ Cache hit? → devolver
+  ├─ Query usuarios con acceso (buildAccessQuery) + status:true
+  ├─ Sort por level.experienceTotal desc
   └─ Limit a cantidad solicitada
   ↓
 Transformar cada usuario
@@ -518,17 +514,22 @@ GET /api/ranking/team/tia
 validateJWT middleware
   ↓
 rankingController.getTeamRanking()
-  ├─ Validar programName (tia, tia_summer, tia_pool, tmd, trenno_ia)
-  ├─ Query usuarios con programa comprado
-  └─ Filtrar por teams
+  ├─ Validar programName (isRankableProgram)
+  ├─ Cache hit? → devolver
+  └─ User.aggregate([...]) (pipeline de MongoDB)
   ↓
-Agrupar por teamName
-  ├─ Crear objeto teams {}
-  ├─ Para cada usuario:
-  │   ├─ Buscar teamInfo del programa
-  │   ├─ Agregar a teams[teamName].members
-  │   └─ Sumar a teams[teamName].totalPoints
-  └─ Convertir a array y ordenar por totalPoints
+Pipeline
+  ├─ $match: acceso al programa + status:true + tiene team
+  ├─ $unwind teams + $match teams.programName
+  ├─ $project (points = level.experienceTotal, photo condicional)
+  ├─ $group por teamName (members[], totalPoints = $sum)
+  └─ $sort totalPoints desc
+  ↓
+Post-proceso (en app)
+  ├─ position 1-based
+  └─ censor() name/enterprise por miembro (+ UPPERCASE enterprise)
+  ↓
+Sin equipos → 404 RANKING_NO_TEAMS_FOUND
   ↓
 Response: { success: true, data: [...] }
   ↓

@@ -161,6 +161,15 @@
         "techMessage": "The specified lesson does not exist in this program.",
         "friendlyMessage": "No se encontró la lección solicitada."
     },
+    "TRAINER_INTERACTION_NOT_FOUND": {
+        "success": false,
+        "code": "TRAINER_001",
+        "type": "error",
+        "showAlert": false,
+        "title": "Interacción no encontrada",
+        "techMessage": "The trainer interaction does not exist or does not belong to the user.",
+        "friendlyMessage": "No se encontró la interacción."
+    },
     "VALIDATION_LESSON_ALREADY_COMPLETED": {
         "success": false,
         "code": "VALIDATION_026",

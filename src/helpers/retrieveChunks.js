@@ -16,11 +16,13 @@ const fs = require("fs");
 const path = require("path");
 const OpenAI = require("openai");
 const { Transcript } = require("../models/transcriptModel");
+const { KnowledgeBase } = require("../models/knowledgeBaseModel");
 
 const EMBED_MODEL = process.env.TRAINER_EMBED_MODEL || "text-embedding-3-small";
 // Boost MULTIPLICATIVO (no aditivo) para no romper la escala del coseno.
 const LESSON_BOOST = 1.25; // lección que el alumno está viendo
 const MODULE_BOOST = 1.10; // misma unidad temática (módulo)
+const GLOBAL_WEIGHT = 0.9; // corpus de plataforma: leve down-weight para no ahogar al contenido de lección
 const MIN_SCORE = 0.15; // piso de coseno crudo: por debajo, se descarta (señal "no cubierto")
 
 // "TIAM02L05" -> "TIAM02" (módulo). Robusto a cohortes (TIAPM/TIASM/TMDM).
@@ -72,6 +74,28 @@ async function ensureIndexLoaded(force = false) {
             });
         }
     }
+    // Corpus GLOBAL de plataforma (no scopeado): entra al mismo índice con global:true y
+    // arrays vacíos (OBLIGATORIOS: el filtro de retrieve hace .includes sobre programIds/lessonIds).
+    const kb = await KnowledgeBase.find(
+        { "chunks.0": { $exists: true } },
+        { key: 1, title: 1, chunks: 1 }
+    ).lean();
+    for (const d of kb) {
+        for (const c of d.chunks || []) {
+            if (!c.embedding?.length) continue;
+            idx.push({
+                global: true,
+                title: d.title,
+                text: c.text,
+                embedding: c.embedding,
+                programIds: [],
+                lessonIds: [],
+                startSec: 0,
+                endSec: 0,
+                muxPlaybackId: null,
+            });
+        }
+    }
     INDEX = idx;
     return INDEX;
 }
@@ -93,24 +117,34 @@ async function embedQuery(query) {
 
 /**
  * @param {string} query
- * @param {object} opts { programId?, lessonId?, topK? }
+ * @param {object} opts { programId?, lessonId?, topK?, allowedLessonIds? }
+ *   allowedLessonIds: si se pasa, sólo se recupera de esas lecciones (las ya
+ *   desbloqueadas/vistas). Evita citar lecciones futuras y bloqueadas.
  * @returns {Promise<Array<{muxPlaybackId,lessonIds,programIds,startSec,endSec,text,score}>>}
  */
-async function retrieve(query, { programId = null, lessonId = null, topK = 5, minScore = MIN_SCORE } = {}) {
-    // Fail-closed: sin programa no se recupera NADA (evita fuga cross-programa).
-    if (!programId) return [];
+async function retrieve(query, { programId = null, lessonId = null, topK = 5, minScore = MIN_SCORE, allowedLessonIds = null, includeGlobal = true } = {}) {
+    // Sin programId = MODO GENERAL: el filtro de abajo deja SOLO chunks `global` (plataforma/empresa);
+    // los de lección quedan fuera porque `programIds.includes(null)` es false. NO hay fuga cross-programa.
     await ensureIndexLoaded();
     const qv = await embedQuery(query);
     const curModule = moduleOf(lessonId);
+    const allowed = allowedLessonIds && allowedLessonIds.length ? new Set(allowedLessonIds) : null;
 
-    // Gate por programa: nunca recuperar contenido de un programa que el alumno no cursa.
-    const pool = INDEX.filter((c) => c.programIds.includes(programId));
+    // Pool: chunks GLOBAL de plataforma (si includeGlobal) + chunks de lección gateados por
+    // programa y, opcional, sólo lecciones desbloqueadas. includeGlobal=false en el scan de
+    // futuras (forward-reference) para que la plataforma no se cuele como "lección futura".
+    const pool = INDEX.filter((c) =>
+        c.global
+            ? includeGlobal
+            : c.programIds.includes(programId) && (!allowed || c.lessonIds.some((id) => allowed.has(id)))
+    );
 
     const scored = pool
         .map((c) => {
             const raw = cosine(qv, c.embedding);
             let boost = 1;
-            if (lessonId && c.lessonIds.includes(lessonId)) boost = LESSON_BOOST;
+            if (c.global) boost = GLOBAL_WEIGHT; // leve down-weight: en empate gana el contenido de lección
+            else if (lessonId && c.lessonIds.includes(lessonId)) boost = LESSON_BOOST;
             else if (curModule && c.lessonIds.some((id) => moduleOf(id) === curModule)) boost = MODULE_BOOST;
             return { c, raw, score: raw * boost };
         })
@@ -126,6 +160,8 @@ async function retrieve(query, { programId = null, lessonId = null, topK = 5, mi
             text: c.text,
             score,
             rawScore: raw,
+            global: !!c.global,
+            title: c.title || null,
         }));
     return scored;
 }

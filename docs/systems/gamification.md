@@ -149,13 +149,15 @@ Tins es la moneda virtual de la plataforma. Se ganan al completar actividades y 
 | Instruccion calificada (score 70-89) | 15 |
 | Instruccion calificada (score 90-99) | 20 |
 | Instruccion calificada (score 100) | 25 |
-| Daily streak (por dia) | 3 |
+| Daily streak (por dia) | 0-5 (progresivo, cap día 7) |
 | Streak bonus (7 dias) | 10 |
 | Streak bonus (30 dias) | 50 |
 | Modulo completado | 30 |
 | Programa completado | 100 |
 | Favorito recibido en publicacion | 2 |
 | Desbloquear achievement | Variable (5-60) |
+
+> **Daily streak (por día):** progresivo según `DAILY_STREAK_PER_DAY = [0, 0, 1, 2, 3, 4, 5]` (cap día 7). Es decir: días 1 y 2 → 0 Tins, día 3 → 1, día 4 → 2, … día 7+ → 5.
 
 ### Historial
 
@@ -184,13 +186,15 @@ Cada transaccion de Tins se registra en `user.coinsHistory`:
     MAX_LEVEL: 30,
     base: 150,  // XP para subir a nivel 2
     tiers: [
-      { start: 1, end: 10, increment: 50 },   // +50 XP por nivel
-      { start: 11, end: 20, increment: 100 }, // +100 XP por nivel
-      { start: 21, end: 30, increment: 200 }  // +200 XP por nivel
+      { upToLevel: 10, increment: 50 },   // hasta nivel 10: +50 XP por nivel
+      { upToLevel: 20, increment: 100 },  // hasta nivel 20: +100 XP por nivel
+      { upToLevel: 30, increment: 200 }   // hasta nivel 30: +200 XP por nivel
     ]
   }
 }
 ```
+
+> El costo de cada nivel se calcula en `nextLevelTarget()` (`src/helpers/experienceHelper.js`) acumulando `base` + el `increment` del tier correspondiente para cada nivel a partir del 3.
 
 ### Tabla de Niveles
 
@@ -477,22 +481,31 @@ Mostrar confetti + toast con achievements
 
 ## 📌 NOTAS TÉCNICAS
 
-### Prevención de Duplicados
+### Prevención de Duplicados (XP de lección)
+
+**Archivo:** `src/controllers/lessonController.js` → `markLessonAsCompleted()`
+
+Para evitar doble XP por doble-click o requests concurrentes, hay **cuatro capas** de defensa (cambio 12-may):
+
+1. **Mutex en proceso** (`inFlightLessonMarks`, un `Set` con clave `userId:programName:lessonId`): rechaza con `409` cualquier request concurrente para la misma lección **antes de tocar MongoDB**. *Nota: el mutex vive en memoria del proceso, asume una sola instancia del backend.*
+2. **Verificación doble en memoria**: chequea `lessonsCompleted` y `xpHistory` (`type === 'LESSON_COMPLETED'` con `meta.lessonId`).
+3. **`$push` atómico condicional** vía `findOneAndUpdate` con filtro `lessonsCompleted.lessonId: { $ne: lessonId }`: si otro request ya la insertó, el update no matchea y se devuelve error.
+4. **Force `$set` en arrays** (`markModified('xpHistory' | 'coinsHistory' | 'programs.<p>.lessonsCompleted')`): convierte los `save()` concurrentes en *last-writer-wins* (1 entrada) en vez de dos `$push` que duplicarían entradas. Es el cinturón-y-tirantes para cualquier carrera fuera del mutex.
 
 ```javascript
-// Verificación doble en lecciones
-const alreadyInCompleted = user.programs[programId].lessonsCompleted
-  .some(l => l.lessonId === lessonId)
-
-const alreadyInHistory = user.xpHistory.some(
-  entry => entry.type === 'LESSON_COMPLETED' &&
-           entry.meta?.lessonId === lessonId
-)
-
-if (alreadyInCompleted || alreadyInHistory) {
-  return { gained: 0, streakBonus: 0, totalGain: 0 }
-}
+const inFlightLessonMarks = new Set();
+const lockKey = `${userId}:${programName}:${lessonId}`;
+if (inFlightLessonMarks.has(lockKey)) return res.status(409).json(...);
+inFlightLessonMarks.add(lockKey);
+// ... validaciones + $push atómico condicional ...
+atomicPush.markModified('xpHistory');
+atomicPush.markModified('coinsHistory');
+atomicPush.markModified(`programs.${programName}.lessonsCompleted`);
+await atomicPush.save();
+// finally: inFlightLessonMarks.delete(lockKey)
 ```
+
+> El XP de instrucción usa otra guarda: `addExperience` solo otorga si `instr.status === 'GRADED'` y `instr.xpGrantedAt` no está seteado (idempotencia por sello de tiempo).
 
 ### División por Cero
 

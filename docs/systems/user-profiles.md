@@ -29,6 +29,8 @@ Cada usuario tiene un perfil completo que incluye:
   username: String (6-25 caracteres, único),
   email: String (único, validado),
   password: String (hasheado, min 8 caracteres),
+  passwordChangedAt: Date (default null),
+  lastLogin: Date (default null),   // Última autenticación exitosa (ver más abajo)
   role: Enum ['USER', 'ADMIN'],
   status: Boolean (true = activo),
 
@@ -145,7 +147,7 @@ Cada usuario tiene un perfil completo que incluye:
   // Magic Link (auto-enroll, ver authentication.md)
   magicLink: {
     token: String,        // SHA-256 hash del raw token
-    expiresAt: Date       // TTL: MAGIC_LINK_TTL_DAYS (default 7)
+    expiresAt: Date       // TTL: MAGIC_LINK_TTL_HOURS (default 72)
   },
 
   // Estado de feedback (NPS / onboarding)
@@ -164,6 +166,18 @@ Cada usuario tiene un perfil completo que incluye:
 ```
 
 **Nota sobre `toJSON`:** el transform del schema borra `password`, `otp`, `refreshToken` y `magicLink` antes de serializar, así que ninguno de estos campos sale en responses de la API.
+
+### Tracking de último acceso (`lastLogin`)
+
+`lastLogin: Date` (default `null`) registra la fecha/hora de la última autenticación exitosa. Se actualiza en **todos** los puntos de entrada de sesión (`src/controllers/authController.js`):
+
+- `login` (password)
+- `createUser` (registro — sesión inicial)
+- `googleAuth` (login/registro con Google, usuario nuevo y existente)
+- `completeActivation` (onboarding desde magic link)
+- `refreshTokenHandler` (renovación de access token — se setea en el mismo `$set` atómico que rota el refresh token)
+
+Se expone en los endpoints de admin (`/api/admin/user` y `/api/admin/users`, ver `adminController.js`) para diagnóstico de actividad de cuentas; no se censura porque solo lo consume el panel admin vía API key.
 
 ---
 
@@ -216,6 +230,14 @@ hasProfilePhoto = true
 
 → profilePhotoUrl = "https://stannumgame2025.s3.sa-east-1.amazonaws.com/profile-photos/507f1f77bcf86cd799439011"
 ```
+
+### Fallback (InitialsAvatar)
+
+Cuando `preferences.hasProfilePhoto` es `false`, el backend **no genera ninguna imagen**: `profilePhotoUrl` devuelve `null` y los endpoints `get-photo` / `get-photo/:username` responden `{ success: true, url: null }`. El frontend interpreta ese `null` y renderiza el componente **InitialsAvatar** (iniciales del nombre/username sobre fondo de color). No hay imagen placeholder en S3.
+
+### Procesamiento con sharp
+
+La subida del propio usuario (presign + PUT directo a S3) **no** pasa por sharp; el cliente sube el JPEG tal cual. El único caso donde el backend optimiza con `sharp` es al importar la foto de **Google** durante el login (`uploadGoogleProfilePhoto`): descarga la imagen, la redimensiona a máx. 1000x1000 (`fit: "inside"`, sin agrandar) y la convierte a JPEG calidad 80 antes de subirla a S3.
 
 ### Endpoints de Foto
 
@@ -800,7 +822,7 @@ Verificar completitud
   ↓
 Response: {
   success: true,
-  data: user.getFullUserDetails(),
+  data: user.getGameUserDetails(),
   achievementsUnlocked: [...]
 }
   ↓
@@ -853,8 +875,8 @@ GET /api/user/profile/:username
   ↓
 Buscar usuario por username
   ↓
-user.getFullUserDetails()
-  ├─ Aplicar censor() a datos personales
+isOwner ? user.getGameUserDetails() : user.getPublicUserDetails()
+  ├─ Aplicar censor() a datos personales (perfil ajeno)
   └─ Retornar datos públicos
   ↓
 Response: {

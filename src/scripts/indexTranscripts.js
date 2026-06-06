@@ -23,9 +23,10 @@ const path = require("path");
 const mongoose = require("mongoose");
 const OpenAI = require("openai");
 const { Transcript } = require("../models/transcriptModel");
+const { getLessonContent } = require("../helpers/getLessonContent");
 
 const EMBED_MODEL = process.env.TRAINER_EMBED_MODEL || "text-embedding-3-small";
-const INDEX_VERSION = "2"; // v2 = chunking sobre fullText (v1 era sobre segments crudos)
+const INDEX_VERSION = "3"; // v3 = embedding enriquecido con título+topics (v2 = solo fullText)
 const TARGET_WORDS = 130; // ~200 tokens por chunk
 const OVERLAP_SENTENCES = 1; // solape semántico entre chunks
 const EMBED_BATCH = 64; // inputs por request de embeddings
@@ -116,11 +117,28 @@ async function embedWithRetry(openai, inputs, attempts = 3) {
     throw lastErr;
 }
 
-async function embedChunks(openai, chunks) {
+// Prefijo de contexto por lección (título + topics del catálogo). Se antepone SOLO al texto
+// que se EMBEBE (no al que se guarda en `c.text`), para que conceptos/acrónimos de los topics
+// (ej. RACS / R.A.C.S.) sean recuperables aunque el transcript hablado casi no los diga literal.
+function buildContextPrefix(t) {
+    for (const pid of t.programIds || []) {
+        for (const lid of t.lessonIds || []) {
+            const c = getLessonContent(pid, lid);
+            if (c) {
+                const topics = Array.isArray(c.topics) && c.topics.length ? ` Conceptos clave: ${c.topics.join("; ")}.` : "";
+                return `${c.title}.${topics}`;
+            }
+        }
+    }
+    return "";
+}
+
+async function embedChunks(openai, chunks, prefix = "") {
     const out = [];
     for (let s = 0; s < chunks.length; s += EMBED_BATCH) {
         const batch = chunks.slice(s, s + EMBED_BATCH);
-        const res = await embedWithRetry(openai, batch.map((c) => c.text));
+        const inputs = batch.map((c) => (prefix ? `${prefix}\n\n${c.text}` : c.text));
+        const res = await embedWithRetry(openai, inputs);
         res.data.forEach((d, k) => out.push({ ...batch[k], embedding: d.embedding }));
     }
     return out;
@@ -201,7 +219,8 @@ async function main() {
             }
 
             if (EXECUTE) {
-                chunks = await embedChunks(openai, chunks);
+                const contextPrefix = buildContextPrefix(t);
+                chunks = await embedChunks(openai, chunks, contextPrefix);
                 await Transcript.updateOne(
                     { muxPlaybackId: t.muxPlaybackId },
                     {

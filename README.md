@@ -1,12 +1,12 @@
 # STANNUM Game - Backend API
 
-API REST construida con Node.js, Express y MongoDB que maneja toda la logica de negocio, gamificacion, AI grading y persistencia de datos para la plataforma educativa STANNUM Game.
+API REST construida con Node.js, Express y MongoDB que maneja toda la logica de negocio, gamificacion, correccion automatica con IA (Grader), el Entrenador IA STAN (chatbot RAG) y persistencia de datos para la plataforma educativa STANNUM Game.
 
 Este es un **repositorio privado**.
 
 ## Que es STANNUM Game?
 
-STANNUM Game es una plataforma educativa gamificada que combina contenido educativo de alta calidad con mecanicas de juego para maximizar el engagement y la retencion del aprendizaje. Los estudiantes completan lecciones (videos), realizan instrucciones practicas calificadas por IA, ganan XP, suben de nivel, desbloquean logros y compiten en rankings.
+STANNUM Game es una plataforma educativa gamificada que combina contenido educativo de alta calidad con mecanicas de juego para maximizar el engagement y la retencion del aprendizaje. Los estudiantes completan lecciones (videos), realizan instrucciones practicas calificadas por IA, ganan XP, suben de nivel, desbloquean logros y compiten en rankings. Cuentan ademas con el Entrenador IA STAN, un chatbot que responde sus dudas sobre las lecciones fundamentado en las transcripciones (RAG).
 
 ## Quick Start
 
@@ -43,7 +43,7 @@ El servidor estara disponible en `http://localhost:4000` (default si no se setea
 - **Framework:** Express.js 4.21
 - **Base de datos:** MongoDB + Mongoose 8.23
 - **Autenticacion:** JWT (access + refresh tokens) + bcryptjs
-- **AI:** OpenAI API (GPT-4o) via `openai` SDK 6.21
+- **AI:** OpenAI API via `openai` SDK 6.21 — Grader (GPT-4o, vision), Entrenador IA STAN (chat `gpt-4o-mini` + embeddings `text-embedding-3-small`, RAG en memoria)
 - **Storage:** AWS S3 (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`)
 - **Email:** Nodemailer 7
 - **Validacion:** express-validator 7.3
@@ -52,6 +52,10 @@ El servidor estara disponible en `http://localhost:4000` (default si no se setea
 - **Busqueda fuzzy:** Fuse.js 7.1
 - **Imagenes:** sharp 0.34
 - **Profanity:** @2toad/profanity 3.2
+- **Cron in-process:** node-cron 4.2
+- **Cache in-memory:** node-cache 5.1
+- **PDF (recibos):** pdfkit 0.17
+- **HTTP client:** axios 1.13
 
 ## Estructura del Proyecto
 
@@ -61,6 +65,7 @@ src/
 │
 ├── config/                  # Configuraciones estaticas
 │   ├── achievementsConfig.js   # 22 achievements generales + 9 program-specific (ver gamification.md)
+│   ├── aiConfig.js             # Fuente unica de modelos/flags de IA (Trainer + Grader)
 │   ├── coinsConfig.js          # Economia de Tins (moneda virtual)
 │   ├── xpConfig.js             # Tabla de XP por nivel (30 niveles)
 │   ├── chestsConfig.js         # Cofres por modulo (recompensas XP, Tins, portadas)
@@ -72,6 +77,7 @@ src/
 │   ├── programPricing.js       # Precios de compra y suscripcion
 │   ├── muxPlaybackIds.js       # IDs de playback de Mux
 │   ├── demoMapping.js          # Mapeo demo → programa completo
+│   ├── transcriptGlossary.json # Glosario para limpieza de transcripts (RAG)
 │   └── programs/               # Configuracion por programa (TIA, TMD, TIA_SUMMER, TIA_POOL, TRENNO_IA, DEMO_TRENNO)
 │
 ├── models/                  # Schemas MongoDB (Mongoose)
@@ -86,7 +92,10 @@ src/
 │   ├── subscriptionAuditLogModel.js # Audit log de suscripciones
 │   ├── cancelTokenModel.js     # Tokens de cancelacion (TTL)
 │   ├── failedEmailModel.js     # Emails fallidos (retry)
-│   └── feedbackModel.js        # Feedback de usuarios (NPS, lecciones, errores)
+│   ├── feedbackModel.js        # Feedback de usuarios (NPS, lecciones, errores)
+│   ├── transcriptModel.js      # Transcripts de videolecciones (RAG): keyed por muxPlaybackId, con chunks + embeddings
+│   ├── trainerInteractionModel.js  # Auditoria de cada Q&A del Entrenador IA (STAN) + feedback 👍/👎
+│   └── gradingInteractionModel.js  # Auditoria de cada correccion del Grader IA (score, tokens, raw)
 │
 ├── routes/                  # Definicion de endpoints (montados desde src/index.js)
 │   ├── authRoutes.js           # /api/auth/*
@@ -105,7 +114,8 @@ src/
 │   ├── webhookRoutes.js        # /api/webhooks/*
 │   ├── programRoutes.js        # /api/programs/*  (publico JWT + admin x-api-key)
 │   ├── adminRoutes.js          # /api/admin/*  (x-api-key, lookup users/enterprises/stats)
-│   └── feedbackRoutes.js       # /api/feedback/*  (NPS, lessons, instructions, errors)
+│   ├── feedbackRoutes.js       # /api/feedback/*  (NPS, lessons, instructions, errors)
+│   └── trainerRoutes.js        # /api/trainer/*  (Entrenador IA STAN: ask/stream/feedback + health/metrics/reload admin)
 │
 ├── controllers/             # Request handlers (logica de cada endpoint)
 │   ├── authController.js       # Login, register, Google, OTP, magic link, complete activation
@@ -124,13 +134,15 @@ src/
 │   ├── webhookController.js     # Webhook handler de Mercado Pago
 │   ├── programController.js     # CRUD programas (publico + admin)
 │   ├── adminController.js       # Lookup users, enterprises, stats
-│   └── feedbackController.js    # Crear feedback (rate limited por tipo), listar, resolver
+│   ├── feedbackController.js    # Crear feedback (rate limited por tipo), listar, resolver
+│   └── trainerController.js     # Entrenador IA STAN: ask / askStream (SSE) / feedback / health / metrics / reloadIndex
 │
 ├── services/                # Logica de negocio core
 │   ├── experienceService.js    # Calculo y asignacion de XP + niveles
 │   ├── coinsService.js         # Calculo y asignacion de Tins
 │   ├── achievementsService.js  # Evaluacion y desbloqueo de logros
-│   ├── aiGradingService.js     # Calificacion con OpenAI GPT-4o (responses.create + vision)
+│   ├── aiGradingService.js     # Grader IA con OpenAI GPT-4o (vision); kill-switch, cap de concurrencia y auditoria (GradingInteraction)
+│   ├── trainerService.js       # Entrenador IA STAN: arma prompt RAG + llama OpenAI (answer / streamAnswer SSE)
 │   ├── paymentService.js       # Mercado Pago: pagos unicos, ordenes, cupones
 │   ├── subscriptionService.js  # Suscripciones: creacion, cancelacion, state machine
 │   ├── subscriptionEmailService.js      # Emails transaccionales de suscripcion + magic link
@@ -170,18 +182,25 @@ src/
 │   ├── getPreviousLessons.js   # Obtener lecciones previas (para AI context)
 │   ├── getInstructionConfig.js # Obtener config de instruccion
 │   ├── resolveInstructionInfo.js # Resolver info de instruccion desde config
-│   └── resolveLessonInfo.js    # Resolver info de leccion desde config
+│   ├── resolveLessonInfo.js    # Resolver info de leccion desde config
+│   ├── magicLink.js            # Generar/hashear tokens de magic link (MAGIC_LINK_TTL_HOURS) + reenvio de activacion
+│   └── retrieveChunks.js       # RAG del Entrenador IA: indice en memoria + recuperacion por similitud coseno
 │
 ├── utils/                   # Utilidades
 │   └── accessControl.js        # Control de acceso centralizado (hasAccess, buildAccessQuery)
 │
 ├── migrations/              # Migraciones de datos
-│   └── seedPrograms.js         # Seed del catalogo de programas en MongoDB
+│   └── seedPrograms.js         # Seed idempotente del catalogo (delega en runDiff: diff-based bulkWrite, preserva timestamps)
 │
 └── scripts/                 # Scripts de migracion y utilidades
-    ├── migrateTotalXp.js       # Migracion de XP total por programa
-    ├── migrateSubscriptionFields.js # Migrar hasAccessFlag y subscription subdoc
-    └── createMpPlan.js         # Crear plan de suscripcion en Mercado Pago
+    ├── applyProgramsDiff.js    # Motor del seed: diff seed↔DB → bulkWrite (dry-run por default, --execute aplica)
+    ├── restoreLessonTimestamps.js # Limpia el badge "Actualizado" causado por seeds viejos
+    ├── cleanAndSeedDev.js      # Limpia y resiembra la DB de desarrollo
+    ├── createMpPlan.js         # Crear plan de suscripcion en Mercado Pago
+    ├── analyzeEnterprises.js   # Analisis read-only de nombres de empresa (TARGET_DB=production|test)
+    ├── extractTranscripts.js   # RAG Fase 1: baja subtitulos de Mux a la coleccion transcripts
+    ├── cleanTranscripts.js     # RAG Fase 1.5: limpia rawText (glosario + LLM TRAINER_CLEAN_MODEL)
+    └── indexTranscripts.js     # RAG Fase 2: chunking + embeddings (TRAINER_EMBED_MODEL) en transcripts
 ```
 
 ## Variables de Entorno
@@ -200,12 +219,13 @@ REFRESH_SECRET=clave_secreta_refresh_token
 ACCESS_TOKEN_EXPIRY=15m         # Fallback: 20s si no se setea
 
 # ── Magic Link / Auto-enroll (ver authentication.md) ──
-MAGIC_LINK_TTL_DAYS=7           # Default: 7
+MAGIC_LINK_TTL_HOURS=72         # Default: 72 (3 días)
 ONBOARDING_JWT_TTL_MINUTES=30   # Default: 30
 FRONTEND_URL=http://localhost:3000
 
 # ── Cookies ──
 FORCE_SECURE_COOKIES=false      # true para forzar Secure flag fuera de production
+COOKIE_SAMESITE=lax             # lax (default) | none | strict — "none" fuerza Secure
 COOKIE_DOMAIN=.stannumgame.com  # Opcional
 
 # ── AWS S3 ──
@@ -216,8 +236,23 @@ AWS_BUCKET_NAME=tu-bucket
 AWS_S3_BASE_URL=https://tu-bucket.s3.us-east-1.amazonaws.com
 AWS_S3_FOLDER_NAME=profile-photos
 
-# ── OpenAI (AI Grading) ──
+# ── OpenAI (AI Grading + Entrenador IA) ──
 OPENAI_API_KEY=sk-...
+
+# ── Entrenador IA (STAN — chatbot RAG, ver aiConfig.js) ──
+TRAINER_ENABLED=true                 # "false" desactiva el chatbot (503)
+TRAINER_MODEL=gpt-4o-mini            # Modelo de chat de STAN
+TRAINER_EMBED_MODEL=text-embedding-3-small  # Modelo de embeddings (query + indexado RAG)
+TRAINER_MAX_INFLIGHT=10              # Cap de concurrencia de llamadas OpenAI del Trainer (sino 503)
+TRAINER_CLEAN_MODEL=gpt-4o-mini     # Modelo para limpiar transcripts (script cleanTranscripts.js)
+
+# ── Corrector IA (Grader, ver aiConfig.js) ──
+GRADER_ENABLED=true                  # "false" omite la corrección (la entrega queda SUBMITTED)
+GRADER_MODEL=gpt-4o                  # Modelo de calificación (vision multi-imagen)
+GRADER_MAX_INFLIGHT=5               # Cap de concurrencia de llamadas OpenAI del Grader
+
+# ── Mux (catálogo de videos y transcripts) ──
+NEXT_PUBLIC_MUX_IDS={"TIAM01L01":"..."}  # JSON con muxPlaybackId por lessonId (usado por el seed)
 
 # ── Email (SMTP) ──
 SMTP_EMAIL=noreply@tudominio.com
@@ -456,6 +491,19 @@ CONFIRM_CLEAN=false
 | GET | `/feedback` | Listar feedback | JWT + Admin |
 | PATCH | `/feedback/:id/resolve` | Marcar resuelto | JWT + Admin |
 
+### Entrenador IA - STAN (`/api/trainer`)
+
+| Metodo | Ruta | Descripcion | Auth |
+|--------|------|-------------|------|
+| POST | `/trainer/ask` | Preguntar a STAN (respuesta JSON con citas) | JWT |
+| POST | `/trainer/ask/stream` | Preguntar a STAN con streaming (SSE) | JWT |
+| POST | `/trainer/feedback` | 👍/👎 sobre una respuesta (1, -1, 0) | JWT |
+| GET | `/trainer/health` | Chunks del indice RAG en memoria | JWT + Admin |
+| GET | `/trainer/metrics` | Metricas de uso (volumen, lecciones, ratio feedback) | JWT + Admin |
+| POST | `/trainer/reload-index` | Recargar el indice RAG en memoria | JWT + Admin |
+
+> Sólo responde sobre programas a los que el usuario tiene acceso, y sólo recupera/cita de lecciones ya desbloqueadas. Kill-switch `TRAINER_ENABLED=false` y cap de concurrencia `TRAINER_MAX_INFLIGHT` (503 si saturado).
+
 Ver [API Reference completa](./docs/api-reference.md) para detalles de request/response bodies.
 
 ## Sistemas Principales
@@ -481,28 +529,40 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 
 [Documentacion completa](./docs/systems/education.md)
 
-### 3. AI Grading
+### 3. AI Grading (Corrector IA, endurecido)
 
-- **Motor:** OpenAI GPT-4o (`responses.create()` con vision multi-imagen)
+- **Motor:** OpenAI GPT-4o (`responses.create()` con vision multi-imagen). Modelo/flags en `src/config/aiConfig.js`.
 - **Context injection:** Lecciones previas del módulo + consigna de la instrucción + criterios pedagógicos en SYSTEM_PROMPT
 - **Soporta:** Texto y archivos (1-10 imágenes via S3 → base64 data URLs)
 - **Output:** Score 0-100 + observaciones constructivas en español + lecciones recomendadas
 - **Retry:** automático x3 con backoff exponencial; manual del usuario hasta 3 veces más
+- **Endurecimiento:** kill-switch `GRADER_ENABLED` (si `false`, la entrega queda `SUBMITTED`), cap de concurrencia `GRADER_MAX_INFLIGHT`, y auditoría de cada corrección en `gradinginteractions` (score, tokens, respuesta cruda truncada)
 
 [Documentacion completa](./docs/systems/ai-grading.md)
 
-### 4. Autenticacion
+### 4. Entrenador IA - STAN (chatbot RAG)
+
+- **Qué es:** chatbot que responde dudas de los alumnos sobre las videolecciones, fundamentado en las transcripciones (RAG, no fine-tuning).
+- **Motor:** OpenAI chat `gpt-4o-mini` + embeddings `text-embedding-3-small`. Modelo/flags en `src/config/aiConfig.js`.
+- **RAG:** los transcripts (colección `transcripts`, keyed por `muxPlaybackId`) se trocean en chunks con embeddings; al boot se carga un índice **en memoria** y se recupera por similitud coseno (`src/helpers/retrieveChunks.js`). A esta escala (~25 videos) no se usa Atlas Vector Search.
+- **Gating:** sólo responde sobre programas con acceso del usuario y sólo recupera/cita lecciones ya desbloqueadas; el `lessonId` y el nombre se derivan del server (anti-inyección).
+- **Salida:** respuesta en español + citas clickeables `{lessonId, title, startSec}`; soporta streaming SSE (`/ask/stream`).
+- **Operación:** kill-switch `TRAINER_ENABLED`, cap de concurrencia `TRAINER_MAX_INFLIGHT` (503 si saturado), y auditoría de cada Q&A + feedback 👍/👎 en `trainerinteractions`.
+
+[Documentacion completa](./docs/systems/ai-trainer.md)
+
+### 5. Autenticacion
 
 - **Access token:** JWT firmado, 15 min de expiración (cookie httpOnly `access_token`)
 - **Refresh token:** 80 chars hex, hash HMAC-SHA256 en DB, 7 días de expiración (cookie httpOnly `refresh_token`)
 - **Rotacion:** Cada refresh genera un nuevo par de tokens en operación atómica
 - **Google OAuth:** Login/registro automático con datos de Google + import de foto
 - **Password recovery:** OTP de 6 dígitos por email (HMAC-SHA256, 30 min de expiración, cap 5 intentos)
-- **Magic link / Auto-enroll:** Lead capture externo crea stub user, recibe link `/activate/<token>` (TTL `MAGIC_LINK_TTL_DAYS`), y completa onboarding con activation JWT (TTL `ONBOARDING_JWT_TTL_MINUTES`)
+- **Magic link / Auto-enroll:** Lead capture externo crea stub user, recibe link `/activate/<token>` (TTL `MAGIC_LINK_TTL_HOURS`, default 72), y completa onboarding con activation JWT (TTL `ONBOARDING_JWT_TTL_MINUTES`)
 
 [Documentacion completa](./docs/systems/authentication.md)
 
-### 5. Pagos y Suscripciones (Mercado Pago)
+### 6. Pagos y Suscripciones (Mercado Pago)
 
 - **Compra unica:** Crear preferencia de pago → redirect a MP → webhook confirma → activar programa
 - **Suscripciones:** Crear suscripcion mensual → redirect a MP → webhook confirma → acceso activo
@@ -511,7 +571,7 @@ Ver [API Reference completa](./docs/api-reference.md) para detalles de request/r
 - **Reconciliacion:** Sincronizacion periodica con MP para detectar pagos/cancelaciones perdidas
 - **Transferencia demo:** Al adquirir programa completo, se transfiere progreso del demo
 
-### 6. Tareas Programadas (node-cron)
+### 7. Tareas Programadas (node-cron)
 
 Todas las tareas corren en timezone `America/Argentina/Buenos_Aires`:
 
@@ -525,6 +585,17 @@ Todas las tareas corren en timezone `America/Argentina/Buenos_Aires`:
 | Cada 12 horas (:10) | checkWebhookHealth | Health check de webhooks |
 | Cada 1 hora (:30) | retryFailedDemoTransfers | Reintentar transferencias de demo fallidas |
 | Cada 2 horas (:45) | retryFailedEmails | Reintentar emails fallidos |
+
+## Arquitectura: invariante de instancia única
+
+> **Importante:** el backend asume que corre como **una sola instancia** (no está diseñado para escalar horizontalmente sin cambios). Varias piezas mantienen estado en el proceso:
+
+- **Índice RAG en memoria** (Entrenador IA): se carga al boot (`ensureIndexLoaded`) y vive en una variable del módulo. Con N instancias cada una tendría su copia; `/trainer/reload-index` sólo recarga la que atendió el request.
+- **node-cache local** (`src/cache/cacheService.js`): el cache de usuarios y rankings es in-memory; no hay capa compartida (Redis). Con varias instancias el cache quedaría inconsistente entre ellas.
+- **Mutex en proceso**: el lock anti-doble-completado de lecciones (`inFlightLessonMarks`) y los caps de concurrencia de IA (`TRAINER_MAX_INFLIGHT` / `GRADER_MAX_INFLIGHT`) son contadores locales; no coordinan entre instancias.
+- **Crons in-process** (node-cron): las tareas programadas se registran dentro del propio servidor. Con N instancias se ejecutarían N veces (sin leader election).
+
+Escalar a múltiples instancias requeriría externalizar estos componentes (Redis para cache/locks, vector store compartido, scheduler con lock distribuido).
 
 ## Seguridad
 
@@ -561,6 +632,7 @@ Modelo principal (~1130 líneas con métodos). Incluye:
 - `otp: { recoveryOtp, otpExpiresAt, recoveryVerified }` para password recovery
 - `feedbackState: { lastNpsAt, lastOnboardingFeedbackAt }` para evitar prompts repetidos
 - `communityStats: { promptsCount, assistantsCount, totalFavoritesReceived }`
+- `lastLogin: Date` — tracking de última autenticación (login, register, Google, refresh, activación); expuesto en endpoints admin
 - Transform `toJSON` que excluye `password`, `otp`, `refreshToken`, `magicLink`
 - Métodos: `getGameUserDetails()` (game frontend), `getFullUserDetails()` (interno), `getPublicUserDetails()`, `getRankingUserDetails()`, `getSearchUserDetails()`, `getUserSidebarDetails()`
 
@@ -597,6 +669,15 @@ Emails que fallaron al enviarse, con datos para retry automatico.
 ### Feedback (`feedbackModel.js`)
 Feedback de usuarios capturado desde el game frontend: NPS, reacciones de lección/instrucción, onboarding, y errores client-side. Incluye `type`, `rating`, `reaction`, `message`, `requestId`, `context` y estado `resolved` para gestión.
 
+### Transcript (`transcriptModel.js` → colección `transcripts`)
+Transcripción de cada videolección para el RAG del Entrenador IA. Keyed por `muxPlaybackId` (un mismo video respalda varias cohortes tia/tia_summer/tia_pool), con `programIds`/`lessonIds` denormalizados, `rawText`/`fullText`, `segments` y `chunks` (cada uno con su `embedding`). Vive aparte de `programs` a propósito (esa colección se cachea y se sirve al frontend).
+
+### TrainerInteraction (`trainerInteractionModel.js` → colección `trainerinteractions`)
+Auditoría de cada pregunta/respuesta del Entrenador IA (STAN): `userId`, `programId`, `lessonId`, `question`, `answer`, `citations`, `model` y `feedback` (👍/👎). Base de las métricas de uso (`/trainer/metrics`).
+
+### GradingInteraction (`gradingInteractionModel.js` → colección `gradinginteractions`)
+Auditoría de cada corrección automática del Grader IA: `userId`, `programId`, `instructionId`, `status` (GRADED/ERROR), `score`, `observations`, `model`, `tokens` y `rawResponse` truncada. Permite auditar una nota a posteriori y medir costo.
+
 ## Documentacion Adicional
 
 - [API Reference](./docs/api-reference.md) - Request/response completos de cada endpoint
@@ -604,6 +685,7 @@ Feedback de usuarios capturado desde el game frontend: NPS, reacciones de lecci�
 - [Gamificacion](./docs/systems/gamification.md)
 - [Sistema Educativo](./docs/systems/education.md)
 - [AI Grading](./docs/systems/ai-grading.md)
+- [Entrenador IA (STAN)](./docs/systems/ai-trainer.md)
 - [Comunidad](./docs/systems/community.md)
 - [Rankings](./docs/systems/rankings.md)
 - [Equipos y Product Keys](./docs/systems/teams-productkeys.md)

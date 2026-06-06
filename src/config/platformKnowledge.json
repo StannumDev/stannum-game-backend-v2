@@ -1,0 +1,94 @@
+{
+  "articles": [
+    {
+      "key": "que-es-stannum-game",
+      "title": "Qué es STANNUM Game y cómo está organizado",
+      "text": "STANNUM Game es tu plataforma de aprendizaje gamificada. Acá no solo ves cursos: ganás experiencia, subís de nivel, sumás monedas y competís en rankings mientras aprendés. El contenido está organizado en niveles. Arriba de todo están los programas, que son los cursos completos. Cada programa se divide en secciones, las secciones agrupan módulos temáticos, y dentro de cada módulo vas a encontrar dos cosas: lecciones, que son videos donde aprendés un concepto, e instrucciones, que son actividades prácticas evaluables donde aplicás lo que viste. La idea es simple: mirás las lecciones, practicás con las instrucciones y la plataforma te va premiando el avance. A medida que completás actividades vas desbloqueando lo que sigue, así que lo mejor es ir en orden. Si tenés una duda puntual de una lección o de cómo funciona algo, podés preguntarme: para eso estoy."
+    },
+    {
+      "key": "xp-y-niveles",
+      "title": "Cómo ganás XP y subís de nivel",
+      "text": "El XP es tu experiencia, la medida de cuánto avanzaste, y con él subís de nivel: los niveles van del 1 al 30, y cada uno pide un poco más de XP que el anterior, así que la subida es exigente pero constante. A medida que escalás también vas cambiando de rango: arrancás en Hierro (niveles 1 a 4), después Bronce (5 a 9), Plata (10 a 14), Oro (15 a 19), Diamante (20 a 24) y por último STANNUM (25 a 30), que es el rango máximo y el más difícil de alcanzar. Ganás XP de varias formas: completando lecciones, entregando instrucciones que la IA califica, manteniendo tu racha diaria y desbloqueando logros. En las lecciones, los videos más largos y los módulos más avanzados suelen dar más XP. En las instrucciones, además del XP base, sumás un extra según tu nota y según la rapidez con la que la entregaste, así que esforzarte y no dejar todo para último momento te conviene; tardar más no te resta, solo se premia ir rápido. Tu nivel y tu rango se ven en tu perfil y también pesan en los rankings. Mientras más actividades hagas con dedicación, más rápido escalás."
+    },
+    {
+      "key": "coins-tins",
+      "title": "Qué son las Tins y para qué te sirven",
+      "text": "Las Tins, que a veces vas a ver nombradas como coins, son la moneda virtual de STANNUM Game, y es la única que hay: no existe otra moneda aparte ni se compran con dinero, solo se ganan jugando. Las ganás haciendo actividad en la plataforma: completar lecciones, entregar instrucciones (cuanto mejor tu nota, más Tins), mantener tu racha diaria, completar módulos y programas enteros, y desbloquear logros. También sumás algunas cuando tus publicaciones en la comunidad reciben favoritos. Para qué te sirven: las Tins las gastás en la tienda. Con ellas podés comprar covers, que son portadas cosméticas para personalizar tu perfil, y también las protecciones de tu racha diaria: el escudo, que la cuida por adelantado, y la recuperación, por si ya la perdiste. Pensalas como tu recompensa por ser constante: cuanto más activo estés, más Tins juntás y más cosas podés desbloquear. No se pierden con el tiempo, así que podés ahorrarlas para la cover que más te guste."
+    },
+    {
+      "key": "racha-diaria-y-escudo",
+      "title": "La racha diaria y el escudo para no perderla",
+      "text": "La racha diaria cuenta cuántos días seguidos hacés actividad en la plataforma. Mantenerla te conviene mucho: cada día consecutivo te da un bonus de XP que va creciendo, y también suma Tins y logros especiales por llegar a ciertos hitos de días seguidos. La racha se mide según tu zona horaria, así que el día cierra cuando cierra para vos. Para no perderla, lo único que tenés que hacer es entrar y completar alguna actividad cada día. Tenés dos maneras de protegerla, las dos en la tienda y pagadas con Tins. La primera es el escudo, que es preventivo: si tenés uno activo y te salteás un día, se consume y la racha se mantiene como si nada; podés tener un escudo activo a la vez. La segunda es recuperar la racha, que es reactiva: si llegaste a perderla, tenés un tiempo limitado, alrededor de 24 horas desde que se cortó, para recuperarla desde la tienda pagando 30 Tins, y te la devuelve con la misma cantidad de días que tenías. Pasada esa ventana ya no se puede recuperar y la racha arranca de cero. La mejor estrategia igual es la más simple: sumá aunque sea una actividad por día."
+    },
+    {
+      "key": "logros",
+      "title": "Los logros y cómo se desbloquean",
+      "text": "Los logros son reconocimientos que vas sumando automáticamente al cumplir ciertas metas en la plataforma. No tenés que reclamarlos: cuando cumplís la condición, se desbloquean solos y te dan una recompensa de XP y de Tins. Hay logros para casi todo lo que vas haciendo. Algunos premian tus primeros pasos, como completar tu primera lección, tu primera instrucción, tu primer módulo o terminar un programa entero. Otros premian llegar a ciertos niveles, mantener tu racha varios días seguidos, sacar la nota máxima en una instrucción o completar varias lecciones en un mismo día. También hay logros por participar en la comunidad, como publicar tu primer prompt o asistente, o recibir favoritos en tus publicaciones. Y cada programa tiene sus propios logros por unirte, llegar a la mitad y completarlo. Los podés ver en tu perfil. Son una buena forma de marcarte objetivos y de ver todo lo que avanzaste."
+    },
+    {
+      "key": "como-completar-una-leccion",
+      "title": "Cómo completar una lección",
+      "text": "Las lecciones son los videos donde aprendés cada concepto. Para completar una, lo que tenés que hacer es entrar a la lección y mirar el video. La plataforma recuerda dónde quedaste, así que si cortás a la mitad podés retomar después desde el mismo punto con la opción de continuar viendo. Cuando terminás la lección, queda marcada como completada y ahí es cuando recibís tu XP y tus Tins. Te conviene ir en orden, porque algunas lecciones quedan bloqueadas hasta que avances con lo previo. En particular, si un módulo tiene una instrucción práctica en el medio, las lecciones que vienen después de esa instrucción pueden quedar bloqueadas hasta que entregues la instrucción. Así que si ves un candado, fijate qué actividad te falta hacer antes. Mientras mirás la lección, si algo no te queda claro, podés preguntarme sobre el contenido del video y te ayudo a entenderlo."
+    },
+    {
+      "key": "como-entregar-instruccion",
+      "title": "Cómo entregar una instrucción",
+      "text": "Las instrucciones son las actividades prácticas evaluables, donde aplicás lo que aprendiste en las lecciones. Para hacer una, primero tenés que tenerla desbloqueada: eso pasa cuando completaste la lección previa que la habilita y, si corresponde, la instrucción anterior del módulo. El paso a paso es así: entrás a la instrucción y la iniciás, leés bien la consigna y los pasos, y preparás tu entrega. Según la instrucción, vas a entregar un texto o un archivo, por ejemplo una imagen. Cada consigna te aclara qué tipo de entrega espera, qué formatos acepta y cuántos archivos podés subir. Cuando tengas tu trabajo listo, lo enviás. A partir de ahí la entrega queda enviada y pasa a corrección. Un consejo: cumplí todos los pasos de la consigna y entregá algo cuidado, porque tu nota depende de eso. Y ojo con el tiempo: entregar dentro del tiempo estimado te da un extra de XP."
+    },
+    {
+      "key": "como-te-corrige-la-ia",
+      "title": "Cómo se corrige tu entrega y qué nota recibís",
+      "text": "Cuando enviás una instrucción, una inteligencia artificial revisa tu entrega y la evalúa de forma automática. No tenés que esperar a que un profesor la mire a mano: la corrección arranca sola apenas entregás. La IA te pone una nota del 0 al 100 y te deja un feedback escrito que te explica qué hiciste bien y, sobre todo, qué te faltó para llegar al máximo. Esa devolución es oro: leela con atención, porque te dice exactamente en qué mejorar. Si tu entrega lo amerita, también puede recomendarte repasar alguna lección puntual. La nota tiene en cuenta que hayas cumplido los pasos, la calidad y dedicación de tu trabajo, y que de verdad hayas aplicado lo de las lecciones. La corrección suele tardar un ratito; la pantalla se actualiza cuando está lista. Si por algún motivo la corrección falla, o si no estás de acuerdo con la nota que recibiste, no te quedes con la duda: hablá con tu entrenador o con el equipo de Experiencia del Cliente, liderado por Alejandro de la Zerda, y te dan una mano. Para que te vaya bien, seguí la consigna al pie de la letra y mostrá tu trabajo real, no busques atajos."
+    },
+    {
+      "key": "rankings",
+      "title": "Los rankings individuales y por equipo",
+      "text": "Los rankings son donde podés medirte con el resto de la comunidad de una forma sana y motivadora. Hay dos tipos principales. El ranking individual ordena a las personas por su experiencia: hay un ranking global, que mira tu XP total en la plataforma, y rankings por programa, que miran tu XP dentro de un programa específico. Cuanto más XP juntás completando lecciones e instrucciones, más alto aparecés. El ranking por equipos es para cuando estás asignado a un equipo dentro de un programa, algo común cuando una empresa inscribe a su gente. Ahí los equipos compiten entre sí sumando el XP de todos sus integrantes, así que tu avance no solo te sube a vos, también empuja a tu equipo. Para cuidar la privacidad, en los rankings algunos datos personales se muestran parcialmente, pero tu nombre de usuario, tu nivel y tu foto se ven. Si querés escalar posiciones, la fórmula es clara: actividad constante, buenas entregas y mantener la racha."
+    },
+    {
+      "key": "perfil-y-foto",
+      "title": "Tu perfil y tu foto de perfil",
+      "text": "Tu perfil es tu identidad dentro de STANNUM Game. Ahí podés cargar tu nombre, tu país y región, tu fecha de nacimiento, tu empresa y puesto, una breve biografía y hasta cinco enlaces a tus redes sociales. Completar el perfil tiene premio: la primera vez que lo dejás completo desbloqueás un logro con su recompensa. Tené en cuenta que, cuando otras personas ven tu perfil o aparecés en los rankings, algunos datos personales se muestran de forma parcial para cuidar tu privacidad; tu nombre de usuario y tu nivel siempre se ven. También podés subir una foto de perfil. Para hacerlo, elegís tu imagen desde la sección de perfil y la cargás. Si todavía no subiste ninguna, la plataforma te muestra un avatar con tus iniciales, así que nunca te quedás sin imagen. Podés cambiar o eliminar tu foto cuando quieras. Mantener tu perfil completo y con foto ayuda a que el resto te reconozca en la comunidad y en los rankings."
+    },
+    {
+      "key": "que-es-stan",
+      "title": "Quién soy yo, STAN, y cómo usarme",
+      "text": "Soy STAN, tu entrenador de IA dentro de STANNUM Game. Estoy para acompañarte mientras aprendés: si tenés una duda sobre lo que estás viendo en una lección o sobre cómo funciona la plataforma, preguntame y te respondo. Me podés consultar cosas como qué significa un concepto, cómo funciona algo que se explicó en el video, pedirme un ejemplo o que te aclare un tema que no te quedó del todo. Cuando es útil, te paso la referencia a la lección y el minuto exacto donde se habla de eso, así podés ir directo a repasarlo. Una aclaración importante: yo te guío y te explico, pero no resuelvo por vos las instrucciones evaluables. Si me pedís que te haga una entrega que da XP, te voy a dar pistas y a orientarte, pero el trabajo final lo hacés vos, que es donde realmente aprendés. Estoy disponible en el chat mientras mirás tus lecciones. Aprovechame cada vez que te trabes: para eso estoy."
+    },
+    {
+      "key": "primeros-pasos",
+      "title": "Primeros pasos y onboarding",
+      "text": "Cuando contratás un programa, el acceso te llega por correo: vas a recibir un mail con tu acceso, tocás el botón, completás tu perfil y ya quedás adentro de la plataforma. Una vez dentro, la mejor forma de arrancar es ir al mapa de tu programa, que es el recorrido visual con todas las lecciones e instrucciones, y seguir el camino en orden. Empezá por la primera lección, mirá el video completo, y cuando se desbloquee la siguiente seguí avanzando. Las instrucciones que aparecen en el camino son las actividades prácticas: hacelas cuando llegues a ellas, porque además de darte XP suelen desbloquear lo que sigue. No hace falta que te apures ni que saltees: el camino está pensado para que aprendas paso a paso. Si en algún momento te trabás con un concepto, preguntame a mí, STAN, que para eso estoy. Lo más importante al principio es simple: dejá tu perfil completo y sumá al menos una actividad por día para empezar tu racha."
+    },
+    {
+      "key": "pagos-y-suscripcion",
+      "title": "Pagos, planes y acceso a los programas",
+      "text": "Para acceder a un programa lo contratás con STANNUM. Una vez confirmado, te llega un correo con tu acceso: abrís el mail, tocás el botón de acceso, completás tu perfil y ya podés empezar. El acceso es por programa, así que si más adelante querés sumar otro, se gestiona de la misma manera. Tu progreso queda siempre guardado en tu cuenta, no lo perdés. Para cualquier consulta de pagos o facturación, el área que te atiende es Administración y Finanzas, con Sofía Fernández Bravo. Y si tu duda es sobre tu acceso, tus sesiones o querés sumar un programa nuevo, te ayuda el equipo de Experiencia del Cliente, con Alejandro de la Zerda."
+    },
+    {
+      "key": "soporte-y-contacto",
+      "title": "Soporte y contacto",
+      "text": "Si tenés cualquier problema, no te quedes trabado, siempre tenés a quién recurrir. Para dudas sobre el contenido de una lección o sobre cómo funciona la plataforma, preguntame a mí, STAN, que estoy en el chat. Para consultas sobre tu programa, tus sesiones o tu acceso a la plataforma, el área que te ayuda es Experiencia del Cliente, liderada por Alejandro de la Zerda, que acompaña a los entrenados durante todo el programa. Y para cualquier tema de pagos o facturación, te atiende Administración y Finanzas, con Sofía Fernández Bravo. La regla es simple: dudas de aprendizaje me las preguntás a mí, temas de tu programa o acceso van a Experiencia del Cliente, y lo de pagos a Administración y Finanzas."
+    },
+    {
+      "key": "que-es-stannum-empresa",
+      "title": "Qué es STANNUM como empresa",
+      "text": "STANNUM, o STANNUM Alto Rendimiento, es una empresa de entrenamiento digital de alto rendimiento para líderes y equipos comerciales en Latinoamérica. Lo que la hace distinta es que combina tres mundos: metodología deportiva, donde entrenás con la disciplina de un atleta de elite, gamificación, donde aprendés jugando con XP, niveles y rangos, e inteligencia artificial aplicada al entrenamiento. La idea de fondo es clara: STANNUM no vende cursos, vende transformación real. No se trata solo de mirar videos, sino de cambiar la identidad y el rendimiento de los equipos de venta y de liderazgo, con metodología, acompañamiento humano y tecnología trabajando juntos. STANNUM Game, esta plataforma donde estás, es la pata gamificada y tecnológica de ese entrenamiento."
+    },
+    {
+      "key": "equipo-stannum",
+      "title": "Quiénes forman el equipo de STANNUM",
+      "text": "Detrás de STANNUM hay un equipo grande. En lo comercial está Martín Merlini, Director Comercial y entrenador titular de TRENNO iA Pool, acompañado por Nico Nasrallah como Líder Comercial y Santiago Merlini en el equipo comercial. La experiencia del cliente y la calidad las dirige Alejandro de la Zerda, que acompaña a los entrenados, cuida el onboarding, el soporte y los estándares de calidad. El marketing lo lidera Sebastián Palacios, con Valentina Pereira en contenidos y campañas y Lautaro Rodríguez en diseño e identidad visual. Esta plataforma, STANNUM Game, la dirige Nico Darelli. La metodología, el roadmap y la infraestructura las gobierna Brahin Carrillo, Director Técnico y Estratégico, que también lleva los eventos. La administración y las finanzas las dirige Sofía Fernández Bravo, con Flor Ferreyra Villanueva y Paulina Rulli en el equipo. Y en desarrollo está Mateo Lohezic, a cargo de la parte técnica, las automatizaciones y las integraciones."
+    },
+    {
+      "key": "trenno-ia-pool",
+      "title": "Qué es TRENNO iA Pool",
+      "text": "TRENNO iA Pool es el programa de entrenamiento individual de STANNUM. Está pensado para profesionales, emprendedores y líderes que quieren desarrollar sus habilidades comerciales y de liderazgo con el apoyo de la inteligencia artificial, entrenándose de forma individual, ya sea antes o por fuera de un programa corporativo. El formato son 12 sesiones de entrenamiento personalizado, y el entrenador titular es Martín Merlini. Es la modalidad individual de STANNUM, lo que se conoce como B2C: sos vos y tu entrenamiento, a tu ritmo. Si querés profesionalizar tu juego comercial o de liderazgo por tu cuenta, Pool es tu camino."
+    },
+    {
+      "key": "programas-corporativos",
+      "title": "Los programas corporativos y el Sello Frontier Firm",
+      "text": "Para empresas, STANNUM tiene un programa corporativo, modalidad B2B, que se recorre en tres ciclos, uno después del otro. El primero es TRENNO iA Starter, donde la empresa empieza su transformación hacia equipos de alto rendimiento con IA integrada y profesionaliza a su equipo comercial o de liderazgo. El segundo es TRENNO iA Enterprise, para las empresas que ya completaron Starter y quieren profundizar la transformación a nivel sistémico. El tercero y más avanzado es TRENNO iA Agentic, que integra agentes de inteligencia artificial dentro de los procesos comerciales y operativos de la empresa. El camino completo es Starter, después Enterprise y por último Agentic. Cuando una empresa completa los tres ciclos, recibe el Sello Frontier Firm, el reconocimiento que significa que alcanzó un nivel de alto rendimiento con la inteligencia artificial integrada en su cultura y sus procesos."
+    }
+  ]
+}

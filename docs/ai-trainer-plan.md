@@ -7,34 +7,58 @@
 
 ## 0. Estado actual / Progreso (fuente de verdad — actualizar acá)
 
-**Backend RAG completo, probado y auditado. Falta la UI (Fase 4) y métricas (Fase 5).**
+**Entrenador IA "STAN" COMPLETO (Fases 1-5) y deployado en backend.** Pipeline de ingesta,
+RAG con embeddings, endpoints (incl. streaming SSE), UI con chat flotante STAN, y métricas +
+feedback están implementados y auditados. Doc del sistema: `docs/systems/ai-trainer.md`.
+Lo que resta es operativo (commit del frontend, verificación manual de la UI en vivo) y un
+pendiente de contenido (topics faltantes), no funcionalidad core.
 
 ### ✅ HECHO
 - **Fase 1 — Extracción** ✅ `src/models/transcriptModel.js`, `src/scripts/extractTranscripts.js`.
   HLS público (sin creds) → 25 transcripts en colección `transcripts` (rawText + segments con
   timestamps). Idempotente con diff. Auditada + corregida (X-TIMESTAMP-MAP order-agnostic, retry).
 - **Fase 1.5 — Limpieza** ✅ `src/config/transcriptGlossary.json` + `src/scripts/cleanTranscripts.js`.
-  Glosario (STANNUM/Trenno/Merlini) + pasada LLM (gpt-4o-mini) → `fullText` limpio. 25/25.
+  Glosario (STANNUM/Trenno/Merlini) + pasada LLM (`TRAINER_CLEAN_MODEL`, default gpt-4o-mini) →
+  `fullText` limpio. Salvaguarda anti-resumen (<60% del largo → no escribe). 25/25.
 - **Fase 2 — Indexado RAG** ✅ `src/scripts/indexTranscripts.js` + `src/helpers/retrieveChunks.js`.
-  Chunking por oraciones sobre `fullText` + timestamps segment-anchored → **25/304 chunks** con
-  embeddings (`text-embedding-3-small`). Retrieval coseno en memoria, gate por programa, boost
-  lección/módulo, piso de score. `indexMeta` versionado. Auditada + corregida.
+  Chunking por oraciones sobre `fullText` (~130 palabras, solape 1) + timestamps segment-anchored →
+  chunks con embeddings (`text-embedding-3-small`). Retrieval coseno en memoria, gate por programa
+  (fail-closed), scope `allowedLessonIds`, boost lección ×1.25 / módulo ×1.10, piso `MIN_SCORE` 0.15,
+  topK 8. `indexMeta` versionado (v2). Auditada + corregida.
 - **Fase 3 — Endpoint chatbot** ✅ `src/services/trainerService.js`, `src/controllers/trainerController.js`,
-  `src/routes/trainerRoutes.js`, `trainerLimiter`, montado en `index.js` + warmup al boot.
-  `POST /api/trainer/ask` (gating por acceso, RAG + gpt-4o, citas, guardarraíl anti-jailbreak) y
-  `GET /api/trainer/health` (admin). Auditada + endurecida (history no-confiable, lessonId validado,
-  fail-closed, timeout/429-503, kill-switch `TRAINER_ENABLED`). **Validado end-to-end** contra prod.
+  `src/routes/trainerRoutes.js`, `trainerLimiter` (25/5min), montado en `index.js` + warmup del índice
+  al boot. `POST /api/trainer/ask` (gating por acceso, RAG, citas resueltas 1→N por programa,
+  guardarraíl anti-jailbreak), `GET /api/trainer/health` (admin). Endurecida: history no-confiable
+  (embebido como texto), `lessonId`/`userName` no spoofeables, fail-closed, timeout/429→503,
+  cap de concurrencia global `TRAINER_MAX_INFLIGHT` (default 10, 503 si satura), kill-switch
+  `TRAINER_ENABLED`. **Modelo: `TRAINER_MODEL` default `gpt-4o-mini`** (validado por el eval con
+  DeepEval: 4o-mini ≈ 4o en faithfulness/relevancy; `gpt-4o` disponible vía env si se necesita).
+- **Fase 4 — UI (frontend)** ✅ chat flotante STAN en la vista de lección (`LessonPageContent.tsx`),
+  con panel/drawer en mobile. `trainerChatStore.ts` (+ `trainerFloatStore.ts`), `services/trainer.ts`,
+  `TrainerChatPanel`/`TrainerChatMobile`/`TrainerChatFloat`, citas que saltan al minuto
+  (evento `trainer:seek` en el player / `?t=` cross-lección). Typecheck OK.
+- **Streaming SSE** ✅ `POST /api/trainer/ask/stream` (service `streamAnswer` async generator +
+  controller `text/event-stream` con headers anti-buffering `X-Accel-Buffering: no`, primer byte
+  inmediato y heartbeat `: ping`/15s) + cliente `fetch`/ReadableStream con refresh-on-401.
+  Store rellena la burbuja en vivo.
+- **Fase 5 — Pulido/métricas** ✅ `trainerInteractionModel.js` (persiste cada turno best-effort),
+  feedback 👍/👎 (`POST /api/trainer/feedback`, sólo el dueño, `feedbackInteractionLimiter` 30/15min,
+  `TRAINER_INTERACTION_NOT_FOUND`), métricas (`GET /api/trainer/metrics` admin: volumen, top 20
+  lecciones con más dudas, ratio 👍/👎, byProgram), recarga de índice (`POST /api/trainer/reload-index`
+  admin). Frontend: botones 👍/👎 por respuesta.
+
+**Auditado (4ª auditoría) y corregido:** AbortController para cortar streams huérfanos al cambiar
+de lección, rate-limit en `/feedback`, código de error `TRAINER_INTERACTION_NOT_FOUND`, heartbeat
+SSE (primer byte + ping/15s) contra idle del proxy. Typecheck frontend limpio.
 
 ### ⬜ FALTA
-- **Fase 4 — UI (frontend)** ⬜ panel de chat en la vista de lección (`LessonPageContent.tsx`):
-  chat en columna derecha, miniaturas abajo, drawer en mobile. `trainerChatStore.ts` (zustand),
-  `services/trainer.ts` (cliente), citas que saltan al minuto (reusar `?t=` del player).
-- **Streaming SSE** ⬜ el endpoint hoy es no-streaming. Falta variante SSE (service generador +
-  controller `text/event-stream` + cliente `fetch`/ReadableStream con su propio refresh-on-401).
-- **Fase 5 — Pulido/métricas** ⬜ persistir conversaciones (`trainerConversations`), feedback 👍/👎,
-  métricas de uso (qué lecciones generan más dudas), recarga de índice en caliente.
-- **Pendientes menores** ⬜ M03 sin `topics` en `lessons_catalog.json` (se limpió sin contexto);
-  endpoint para recargar el índice RAG sin reiniciar el server.
+- **Verificar UI en vivo** ⬜ correr la app y probar el chat (lo hace el usuario; pidió no levantarla).
+- **Commit frontend** ⬜ los cambios del frontend están sin commitear (rama `feature/redesign`):
+  `TrainerChatFloat/Panel/Mobile.tsx`, `services/trainer.ts`, `trainerChatStore.ts`,
+  `trainerFloatStore.ts` + modificaciones en `LessonPageContent`/`LessonVideoPlayer`/`layout`.
+- **Pendientes de contenido** ⬜ `lessons_catalog.json` cubre `tia`, `tia_summer` y `tmd` (todas
+  sus lecciones con `topics`) pero **no `tia_pool`** → para ese programa el contexto de topics es
+  `null` (el código lo tolera: `getLessonContent` devuelve `null` y se omite la línea de contexto).
 
 ### Cómo re-correr el pipeline de ingesta (idempotente, dry-run por default)
 ```
@@ -74,8 +98,8 @@ genera contenido nuevo fuera de lo que enseñan las lecciones.
   stream y el cliente del front es axios, que no streamea).
 - Frontend: el chat ocupa la **columna derecha** del grid de la lección (decisión del dueño) y
   las **miniaturas de lecciones pasan abajo**; en mobile el chat es un drawer. Streaming SSE.
-- **Modelo: `gpt-4o`** (alineado al grader, que ya usa 4o para tareas pedagógicas en español);
-  `gpt-4o-mini` queda como optimización de costo a validar con A/B, no como default.
+- **Modelo: `gpt-4o-mini`** (default en `aiConfig.js`). El eval con DeepEval validó que
+  `gpt-4o-mini` ≈ `gpt-4o` en faithfulness/relevancy; `gpt-4o` queda disponible vía `TRAINER_MODEL`.
 
 ---
 
@@ -365,7 +389,7 @@ Streaming token-a-token (estilo ChatGPT). Historial por lección.
 | Embeddings de 25 videos | una vez (re-index si cambia contenido) | < $0.01 |
 | Limpieza LLM de 25 videos | una vez | centavos (gpt-4o-mini) |
 | Embed de la pregunta | por request | ~$0.000002 |
-| Respuesta del chat (1–3k tokens ctx) | por request | **~$0.01–0.03 con `gpt-4o`** (default); ~10x menos con 4o-mini |
+| Respuesta del chat (1–3k tokens ctx) | por request | **~$0.001–0.003 con `gpt-4o-mini`** (default); ~10x más con `gpt-4o` |
 
 Escala sin problema. Control de costo vía rate limit + truncado de contexto + tope de tokens de
 salida. La limpieza (una vez) puede usar 4o-mini; el **chat usa 4o** por calidad de tutoría.
@@ -419,7 +443,7 @@ Se construye y valida **un eslabón a la vez**; el usuario verifica cada fase an
 **Tomadas:**
 - ✅ **Layout:** chat en la **columna derecha** del grid de la lección; las **miniaturas pasan
   abajo** (para todos los breakpoints). Mobile: chat como drawer con botón.
-- ✅ **Modelo del chat:** `gpt-4o` (alineado al grader). 4o-mini = optimización futura con A/B.
+- ✅ **Modelo del chat:** `gpt-4o-mini` (default, validado por el eval: 4o-mini ≈ 4o). `gpt-4o` disponible vía `TRAINER_MODEL`.
 - ✅ **Streaming:** SSE token-a-token.
 
 **Abiertas (para el usuario):**

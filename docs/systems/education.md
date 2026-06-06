@@ -39,14 +39,28 @@ El sistema se estructura en 4 niveles jerárquicos:
 
 ### Estructura de un Programa
 
+El catálogo se persiste en MongoDB con la jerarquía `Program → Section → Module → Lesson/Instruction` (ver `src/models/programModel.js`):
+
 ```javascript
 {
   id: "tia",
-  modules: [
+  name: "TRENNO IA",
+  type: "purchase",          // purchase | subscription | demo
+  sections: [
     {
-      id: "TIAM01",
-      lessons: [...],
-      instructions: [...]
+      id: "preseason",
+      name: "Pretemporada",
+      order: 0,
+      resources: [...],      // recursos a nivel de sección
+      modules: [
+        {
+          id: "TIAM01",
+          name: "Dominio de PROMPTS",
+          order: 0,
+          lessons: [...],        // timestamps: true (createdAt/updatedAt por lección)
+          instructions: [...]    // timestamps: true (createdAt/updatedAt por instrucción)
+        }
+      ]
     }
   ]
 }
@@ -64,6 +78,9 @@ Cada programa está dividido en módulos temáticos.
 |--------|-----|------|
 | Módulo 1 | TIAM01 | Dominio de PROMPTS |
 | Módulo 2 | TIAM02 | [Contenido adicional] |
+| Módulo 3 | TIAM03 | Organización con PROYECTOS |
+
+> El módulo **Organización con PROYECTOS** (M03) se agregó a `tia` (TIAM03), `tia_summer` (TIASM03) y `tia_pool` (TIAPM03). Los tres comparten los mismos videos de Mux (mapeados por las claves `TIAM03L01`–`TIAM03L04`).
 
 ### Ejemplo: TIA_SUMMER
 
@@ -225,7 +242,7 @@ Las instrucciones son **actividades prácticas** que permiten al estudiante apli
 | **deliverableType** | Tipo de entrega: `"file"` o `"text"` |
 | **acceptedFormats** | Formatos de archivo permitidos |
 | **maxFiles** | Cantidad máxima de archivos (default 1; el endpoint admite hasta 10) |
-| **maxFileSizeMB** | Tamaño máximo por archivo (default 10 MB) |
+| **maxFileSizeMB** | Tamaño máximo por archivo (default 15 MB) |
 | **rewardXP** | XP base que se otorga (bonificado por score y velocidad) |
 | **estimatedTimeSec** | Tiempo estimado de completado (usado para bonos) |
 
@@ -601,6 +618,44 @@ Cuando un usuario con `demo_trenno` compra `trenno_ia`, su progreso se transfier
 - Instrucciones enviadas (preserva URLs de S3)
 - XP del programa (`totalXp`)
 - Se revoca acceso al demo (`isPurchased = false`, `hasAccessFlag = false`)
+
+---
+
+## 🌱 12. SEED DEL CATÁLOGO (IDEMPOTENTE)
+
+El catálogo de programas se siembra/actualiza en MongoDB desde el código fuente, que es la **fuente de verdad**.
+
+**Archivos:**
+- `src/migrations/seedPrograms.js` — define `programsData` (todos los programas con sus secciones, módulos, lecciones e instrucciones) y expone `seed()`.
+- `src/scripts/applyProgramsDiff.js` — motor del seed: `runDiff({ programsData, execute, verbose })`.
+
+### Diff-based `bulkWrite` (preserva timestamps)
+
+`seed()` delega en `runDiff`, que **no reescribe el array completo**. En lugar de un `$set` masivo (que regeneraba `updatedAt` de todas las lecciones en cada corrida y disparaba el falso badge "Actualizado"), compara el seed contra la DB campo a campo y genera operaciones `bulkWrite` contra el driver crudo:
+
+| Caso | Acción |
+|------|--------|
+| Lección/instrucción existe y todos los campos coinciden | **sin operación** (preserva `createdAt`/`updatedAt`) |
+| Existe pero algún campo difiere | `$set` de los campos cambiados + `updatedAt = NOW` |
+| Nueva en el seed | `$push` con `createdAt = updatedAt = NOW` embebidos |
+| Existe en DB pero no en el seed | se conserva (no hay auto-delete de subdocs) |
+
+Campos comparados: `LESSON_FIELDS`, `INSTRUCTION_FIELDS`, `PROGRAM_TOP_FIELDS` y los de sección/módulo (`name`, `order`, etc.). El comando es seguro de correr múltiples veces.
+
+```bash
+node src/scripts/applyProgramsDiff.js            # dry-run (default, no escribe)
+node src/scripts/applyProgramsDiff.js --execute  # aplica el diff a la DB
+```
+
+### Merge de `resources` por `id` (nunca reemplaza el array)
+
+Los `resources` de una sección tienen **dos orígenes**: el seed (`res_001`, `res_002`, …) y el panel admin (ids aleatorios tipo `res_<rand>_<rand>`). Reemplazar el array destruiría el contenido creado desde el admin. La estrategia de `runDiff` es:
+
+- `$push` de los recursos del seed cuyo `id` falta en la DB.
+- `$set` por campo (`parentId`, `title`, `description`, `link`, `type`, `order`) sobre recursos existentes del seed cuando el contenido difiere.
+- los recursos **solo en DB** quedan intactos.
+
+> Los recursos anidados (`children`) se aplanan a un array con `parentId` vía `flattenResources()` antes de persistir.
 
 ---
 

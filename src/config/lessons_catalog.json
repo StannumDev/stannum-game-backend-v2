@@ -12,7 +12,19 @@
           "lessons": [
             {
               "id": "TIAM01L01",
-              "title": "El Mapa Definitivo para Dominar la Inteligencia Artificial y Multiplicar tu Productividad",
+              "title": "Empieza tu Entrenamiento para Dominar la IA de 0 a Avanzado",
+              "durationSeconds": 347,
+              "topics": [
+                "Bienvenida a TRENNO iA: el entrenamiento para dominar la inteligencia artificial",
+                "La mentalidad del piloto de Fórmula 1: dominar la máquina",
+                "Qué lograrás: diseñar prompts, personalizar la IA, acelerar decisiones, delegación y comunicación",
+                "Un entrenamiento de 0 a avanzado: entrenarte a ti y entrenar a la IA",
+                "La importancia de sostener la disciplina en el tiempo"
+              ]
+            },
+            {
+              "id": "TIAM01L02",
+              "title": "Descubre los 5 Dominios que te Convierten en un Experto en IA",
               "durationSeconds": 347,
               "topics": [
                 "Cómo pasar de usuario casual a 'piloto de Fórmula 1' de la IA",
@@ -21,78 +33,65 @@
               ]
             },
             {
-              "id": "TIAM01L02",
-              "title": "El 'Motor' de la IA al Descubierto: Domina los 5 Conceptos que te Harán un Experto",
-              "durationSeconds": 347,
-              "topics": [
-                "Deep Learning (Aprendizaje Profundo)",
-                "GPT (Transformador Generativo Preentrenado)",
-                "RNA (Redes Neuronales Artificiales)",
-                "LLM (Gran Modelo de Lenguaje)",
-                "NLP (Procesamiento del Lenguaje Natural)",
-                "Diferencia entre modelos (ChatGPT 3.5 vs 4o)"
-              ]
-            },
-            {
               "id": "TIAM01L03",
-              "title": "El Volante de la IA: Cómo Diseñar Prompts para Obtener Resultados Perfectos",
+              "title": "Entiende los 5 Conceptos que Hacen Funcionar a la Inteligencia Artificial",
               "durationSeconds": 555,
               "topics": [
-                "Qué es el Diseño de Prompts (Prompt Engineering)",
-                "Los 4 factores que influyen en la respuesta de la IA",
-                "Técnica de asignación de roles",
-                "Estructura sustantivo (tema) + verbo (acción) en prompts"
+                "Deep Learning vs Machine Learning: aprendizaje profundo y capas de procesamiento",
+                "GPT: Generative Pre-trained Transformer (transformador generativo preentrenado)",
+                "Transformers y el mecanismo de atención ('Attention is All You Need')",
+                "Redes Neuronales Artificiales inspiradas en el cerebro humano",
+                "Grandes Modelos de Lenguaje (LLM) y NLP: diferencia entre ChatGPT gratuito y Plus"
               ]
             },
             {
               "id": "TIAM01L04",
-              "title": "Ingeniería de Instrucciones: Cómo dejar de 'Preguntar' y empezar a 'Comandar'",
+              "title": "Diseña tus Primeros Prompts con Rol y Verbo para Comandar a la IA",
               "durationSeconds": 497,
               "topics": [
-                "Definición del prompt perfecto",
-                "Las 4 claves del mando: escritura, roles, historial, instrucciones personalizadas",
-                "Transformar preguntas en comandos estratégicos",
-                "Identificar y corregir errores en prompts"
+                "El prompt como el volante del vehículo: la instrucción que dirige a la IA",
+                "Las 4 influencias que condicionan la respuesta: forma de escribir, historial, memoria, instrucciones personalizadas",
+                "Ejercicio en vivo: de '¿qué es la IA?' a un pedido como a una persona",
+                "Parte A (sustantivo clave / tema) + Parte B (verbo / intención)",
+                "Asignación de rol: pedirle a la IA que actúe como un profesor de primaria"
               ]
             },
             {
               "id": "TIAM01L05",
-              "title": "La Fórmula Maestra: Estructura de 6 Pasos (A-F) para Prompts de Élite",
+              "title": "Construye Prompts de Élite con la Fórmula de 6 Pasos A-F",
               "durationSeconds": 585,
               "topics": [
-                "Fórmula A-F para prompts: A (Sustantivo/Tema), B (Verbo/Intención), C (Rol), D (Forma/Salida), E (Contexto Infinito), F (Adjetivo/Estilo)",
-                "Herramientas de iteración: edición con lápiz, historial de versiones",
-                "Gestión del historial de conversaciones en ChatGPT"
+                "La fórmula completa A-F para diseñar prompts",
+                "A tema, B verbo, C rol, D forma de salida, E contexto infinito, F adjetivo",
+                "El contexto es infinito: más detalle fino, mayor potencia",
+                "Evitar arrastrar imperfecciones a las nuevas respuestas",
+                "Copiar, editar y volver a versiones anteriores del prompt"
               ]
             },
             {
               "id": "TIAM01L06",
-              "title": "Dominio de la Cabina: Tour Profesional por las Funciones de ChatGPT",
+              "title": "Domina la Interfaz de ChatGPT y el Poder de su Memoria",
               "durationSeconds": 434,
               "topics": [
-                "Gestión de historial de chats (renombrar, archivar, organizar)",
-                "Chat temporal (modo incógnito)",
-                "Selector de modelos (GPT-4o vs razonamiento avanzado)",
-                "Biblioteca de imágenes DALL-E",
-                "Personalización e instrucciones personalizadas",
-                "Controles de datos y enlaces compartidos",
-                "Conectores: Google Drive, OneDrive, búsqueda web",
-                "Audio y voz"
+                "Barra lateral, historial y la práctica de eliminar chats",
+                "Chat temporal para preguntas que no se guardan",
+                "Biblioteca de imágenes, GPTs y selector de modelos",
+                "Configuración: tema oscuro, idioma español latinoamericano y chats archivados",
+                "Gestión de la memoria: activar, consultar, administrar y borrar fragmentos",
+                "Audio, modo de grabación y controles de datos"
               ]
             },
             {
               "id": "TIAM01L07",
-              "title": "Ejercicio: 'UN LIBRO'",
+              "title": "Convierte un Prompt Básico en un Plan de Implementación Profesional",
               "durationSeconds": 582,
               "topics": [
-                "Ejercicio práctico aplicando la fórmula A-F completa",
-                "Definir sustantivo clave/tema",
-                "Marcar verbo/intención",
-                "Asignar un rol experto",
-                "Perfeccionar forma/salida/respuesta",
-                "Añadir contexto infinito",
-                "Incluir adjetivos de estilo",
-                "Evolución de un prompt básico a uno profesional"
+                "Ejercicio 'UN LIBRO': aplicar la fórmula A-F paso a paso",
+                "De un prompt básico (búsqueda de libros) a un plan de implementación profesional",
+                "Cambiar el rol en vivo: de especialista en marketing a autor y amigo",
+                "Iterar la forma de salida: ranking, tabla, resumen por capítulos, plan por semanas",
+                "Aprovechar el contexto personalizado del negocio para adaptar todo a tu caso",
+                "Pedirle a la IA que haga las preguntas necesarias para perfeccionar el plan"
               ]
             }
           ]
@@ -100,134 +99,234 @@
         {
           "moduleId": "TIAM02",
           "moduleName": "Personalización de ChatGPT",
-          "moduleDescription": "Conviértete en un experto en la personalización de ChatGPT.",
+          "moduleDescription": "Conviertete en un experto en la personalización de ChatGPT.",
           "lessons": [
             {
               "id": "TIAM02L01",
-              "title": "Preparando el contexto para empezar a PERSONALIZAR",
+              "title": "Convierte a la IA en un Aliado Estratégico que Conoce tu Negocio",
               "durationSeconds": 437,
               "topics": [
-                "Dominio 2: Saber Personalizar",
-                "Convertir a la IA en aliada estratégica",
-                "Alimentar el chat con información clave del negocio",
-                "Propuesta de valor, misión, visión, perfil de cliente ideal"
+                "Dominio 2: Saber Personalizar y convertir la IA en aliada estratégica",
+                "Diagnóstico inicial: preguntarle a la IA '¿quién soy yo?' y '¿qué vendemos?'",
+                "La personalización como proceso gradual a lo largo del tiempo",
+                "Niveles de personalización: chat, proyecto, GPT y cuenta completa",
+                "Información clave del negocio: visión, misión, propuesta de valor, cliente, territorio, equipo"
               ]
             },
             {
               "id": "TIAM02L02",
-              "title": "Cómo personalizar a ChatGPT Parte 1",
+              "title": "Personaliza tu Chat Dictando por Voz la Esencia de tu Negocio",
               "durationSeconds": 420,
               "topics": [
-                "Primeros pasos para personalizar ChatGPT",
-                "Configuración inicial de personalización"
+                "Primeros pasos para personalizar cuando no tienes documentos del negocio",
+                "El prompt que pide a la IA que te entreviste con preguntas inspiradoras",
+                "Las áreas que ordenan tu negocio: propósito, modelo, oferta, clientes, equipo",
+                "El hábito de dictar por voz para prompts más rápidos y ricos",
+                "Saltar entre celular y computadora; renombrar el chat y pedir que recuerde"
               ]
             },
             {
               "id": "TIAM02L03",
-              "title": "Cómo personalizar a ChatGPT Parte 2",
+              "title": "Alimenta tu Cuenta de ChatGPT con los Documentos Clave de tu Empresa",
               "durationSeconds": 584,
               "topics": [
-                "Personalización avanzada de ChatGPT",
-                "Técnicas complementarias de personalización"
+                "Personalización profesional con documentos estructurales y formales",
+                "Organización de la esencia del negocio en Google Workspace y Drive",
+                "El prompt condicionante: entregar info parte por parte y pedir 'entiendo y asimilo'",
+                "Dos métodos: pegar el texto o adjuntar archivos desde el Drive conectado",
+                "Pedir guardar 'en la memoria' y verificar que la información quedó integrada"
               ]
             },
             {
               "id": "TIAM02L04",
-              "title": "Ejercicio: 'Desarrollar información clave del negocio con IA'",
+              "title": "Construye tu Visión, Misión y Propuesta de Valor con Ayuda de la IA",
               "durationSeconds": 413,
               "topics": [
-                "Ejercicio práctico de desarrollo de información del negocio",
-                "Uso de IA para definir información clave empresarial"
+                "Plantillas del Classroom para desarrollar la información clave del negocio",
+                "Construir una visión con fecha, plazo e indicadores de alcance",
+                "Los 6 aspectos de la visión: forma, territorio, clientes, equipo, diferencial, crecimiento",
+                "Objetivos estratégicos SMART declarados con resultados clave (OKR)",
+                "El prompt para completar plantillas: rol, intención, contexto, salida y condición",
+                "Guardar en la memoria y verificar en un chat nuevo"
               ]
             },
             {
               "id": "TIAM02L05",
-              "title": "Instrucciones PERSONALIZADAS de ChatGPT",
+              "title": "Configura las Instrucciones Personalizadas para que Cada Chat Conozca tu Negocio",
               "durationSeconds": 597,
               "topics": [
-                "Instrucciones personalizadas (custom instructions) de ChatGPT",
-                "Cómo configurarlas para tu negocio"
+                "Qué son las instrucciones personalizadas y cómo condicionan toda la cuenta",
+                "Los cuatro cuadrantes de la configuración de ChatGPT",
+                "El cuadrante clave 'algo que ChatGPT debería saber sobre ti' (1500 caracteres)",
+                "Ejercicio de resumen de la esencia del negocio en 1500 caracteres",
+                "Desconfiar y verificar el conteo de caracteres",
+                "Configuración avanzada y prueba de conocimiento exigente"
               ]
             },
             {
               "id": "TIAM02L06",
-              "title": "Estructura básica de generación de prompts: Fórmula RACS",
+              "title": "Diseña Prompts Potentes Todos los Días con la Fórmula RACS",
               "durationSeconds": 576,
               "topics": [
-                "Fórmula RACS para generación de prompts",
-                "Estructura básica de prompts personalizados"
+                "La fórmula RACS (R.A.C.S.) como estructura básica para diseñar prompts",
+                "R-A-C-S: Rol, Acción (verbo e intención), Contexto y Salida",
+                "Aplicar RACS a un pendiente real (caso: cierre de semestre / semicumbre)",
+                "La previa y las acciones consecutivas de todo pendiente",
+                "Práctica diaria de la fórmula RACS para resolver pendientes",
+                "Extraer y curar la respuesta para usarla en la vida real"
               ]
             },
             {
               "id": "TIAM02L07",
-              "title": "Personalización de áreas del negocio: Área Marketing",
+              "title": "Personaliza el Área de Marketing con la Técnica del Roleplay Prompting",
               "durationSeconds": 554,
               "topics": [
-                "Personalización de ChatGPT para el área de marketing",
-                "Prompts específicos para marketing"
+                "Personalización avanzada por áreas del negocio, empezando por Marketing",
+                "El principio de inteligencia sobre IA para lograr 'inteligencia expandida'",
+                "Codificar un chat dedicado por cada área del negocio",
+                "Abrir el área de marketing pidiendo a la IA que actúe como coach guía",
+                "La técnica del roleplay prompting por etapas (diagnóstico, propuesta, leads)",
+                "Ir de a poco con checklist y renombrar el chat por área"
               ]
             },
             {
               "id": "TIAM02L08",
-              "title": "Personalización de áreas del negocio: Área Ventas",
+              "title": "Convierte a la IA en el Asesor Comercial de tu Área de Ventas",
               "durationSeconds": 546,
               "topics": [
-                "Personalización de ChatGPT para el área de ventas",
-                "Prompts específicos para ventas"
+                "Encuadrar y personalizar un área del negocio (ventas / gestión comercial) dentro de un chat",
+                "El truco de pedir un 'prompt perfecto' a un diseñador de prompts experto",
+                "Codificar y nombrar chats para reutilizarlos (memoria e historial)",
+                "Aplicar la fórmula RAX para desarrollar tácticas comerciales",
+                "La máxima 'alimentar para desarrollar': cargar el contexto antes de pedir resultados"
               ]
             },
             {
               "id": "TIAM02L09",
-              "title": "Roles en el área de ventas",
+              "title": "Despliega 10 Roles de Ventas y Bájalos a un Plan que Ejecutas Esta Semana",
               "durationSeconds": 545,
               "topics": [
-                "Definición de roles de ventas para la IA",
-                "Asistentes virtuales de ventas"
+                "Generar una tabla de 10 roles de ventas con usos y ejemplos de prompt",
+                "Ejecutar el prompt de un rol aprovechando la memoria del contexto",
+                "Roleplay y simulador de objeciones para entrenar al equipo comercial",
+                "Adelantarse a las objeciones del cliente, no solo superarlas",
+                "Bajar la táctica a un plan de implementación semanal, día a día y por tiempos"
               ]
             },
             {
               "id": "TIAM02L10",
-              "title": "Exploración de ROLES: El principio de los Asistentes virtuales",
+              "title": "Convierte Cada Chat en un Asistente Virtual Experto a tu Medida",
               "durationSeconds": 499,
               "topics": [
-                "Concepto de roles y asistentes virtuales",
-                "Cómo crear asistentes especializados"
+                "El rol como parte del contexto que condiciona a la IA",
+                "Comodines para activar roles: 'actúa como', 'eres', 'representa a', 'ponte en el lugar de'",
+                "Crear asistentes virtuales especializados por campo y alimentarlos con tu situación",
+                "Organizar, archivar y desarchivar chats para separar lo personal de lo laboral",
+                "Pedirle a la IA que actúe como creador de asistentes virtuales"
               ]
             },
             {
               "id": "TIAM02L11",
-              "title": "Tipologías de PROMPTs",
+              "title": "Domina las Tipologías de Prompts para Llevar a la IA a Cualquier Lado",
               "durationSeconds": 571,
               "topics": [
-                "Diferentes tipos y categorías de prompts",
-                "Cuándo usar cada tipología"
+                "Tipologías comparativas y argumentales de prompts",
+                "Prompts condicionales y vacíos (inputs sin indicación precisa)",
+                "Prompts estructurales y enriquecidos (con imágenes, plantillas y referencias)",
+                "Multi prompts, Meta prompts y Auto prompts",
+                "Ejercicio práctico: tabla de tipologías y aplicación de un Metaprompt"
               ]
             },
             {
               "id": "TIAM02L12",
-              "title": "Recomendaciones para dar INDICACIONES a la IA: EL VERBO",
+              "title": "Elige el Verbo Correcto para Definir el Resultado de Cada Prompt",
               "durationSeconds": 229,
               "topics": [
-                "Importancia del verbo en las instrucciones a la IA",
-                "Verbos recomendados para diferentes tipos de tareas"
+                "El verbo como indicación explícita que define la tarea solicitada",
+                "Cómo cada verbo (generar, analizar, resumir, escribir) condiciona la respuesta",
+                "El verbo del primer prompt regulariza toda la conversación",
+                "Recomendaciones: ser claro, dividir tareas, dar ejemplos y explicar el objetivo",
+                "Experimentar con formulaciones, usar palabras clave y revisar y ajustar"
               ]
             },
             {
               "id": "TIAM02L13",
-              "title": "Cómo DELEGAR: Fórmula RODOIR",
+              "title": "Delega Tareas Como un Profesional con la Fórmula RODOIR",
               "durationSeconds": 572,
               "topics": [
-                "Fórmula RODOIR para delegación con IA",
-                "Estructura para delegar tareas efectivamente a ChatGPT"
+                "La fórmula RODOIR: Rol, Detalles, Objetivo, Instrucciones, Restricciones",
+                "Delegar apoyándote en la IA para ganar especificidad y evitar delegaciones erráticas",
+                "Los Detalles como contexto y las Restricciones como parámetros que acotan",
+                "Aplicación práctica: delegar un cronograma de entrenamiento al líder de ventas",
+                "Refinar la forma de salida del mensaje de delegación (asunto, fechas, puntos clave)"
               ]
             },
             {
               "id": "TIAM02L14",
-              "title": "Profundizar sobre las FORMAS de RESPUESTAS al diseñar PROMPTs",
+              "title": "Pide el Formato de Salida Perfecto para Cada Tarea",
               "durationSeconds": 580,
               "topics": [
-                "Diseño del formato de respuesta en prompts",
-                "Diferentes formas de salida (tablas, listas, párrafos, etc.)"
+                "El abanico de formatos de salida: pasos, tabla, bullets, mapa mental, checklist, ficha, SOP, informe ejecutivo",
+                "Pedir una tabla con 100 formas distintas de respuesta para conocer todo el abanico",
+                "Adaptar el formato de salida al uso (ventas, marketing, atención; mails, WhatsApp)",
+                "El truco del experto en diseño de prompts para generar un prompt perfecto",
+                "Documentar procesos con formato de ficha técnica y escalarlo a 10 procesos clave"
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "TIAM03",
+          "moduleName": "Organización con PROYECTOS",
+          "moduleDescription": "Aprende a crear y mantener proyectos en ChatGPT para organizar tu IA y tu negocio.",
+          "lessons": [
+            {
+              "id": "TIAM03L01",
+              "title": "Organiza tu IA por Frentes de Trabajo con la Función Proyectos",
+              "durationSeconds": 557,
+              "topics": [
+                "Por qué los buenos chats se perdían en el historial y la IA lleva al caos",
+                "Los tres espacios de la barra lateral: GPT, Proyectos e historial de chats",
+                "Organizar las conversaciones por frente de trabajo o área funcional",
+                "Cargar archivos estructurales e instrucciones específicas en cada proyecto",
+                "Los proyectos como reflejo de tu propia forma de organizar el trabajo"
+              ]
+            },
+            {
+              "id": "TIAM03L02",
+              "title": "Crea un Proyecto desde Cero y Configura su Memoria, Instrucciones y Archivos",
+              "durationSeconds": 584,
+              "topics": [
+                "Definir la naturaleza del proyecto: nombre, color, símbolo y esquematizar frentes en el cuaderno",
+                "La configuración de memoria (chat externo vs. solo el proyecto) que no se puede cambiar después",
+                "Cargar instrucciones personalizadas para fijar contexto, rol y reglas",
+                "Subir los archivos esenciales o estructurales del negocio al interior del proyecto",
+                "La prueba de conocimiento para validar que instrucciones y archivos están activos"
+              ]
+            },
+            {
+              "id": "TIAM03L03",
+              "title": "Define el Alcance de tu Proyecto para que Entienda tu Negocio a la Primera",
+              "durationSeconds": 567,
+              "topics": [
+                "Hacer la 'bajada' para definir el alcance del proyecto antes de cargar nada",
+                "Construir la matriz base del proyecto con un prompt (propósito, alcance, niveles de madurez)",
+                "Usar el modo Canvas para refinar y descargar la matriz en PDF como archivo",
+                "Generar y cargar las instrucciones personalizadas con rol de guía estratégico",
+                "Jugar con archivos estructurales y estables para que responda con datos reales del negocio"
+              ]
+            },
+            {
+              "id": "TIAM03L04",
+              "title": "Mantén tus Proyectos Vivos Purgando su Memoria y Actualizando sus Fuentes",
+              "durationSeconds": 599,
+              "topics": [
+                "Mantener los proyectos con vida y siempre activos como frentes de trabajo",
+                "Crear chats oficiales para temas de alta recurrencia (reportes, reglas, embudo de ventas)",
+                "Pedir un resumen de la memoria del proyecto y purgar la información obsoleta",
+                "Corregir y condicionar la memoria desde el prompt cuando cambian los datos",
+                "Verificar, eliminar y volver a cargar las fuentes desactualizadas",
+                "Optimizar continuamente las instrucciones desde la configuración del proyecto"
               ]
             }
           ]
@@ -245,7 +344,19 @@
           "lessons": [
             {
               "id": "TIASM01L01",
-              "title": "El Mapa Definitivo para Dominar la Inteligencia Artificial y Multiplicar tu Productividad",
+              "title": "Empieza tu Entrenamiento para Dominar la IA de 0 a Avanzado",
+              "durationSeconds": 347,
+              "topics": [
+                "Bienvenida a TRENNO iA: el entrenamiento para dominar la inteligencia artificial",
+                "La mentalidad del piloto de Fórmula 1: dominar la máquina",
+                "Qué lograrás: diseñar prompts, personalizar la IA, acelerar decisiones, delegación y comunicación",
+                "Un entrenamiento de 0 a avanzado: entrenarte a ti y entrenar a la IA",
+                "La importancia de sostener la disciplina en el tiempo"
+              ]
+            },
+            {
+              "id": "TIASM01L02",
+              "title": "Descubre los 5 Dominios que te Convierten en un Experto en IA",
               "durationSeconds": 347,
               "topics": [
                 "Cómo pasar de usuario casual a 'piloto de Fórmula 1' de la IA",
@@ -254,66 +365,65 @@
               ]
             },
             {
-              "id": "TIASM01L02",
-              "title": "El 'Motor' de la IA al Descubierto: Domina los 5 Conceptos que te Harán un Experto",
-              "durationSeconds": 347,
-              "topics": [
-                "Deep Learning (Aprendizaje Profundo)",
-                "GPT (Transformador Generativo Preentrenado)",
-                "RNA (Redes Neuronales Artificiales)",
-                "LLM (Gran Modelo de Lenguaje)",
-                "NLP (Procesamiento del Lenguaje Natural)"
-              ]
-            },
-            {
               "id": "TIASM01L03",
-              "title": "El Volante de la IA: Cómo Diseñar Prompts para Obtener Resultados Perfectos",
+              "title": "Entiende los 5 Conceptos que Hacen Funcionar a la Inteligencia Artificial",
               "durationSeconds": 555,
               "topics": [
-                "Qué es el Diseño de Prompts (Prompt Engineering)",
-                "Los 4 factores que influyen en la respuesta de la IA",
-                "Técnica de asignación de roles",
-                "Estructura sustantivo + verbo en prompts"
+                "Deep Learning vs Machine Learning: aprendizaje profundo y capas de procesamiento",
+                "GPT: Generative Pre-trained Transformer (transformador generativo preentrenado)",
+                "Transformers y el mecanismo de atención ('Attention is All You Need')",
+                "Redes Neuronales Artificiales inspiradas en el cerebro humano",
+                "Grandes Modelos de Lenguaje (LLM) y NLP: diferencia entre ChatGPT gratuito y Plus"
               ]
             },
             {
               "id": "TIASM01L04",
-              "title": "Introducción al DISEÑO de PROMPTS - Parte 1",
+              "title": "Diseña tus Primeros Prompts con Rol y Verbo para Comandar a la IA",
               "durationSeconds": 497,
               "topics": [
-                "Definición del prompt perfecto",
-                "Las 4 claves del mando",
-                "Transformar preguntas en comandos estratégicos",
-                "Identificar y corregir errores en prompts"
+                "El prompt como el volante del vehículo: la instrucción que dirige a la IA",
+                "Las 4 influencias que condicionan la respuesta: forma de escribir, historial, memoria, instrucciones personalizadas",
+                "Ejercicio en vivo: de '¿qué es la IA?' a un pedido como a una persona",
+                "Parte A (sustantivo clave / tema) + Parte B (verbo / intención)",
+                "Asignación de rol: pedirle a la IA que actúe como un profesor de primaria"
               ]
             },
             {
               "id": "TIASM01L05",
-              "title": "Introducción al DISEÑO de PROMPTS - Parte 2",
+              "title": "Construye Prompts de Élite con la Fórmula de 6 Pasos A-F",
               "durationSeconds": 585,
               "topics": [
-                "Fórmula A-F: Sustantivo, Verbo, Rol, Forma/Salida, Contexto Infinito, Adjetivo",
-                "Ejercicios prácticos con cada elemento de la fórmula",
-                "Iteración y perfeccionamiento de prompts"
+                "La fórmula completa A-F para diseñar prompts",
+                "A tema, B verbo, C rol, D forma de salida, E contexto infinito, F adjetivo",
+                "El contexto es infinito: más detalle fino, mayor potencia",
+                "Evitar arrastrar imperfecciones a las nuevas respuestas",
+                "Copiar, editar y volver a versiones anteriores del prompt"
               ]
             },
             {
               "id": "TIASM01L06",
-              "title": "Comprender la INTERFAZ de ChatGPT",
+              "title": "Domina la Interfaz de ChatGPT y el Poder de su Memoria",
               "durationSeconds": 434,
               "topics": [
-                "Interfaz completa de ChatGPT",
-                "Funciones y configuraciones disponibles"
+                "Barra lateral, historial y la práctica de eliminar chats",
+                "Chat temporal para preguntas que no se guardan",
+                "Biblioteca de imágenes, GPTs y selector de modelos",
+                "Configuración: tema oscuro, idioma español latinoamericano y chats archivados",
+                "Gestión de la memoria: activar, consultar, administrar y borrar fragmentos",
+                "Audio, modo de grabación y controles de datos"
               ]
             },
             {
               "id": "TIASM01L07",
-              "title": "Ejercicio: 'UN LIBRO'",
+              "title": "Convierte un Prompt Básico en un Plan de Implementación Profesional",
               "durationSeconds": 582,
               "topics": [
-                "Ejercicio práctico aplicando la fórmula A-F completa",
-                "Construcción paso a paso de un prompt profesional",
-                "Evolución de prompt básico a profesional"
+                "Ejercicio 'UN LIBRO': aplicar la fórmula A-F paso a paso",
+                "De un prompt básico (búsqueda de libros) a un plan de implementación profesional",
+                "Cambiar el rol en vivo: de especialista en marketing a autor y amigo",
+                "Iterar la forma de salida: ranking, tabla, resumen por capítulos, plan por semanas",
+                "Aprovechar el contexto personalizado del negocio para adaptar todo a tu caso",
+                "Pedirle a la IA que haga las preguntas necesarias para perfeccionar el plan"
               ]
             }
           ]
@@ -321,95 +431,567 @@
         {
           "moduleId": "TIASM02",
           "moduleName": "Personalización de ChatGPT",
-          "moduleDescription": "Conviértete en un experto en la personalización de ChatGPT.",
+          "moduleDescription": "Conviertete en un experto en la personalización de ChatGPT.",
           "lessons": [
             {
               "id": "TIASM02L01",
-              "title": "Preparando el contexto para empezar a PERSONALIZAR",
+              "title": "Convierte a la IA en un Aliado Estratégico que Conoce tu Negocio",
               "durationSeconds": 437,
               "topics": [
-                "Dominio 2: Saber Personalizar",
-                "Convertir a la IA en aliada estratégica",
-                "Alimentar el chat con información clave del negocio"
+                "Dominio 2: Saber Personalizar y convertir la IA en aliada estratégica",
+                "Diagnóstico inicial: preguntarle a la IA '¿quién soy yo?' y '¿qué vendemos?'",
+                "La personalización como proceso gradual a lo largo del tiempo",
+                "Niveles de personalización: chat, proyecto, GPT y cuenta completa",
+                "Información clave del negocio: visión, misión, propuesta de valor, cliente, territorio, equipo"
               ]
             },
             {
               "id": "TIASM02L02",
-              "title": "Cómo personalizar a ChatGPT Parte 1",
+              "title": "Personaliza tu Chat Dictando por Voz la Esencia de tu Negocio",
               "durationSeconds": 420,
-              "topics": ["Primeros pasos para personalizar ChatGPT"]
+              "topics": [
+                "Primeros pasos para personalizar cuando no tienes documentos del negocio",
+                "El prompt que pide a la IA que te entreviste con preguntas inspiradoras",
+                "Las áreas que ordenan tu negocio: propósito, modelo, oferta, clientes, equipo",
+                "El hábito de dictar por voz para prompts más rápidos y ricos",
+                "Saltar entre celular y computadora; renombrar el chat y pedir que recuerde"
+              ]
             },
             {
               "id": "TIASM02L03",
-              "title": "Cómo personalizar a ChatGPT Parte 2",
+              "title": "Alimenta tu Cuenta de ChatGPT con los Documentos Clave de tu Empresa",
               "durationSeconds": 584,
-              "topics": ["Personalización avanzada de ChatGPT"]
+              "topics": [
+                "Personalización profesional con documentos estructurales y formales",
+                "Organización de la esencia del negocio en Google Workspace y Drive",
+                "El prompt condicionante: entregar info parte por parte y pedir 'entiendo y asimilo'",
+                "Dos métodos: pegar el texto o adjuntar archivos desde el Drive conectado",
+                "Pedir guardar 'en la memoria' y verificar que la información quedó integrada"
+              ]
             },
             {
               "id": "TIASM02L04",
-              "title": "Ejercicio: 'Desarrollar información clave del negocio con IA'",
+              "title": "Construye tu Visión, Misión y Propuesta de Valor con Ayuda de la IA",
               "durationSeconds": 413,
-              "topics": ["Ejercicio práctico de desarrollo de información del negocio con IA"]
+              "topics": [
+                "Plantillas del Classroom para desarrollar la información clave del negocio",
+                "Construir una visión con fecha, plazo e indicadores de alcance",
+                "Los 6 aspectos de la visión: forma, territorio, clientes, equipo, diferencial, crecimiento",
+                "Objetivos estratégicos SMART declarados con resultados clave (OKR)",
+                "El prompt para completar plantillas: rol, intención, contexto, salida y condición",
+                "Guardar en la memoria y verificar en un chat nuevo"
+              ]
             },
             {
               "id": "TIASM02L05",
-              "title": "Instrucciones PERSONALIZADAS de ChatGPT",
+              "title": "Configura las Instrucciones Personalizadas para que Cada Chat Conozca tu Negocio",
               "durationSeconds": 597,
-              "topics": ["Instrucciones personalizadas (custom instructions) de ChatGPT"]
+              "topics": [
+                "Qué son las instrucciones personalizadas y cómo condicionan toda la cuenta",
+                "Los cuatro cuadrantes de la configuración de ChatGPT",
+                "El cuadrante clave 'algo que ChatGPT debería saber sobre ti' (1500 caracteres)",
+                "Ejercicio de resumen de la esencia del negocio en 1500 caracteres",
+                "Desconfiar y verificar el conteo de caracteres",
+                "Configuración avanzada y prueba de conocimiento exigente"
+              ]
             },
             {
               "id": "TIASM02L06",
-              "title": "Estructura básica de generación de prompts: Fórmula RACS",
+              "title": "Diseña Prompts Potentes Todos los Días con la Fórmula RACS",
               "durationSeconds": 576,
-              "topics": ["Fórmula RACS para generación de prompts"]
+              "topics": [
+                "La fórmula RACS (R.A.C.S.) como estructura básica para diseñar prompts",
+                "R-A-C-S: Rol, Acción (verbo e intención), Contexto y Salida",
+                "Aplicar RACS a un pendiente real (caso: cierre de semestre / semicumbre)",
+                "La previa y las acciones consecutivas de todo pendiente",
+                "Práctica diaria de la fórmula RACS para resolver pendientes",
+                "Extraer y curar la respuesta para usarla en la vida real"
+              ]
             },
             {
               "id": "TIASM02L07",
-              "title": "Personalización de áreas del negocio: Área Marketing",
+              "title": "Personaliza el Área de Marketing con la Técnica del Roleplay Prompting",
               "durationSeconds": 554,
-              "topics": ["Personalización de ChatGPT para marketing"]
+              "topics": [
+                "Personalización avanzada por áreas del negocio, empezando por Marketing",
+                "El principio de inteligencia sobre IA para lograr 'inteligencia expandida'",
+                "Codificar un chat dedicado por cada área del negocio",
+                "Abrir el área de marketing pidiendo a la IA que actúe como coach guía",
+                "La técnica del roleplay prompting por etapas (diagnóstico, propuesta, leads)",
+                "Ir de a poco con checklist y renombrar el chat por área"
+              ]
             },
             {
               "id": "TIASM02L08",
-              "title": "Personalización de áreas del negocio: Área Ventas",
+              "title": "Convierte a la IA en el Asesor Comercial de tu Área de Ventas",
               "durationSeconds": 546,
-              "topics": ["Personalización de ChatGPT para ventas"]
+              "topics": [
+                "Encuadrar y personalizar un área del negocio (ventas / gestión comercial) dentro de un chat",
+                "El truco de pedir un 'prompt perfecto' a un diseñador de prompts experto",
+                "Codificar y nombrar chats para reutilizarlos (memoria e historial)",
+                "Aplicar la fórmula RAX para desarrollar tácticas comerciales",
+                "La máxima 'alimentar para desarrollar': cargar el contexto antes de pedir resultados"
+              ]
             },
             {
               "id": "TIASM02L09",
-              "title": "Roles en el área de ventas",
+              "title": "Despliega 10 Roles de Ventas y Bájalos a un Plan que Ejecutas Esta Semana",
               "durationSeconds": 545,
-              "topics": ["Definición de roles de ventas para la IA"]
+              "topics": [
+                "Generar una tabla de 10 roles de ventas con usos y ejemplos de prompt",
+                "Ejecutar el prompt de un rol aprovechando la memoria del contexto",
+                "Roleplay y simulador de objeciones para entrenar al equipo comercial",
+                "Adelantarse a las objeciones del cliente, no solo superarlas",
+                "Bajar la táctica a un plan de implementación semanal, día a día y por tiempos"
+              ]
             },
             {
               "id": "TIASM02L10",
-              "title": "Exploración de ROLES: El principio de los Asistentes virtuales",
+              "title": "Convierte Cada Chat en un Asistente Virtual Experto a tu Medida",
               "durationSeconds": 499,
-              "topics": ["Concepto de roles y asistentes virtuales especializados"]
+              "topics": [
+                "El rol como parte del contexto que condiciona a la IA",
+                "Comodines para activar roles: 'actúa como', 'eres', 'representa a', 'ponte en el lugar de'",
+                "Crear asistentes virtuales especializados por campo y alimentarlos con tu situación",
+                "Organizar, archivar y desarchivar chats para separar lo personal de lo laboral",
+                "Pedirle a la IA que actúe como creador de asistentes virtuales"
+              ]
             },
             {
               "id": "TIASM02L11",
-              "title": "Tipologías de PROMPTs",
+              "title": "Domina las Tipologías de Prompts para Llevar a la IA a Cualquier Lado",
               "durationSeconds": 571,
-              "topics": ["Diferentes tipos y categorías de prompts"]
+              "topics": [
+                "Tipologías comparativas y argumentales de prompts",
+                "Prompts condicionales y vacíos (inputs sin indicación precisa)",
+                "Prompts estructurales y enriquecidos (con imágenes, plantillas y referencias)",
+                "Multi prompts, Meta prompts y Auto prompts",
+                "Ejercicio práctico: tabla de tipologías y aplicación de un Metaprompt"
+              ]
             },
             {
               "id": "TIASM02L12",
-              "title": "Recomendaciones para dar INDICACIONES a la IA: EL VERBO",
+              "title": "Elige el Verbo Correcto para Definir el Resultado de Cada Prompt",
               "durationSeconds": 229,
-              "topics": ["Importancia del verbo en las instrucciones a la IA"]
+              "topics": [
+                "El verbo como indicación explícita que define la tarea solicitada",
+                "Cómo cada verbo (generar, analizar, resumir, escribir) condiciona la respuesta",
+                "El verbo del primer prompt regulariza toda la conversación",
+                "Recomendaciones: ser claro, dividir tareas, dar ejemplos y explicar el objetivo",
+                "Experimentar con formulaciones, usar palabras clave y revisar y ajustar"
+              ]
             },
             {
               "id": "TIASM02L13",
-              "title": "Cómo DELEGAR: Fórmula RODOIR",
+              "title": "Delega Tareas Como un Profesional con la Fórmula RODOIR",
               "durationSeconds": 572,
-              "topics": ["Fórmula RODOIR para delegación con IA"]
+              "topics": [
+                "La fórmula RODOIR: Rol, Detalles, Objetivo, Instrucciones, Restricciones",
+                "Delegar apoyándote en la IA para ganar especificidad y evitar delegaciones erráticas",
+                "Los Detalles como contexto y las Restricciones como parámetros que acotan",
+                "Aplicación práctica: delegar un cronograma de entrenamiento al líder de ventas",
+                "Refinar la forma de salida del mensaje de delegación (asunto, fechas, puntos clave)"
+              ]
             },
             {
               "id": "TIASM02L14",
-              "title": "Profundizar sobre las FORMAS de RESPUESTAS al diseñar PROMPTs",
+              "title": "Pide el Formato de Salida Perfecto para Cada Tarea",
               "durationSeconds": 580,
-              "topics": ["Diseño del formato de respuesta en prompts"]
+              "topics": [
+                "El abanico de formatos de salida: pasos, tabla, bullets, mapa mental, checklist, ficha, SOP, informe ejecutivo",
+                "Pedir una tabla con 100 formas distintas de respuesta para conocer todo el abanico",
+                "Adaptar el formato de salida al uso (ventas, marketing, atención; mails, WhatsApp)",
+                "El truco del experto en diseño de prompts para generar un prompt perfecto",
+                "Documentar procesos con formato de ficha técnica y escalarlo a 10 procesos clave"
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "TIASM03",
+          "moduleName": "Organización con PROYECTOS",
+          "moduleDescription": "Aprende a crear y mantener proyectos en ChatGPT para organizar tu IA y tu negocio.",
+          "lessons": [
+            {
+              "id": "TIASM03L01",
+              "title": "Organiza tu IA por Frentes de Trabajo con la Función Proyectos",
+              "durationSeconds": 557,
+              "topics": [
+                "Por qué los buenos chats se perdían en el historial y la IA lleva al caos",
+                "Los tres espacios de la barra lateral: GPT, Proyectos e historial de chats",
+                "Organizar las conversaciones por frente de trabajo o área funcional",
+                "Cargar archivos estructurales e instrucciones específicas en cada proyecto",
+                "Los proyectos como reflejo de tu propia forma de organizar el trabajo"
+              ]
+            },
+            {
+              "id": "TIASM03L02",
+              "title": "Crea un Proyecto desde Cero y Configura su Memoria, Instrucciones y Archivos",
+              "durationSeconds": 584,
+              "topics": [
+                "Definir la naturaleza del proyecto: nombre, color, símbolo y esquematizar frentes en el cuaderno",
+                "La configuración de memoria (chat externo vs. solo el proyecto) que no se puede cambiar después",
+                "Cargar instrucciones personalizadas para fijar contexto, rol y reglas",
+                "Subir los archivos esenciales o estructurales del negocio al interior del proyecto",
+                "La prueba de conocimiento para validar que instrucciones y archivos están activos"
+              ]
+            },
+            {
+              "id": "TIASM03L03",
+              "title": "Define el Alcance de tu Proyecto para que Entienda tu Negocio a la Primera",
+              "durationSeconds": 567,
+              "topics": [
+                "Hacer la 'bajada' para definir el alcance del proyecto antes de cargar nada",
+                "Construir la matriz base del proyecto con un prompt (propósito, alcance, niveles de madurez)",
+                "Usar el modo Canvas para refinar y descargar la matriz en PDF como archivo",
+                "Generar y cargar las instrucciones personalizadas con rol de guía estratégico",
+                "Jugar con archivos estructurales y estables para que responda con datos reales del negocio"
+              ]
+            },
+            {
+              "id": "TIASM03L04",
+              "title": "Mantén tus Proyectos Vivos Purgando su Memoria y Actualizando sus Fuentes",
+              "durationSeconds": 599,
+              "topics": [
+                "Mantener los proyectos con vida y siempre activos como frentes de trabajo",
+                "Crear chats oficiales para temas de alta recurrencia (reportes, reglas, embudo de ventas)",
+                "Pedir un resumen de la memoria del proyecto y purgar la información obsoleta",
+                "Corregir y condicionar la memoria desde el prompt cuando cambian los datos",
+                "Verificar, eliminar y volver a cargar las fuentes desactualizadas",
+                "Optimizar continuamente las instrucciones desde la configuración del proyecto"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "programId": "tia_pool",
+      "programName": "TRENNO IA POOL",
+      "modules": [
+        {
+          "moduleId": "TIAPM01",
+          "moduleName": "Dominio de PROMPTS",
+          "moduleDescription": "Aprende a dominar y redactar PROMPTs como un profesional.",
+          "lessons": [
+            {
+              "id": "TIAPM01L01",
+              "title": "Empieza tu Entrenamiento para Dominar la IA de 0 a Avanzado",
+              "durationSeconds": 347,
+              "topics": [
+                "Bienvenida a TRENNO iA: el entrenamiento para dominar la inteligencia artificial",
+                "La mentalidad del piloto de Fórmula 1: dominar la máquina",
+                "Qué lograrás: diseñar prompts, personalizar la IA, acelerar decisiones, delegación y comunicación",
+                "Un entrenamiento de 0 a avanzado: entrenarte a ti y entrenar a la IA",
+                "La importancia de sostener la disciplina en el tiempo"
+              ]
+            },
+            {
+              "id": "TIAPM01L02",
+              "title": "Descubre los 5 Dominios que te Convierten en un Experto en IA",
+              "durationSeconds": 347,
+              "topics": [
+                "Cómo pasar de usuario casual a 'piloto de Fórmula 1' de la IA",
+                "Los 5 Dominios de la IA: Diseño de Prompts, Personalización, Funciones Avanzadas, Entrenamiento de GPTs, Automatización",
+                "Objetivos prácticos: naturalizar la IA, desarrollar criterio para prompts, iterar hasta obtener resultados, extraer y curar respuestas"
+              ]
+            },
+            {
+              "id": "TIAPM01L03",
+              "title": "Entiende los 5 Conceptos que Hacen Funcionar a la Inteligencia Artificial",
+              "durationSeconds": 555,
+              "topics": [
+                "Deep Learning vs Machine Learning: aprendizaje profundo y capas de procesamiento",
+                "GPT: Generative Pre-trained Transformer (transformador generativo preentrenado)",
+                "Transformers y el mecanismo de atención ('Attention is All You Need')",
+                "Redes Neuronales Artificiales inspiradas en el cerebro humano",
+                "Grandes Modelos de Lenguaje (LLM) y NLP: diferencia entre ChatGPT gratuito y Plus"
+              ]
+            },
+            {
+              "id": "TIAPM01L04",
+              "title": "Diseña tus Primeros Prompts con Rol y Verbo para Comandar a la IA",
+              "durationSeconds": 497,
+              "topics": [
+                "El prompt como el volante del vehículo: la instrucción que dirige a la IA",
+                "Las 4 influencias que condicionan la respuesta: forma de escribir, historial, memoria, instrucciones personalizadas",
+                "Ejercicio en vivo: de '¿qué es la IA?' a un pedido como a una persona",
+                "Parte A (sustantivo clave / tema) + Parte B (verbo / intención)",
+                "Asignación de rol: pedirle a la IA que actúe como un profesor de primaria"
+              ]
+            },
+            {
+              "id": "TIAPM01L05",
+              "title": "Construye Prompts de Élite con la Fórmula de 6 Pasos A-F",
+              "durationSeconds": 585,
+              "topics": [
+                "La fórmula completa A-F para diseñar prompts",
+                "A tema, B verbo, C rol, D forma de salida, E contexto infinito, F adjetivo",
+                "El contexto es infinito: más detalle fino, mayor potencia",
+                "Evitar arrastrar imperfecciones a las nuevas respuestas",
+                "Copiar, editar y volver a versiones anteriores del prompt"
+              ]
+            },
+            {
+              "id": "TIAPM01L06",
+              "title": "Domina la Interfaz de ChatGPT y el Poder de su Memoria",
+              "durationSeconds": 434,
+              "topics": [
+                "Barra lateral, historial y la práctica de eliminar chats",
+                "Chat temporal para preguntas que no se guardan",
+                "Biblioteca de imágenes, GPTs y selector de modelos",
+                "Configuración: tema oscuro, idioma español latinoamericano y chats archivados",
+                "Gestión de la memoria: activar, consultar, administrar y borrar fragmentos",
+                "Audio, modo de grabación y controles de datos"
+              ]
+            },
+            {
+              "id": "TIAPM01L07",
+              "title": "Convierte un Prompt Básico en un Plan de Implementación Profesional",
+              "durationSeconds": 582,
+              "topics": [
+                "Ejercicio 'UN LIBRO': aplicar la fórmula A-F paso a paso",
+                "De un prompt básico (búsqueda de libros) a un plan de implementación profesional",
+                "Cambiar el rol en vivo: de especialista en marketing a autor y amigo",
+                "Iterar la forma de salida: ranking, tabla, resumen por capítulos, plan por semanas",
+                "Aprovechar el contexto personalizado del negocio para adaptar todo a tu caso",
+                "Pedirle a la IA que haga las preguntas necesarias para perfeccionar el plan"
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "TIAPM02",
+          "moduleName": "Personalización de ChatGPT",
+          "moduleDescription": "Conviertete en un experto en la personalización de ChatGPT.",
+          "lessons": [
+            {
+              "id": "TIAPM02L01",
+              "title": "Convierte a la IA en un Aliado Estratégico que Conoce tu Negocio",
+              "durationSeconds": 437,
+              "topics": [
+                "Dominio 2: Saber Personalizar y convertir la IA en aliada estratégica",
+                "Diagnóstico inicial: preguntarle a la IA '¿quién soy yo?' y '¿qué vendemos?'",
+                "La personalización como proceso gradual a lo largo del tiempo",
+                "Niveles de personalización: chat, proyecto, GPT y cuenta completa",
+                "Información clave del negocio: visión, misión, propuesta de valor, cliente, territorio, equipo"
+              ]
+            },
+            {
+              "id": "TIAPM02L02",
+              "title": "Personaliza tu Chat Dictando por Voz la Esencia de tu Negocio",
+              "durationSeconds": 420,
+              "topics": [
+                "Primeros pasos para personalizar cuando no tienes documentos del negocio",
+                "El prompt que pide a la IA que te entreviste con preguntas inspiradoras",
+                "Las áreas que ordenan tu negocio: propósito, modelo, oferta, clientes, equipo",
+                "El hábito de dictar por voz para prompts más rápidos y ricos",
+                "Saltar entre celular y computadora; renombrar el chat y pedir que recuerde"
+              ]
+            },
+            {
+              "id": "TIAPM02L03",
+              "title": "Alimenta tu Cuenta de ChatGPT con los Documentos Clave de tu Empresa",
+              "durationSeconds": 584,
+              "topics": [
+                "Personalización profesional con documentos estructurales y formales",
+                "Organización de la esencia del negocio en Google Workspace y Drive",
+                "El prompt condicionante: entregar info parte por parte y pedir 'entiendo y asimilo'",
+                "Dos métodos: pegar el texto o adjuntar archivos desde el Drive conectado",
+                "Pedir guardar 'en la memoria' y verificar que la información quedó integrada"
+              ]
+            },
+            {
+              "id": "TIAPM02L04",
+              "title": "Construye tu Visión, Misión y Propuesta de Valor con Ayuda de la IA",
+              "durationSeconds": 413,
+              "topics": [
+                "Plantillas del Classroom para desarrollar la información clave del negocio",
+                "Construir una visión con fecha, plazo e indicadores de alcance",
+                "Los 6 aspectos de la visión: forma, territorio, clientes, equipo, diferencial, crecimiento",
+                "Objetivos estratégicos SMART declarados con resultados clave (OKR)",
+                "El prompt para completar plantillas: rol, intención, contexto, salida y condición",
+                "Guardar en la memoria y verificar en un chat nuevo"
+              ]
+            },
+            {
+              "id": "TIAPM02L05",
+              "title": "Configura las Instrucciones Personalizadas para que Cada Chat Conozca tu Negocio",
+              "durationSeconds": 597,
+              "topics": [
+                "Qué son las instrucciones personalizadas y cómo condicionan toda la cuenta",
+                "Los cuatro cuadrantes de la configuración de ChatGPT",
+                "El cuadrante clave 'algo que ChatGPT debería saber sobre ti' (1500 caracteres)",
+                "Ejercicio de resumen de la esencia del negocio en 1500 caracteres",
+                "Desconfiar y verificar el conteo de caracteres",
+                "Configuración avanzada y prueba de conocimiento exigente"
+              ]
+            },
+            {
+              "id": "TIAPM02L06",
+              "title": "Diseña Prompts Potentes Todos los Días con la Fórmula RACS",
+              "durationSeconds": 576,
+              "topics": [
+                "La fórmula RACS (R.A.C.S.) como estructura básica para diseñar prompts",
+                "R-A-C-S: Rol, Acción (verbo e intención), Contexto y Salida",
+                "Aplicar RACS a un pendiente real (caso: cierre de semestre / semicumbre)",
+                "La previa y las acciones consecutivas de todo pendiente",
+                "Práctica diaria de la fórmula RACS para resolver pendientes",
+                "Extraer y curar la respuesta para usarla en la vida real"
+              ]
+            },
+            {
+              "id": "TIAPM02L07",
+              "title": "Personaliza el Área de Marketing con la Técnica del Roleplay Prompting",
+              "durationSeconds": 554,
+              "topics": [
+                "Personalización avanzada por áreas del negocio, empezando por Marketing",
+                "El principio de inteligencia sobre IA para lograr 'inteligencia expandida'",
+                "Codificar un chat dedicado por cada área del negocio",
+                "Abrir el área de marketing pidiendo a la IA que actúe como coach guía",
+                "La técnica del roleplay prompting por etapas (diagnóstico, propuesta, leads)",
+                "Ir de a poco con checklist y renombrar el chat por área"
+              ]
+            },
+            {
+              "id": "TIAPM02L08",
+              "title": "Convierte a la IA en el Asesor Comercial de tu Área de Ventas",
+              "durationSeconds": 546,
+              "topics": [
+                "Encuadrar y personalizar un área del negocio (ventas / gestión comercial) dentro de un chat",
+                "El truco de pedir un 'prompt perfecto' a un diseñador de prompts experto",
+                "Codificar y nombrar chats para reutilizarlos (memoria e historial)",
+                "Aplicar la fórmula RAX para desarrollar tácticas comerciales",
+                "La máxima 'alimentar para desarrollar': cargar el contexto antes de pedir resultados"
+              ]
+            },
+            {
+              "id": "TIAPM02L09",
+              "title": "Despliega 10 Roles de Ventas y Bájalos a un Plan que Ejecutas Esta Semana",
+              "durationSeconds": 545,
+              "topics": [
+                "Generar una tabla de 10 roles de ventas con usos y ejemplos de prompt",
+                "Ejecutar el prompt de un rol aprovechando la memoria del contexto",
+                "Roleplay y simulador de objeciones para entrenar al equipo comercial",
+                "Adelantarse a las objeciones del cliente, no solo superarlas",
+                "Bajar la táctica a un plan de implementación semanal, día a día y por tiempos"
+              ]
+            },
+            {
+              "id": "TIAPM02L10",
+              "title": "Convierte Cada Chat en un Asistente Virtual Experto a tu Medida",
+              "durationSeconds": 499,
+              "topics": [
+                "El rol como parte del contexto que condiciona a la IA",
+                "Comodines para activar roles: 'actúa como', 'eres', 'representa a', 'ponte en el lugar de'",
+                "Crear asistentes virtuales especializados por campo y alimentarlos con tu situación",
+                "Organizar, archivar y desarchivar chats para separar lo personal de lo laboral",
+                "Pedirle a la IA que actúe como creador de asistentes virtuales"
+              ]
+            },
+            {
+              "id": "TIAPM02L11",
+              "title": "Domina las Tipologías de Prompts para Llevar a la IA a Cualquier Lado",
+              "durationSeconds": 571,
+              "topics": [
+                "Tipologías comparativas y argumentales de prompts",
+                "Prompts condicionales y vacíos (inputs sin indicación precisa)",
+                "Prompts estructurales y enriquecidos (con imágenes, plantillas y referencias)",
+                "Multi prompts, Meta prompts y Auto prompts",
+                "Ejercicio práctico: tabla de tipologías y aplicación de un Metaprompt"
+              ]
+            },
+            {
+              "id": "TIAPM02L12",
+              "title": "Elige el Verbo Correcto para Definir el Resultado de Cada Prompt",
+              "durationSeconds": 229,
+              "topics": [
+                "El verbo como indicación explícita que define la tarea solicitada",
+                "Cómo cada verbo (generar, analizar, resumir, escribir) condiciona la respuesta",
+                "El verbo del primer prompt regulariza toda la conversación",
+                "Recomendaciones: ser claro, dividir tareas, dar ejemplos y explicar el objetivo",
+                "Experimentar con formulaciones, usar palabras clave y revisar y ajustar"
+              ]
+            },
+            {
+              "id": "TIAPM02L13",
+              "title": "Delega Tareas Como un Profesional con la Fórmula RODOIR",
+              "durationSeconds": 572,
+              "topics": [
+                "La fórmula RODOIR: Rol, Detalles, Objetivo, Instrucciones, Restricciones",
+                "Delegar apoyándote en la IA para ganar especificidad y evitar delegaciones erráticas",
+                "Los Detalles como contexto y las Restricciones como parámetros que acotan",
+                "Aplicación práctica: delegar un cronograma de entrenamiento al líder de ventas",
+                "Refinar la forma de salida del mensaje de delegación (asunto, fechas, puntos clave)"
+              ]
+            },
+            {
+              "id": "TIAPM02L14",
+              "title": "Pide el Formato de Salida Perfecto para Cada Tarea",
+              "durationSeconds": 580,
+              "topics": [
+                "El abanico de formatos de salida: pasos, tabla, bullets, mapa mental, checklist, ficha, SOP, informe ejecutivo",
+                "Pedir una tabla con 100 formas distintas de respuesta para conocer todo el abanico",
+                "Adaptar el formato de salida al uso (ventas, marketing, atención; mails, WhatsApp)",
+                "El truco del experto en diseño de prompts para generar un prompt perfecto",
+                "Documentar procesos con formato de ficha técnica y escalarlo a 10 procesos clave"
+              ]
+            }
+          ]
+        },
+        {
+          "moduleId": "TIAPM03",
+          "moduleName": "Organización con PROYECTOS",
+          "moduleDescription": "Aprende a crear y mantener proyectos en ChatGPT para organizar tu IA y tu negocio.",
+          "lessons": [
+            {
+              "id": "TIAPM03L01",
+              "title": "Organiza tu IA por Frentes de Trabajo con la Función Proyectos",
+              "durationSeconds": 557,
+              "topics": [
+                "Por qué los buenos chats se perdían en el historial y la IA lleva al caos",
+                "Los tres espacios de la barra lateral: GPT, Proyectos e historial de chats",
+                "Organizar las conversaciones por frente de trabajo o área funcional",
+                "Cargar archivos estructurales e instrucciones específicas en cada proyecto",
+                "Los proyectos como reflejo de tu propia forma de organizar el trabajo"
+              ]
+            },
+            {
+              "id": "TIAPM03L02",
+              "title": "Crea un Proyecto desde Cero y Configura su Memoria, Instrucciones y Archivos",
+              "durationSeconds": 584,
+              "topics": [
+                "Definir la naturaleza del proyecto: nombre, color, símbolo y esquematizar frentes en el cuaderno",
+                "La configuración de memoria (chat externo vs. solo el proyecto) que no se puede cambiar después",
+                "Cargar instrucciones personalizadas para fijar contexto, rol y reglas",
+                "Subir los archivos esenciales o estructurales del negocio al interior del proyecto",
+                "La prueba de conocimiento para validar que instrucciones y archivos están activos"
+              ]
+            },
+            {
+              "id": "TIAPM03L03",
+              "title": "Define el Alcance de tu Proyecto para que Entienda tu Negocio a la Primera",
+              "durationSeconds": 567,
+              "topics": [
+                "Hacer la 'bajada' para definir el alcance del proyecto antes de cargar nada",
+                "Construir la matriz base del proyecto con un prompt (propósito, alcance, niveles de madurez)",
+                "Usar el modo Canvas para refinar y descargar la matriz en PDF como archivo",
+                "Generar y cargar las instrucciones personalizadas con rol de guía estratégico",
+                "Jugar con archivos estructurales y estables para que responda con datos reales del negocio"
+              ]
+            },
+            {
+              "id": "TIAPM03L04",
+              "title": "Mantén tus Proyectos Vivos Purgando su Memoria y Actualizando sus Fuentes",
+              "durationSeconds": 599,
+              "topics": [
+                "Mantener los proyectos con vida y siempre activos como frentes de trabajo",
+                "Crear chats oficiales para temas de alta recurrencia (reportes, reglas, embudo de ventas)",
+                "Pedir un resumen de la memoria del proyecto y purgar la información obsoleta",
+                "Corregir y condicionar la memoria desde el prompt cuando cambian los datos",
+                "Verificar, eliminar y volver a cargar las fuentes desactualizadas",
+                "Optimizar continuamente las instrucciones desde la configuración del proyecto"
+              ]
             }
           ]
         }
@@ -426,27 +1008,49 @@
           "lessons": [
             {
               "id": "TMDM01L01",
-              "title": "Introducción a la Serie TRENNO iA",
+              "title": "Empieza tu Entrenamiento para Dominar la IA de 0 a Avanzado",
               "durationSeconds": 360,
-              "topics": ["Conceptos básicos de la inteligencia artificial", "Aplicación de IA en el mundo empresarial"]
+              "topics": [
+                "Bienvenida a TRENNO iA: el entrenamiento para dominar la inteligencia artificial",
+                "La mentalidad del piloto de Fórmula 1: dominar la máquina",
+                "Qué lograrás: diseñar prompts, personalizar la IA, acelerar decisiones, delegación y comunicación",
+                "Un entrenamiento de 0 a avanzado: entrenarte a ti y entrenar a la IA",
+                "La importancia de sostener la disciplina en el tiempo"
+              ]
             },
             {
               "id": "TMDM01L02",
-              "title": "Conceptos básicos para entender a la INTELIGENCIA ARTIFICIAL",
+              "title": "Descubre los 5 Dominios que te Convierten en un Experto en IA",
               "durationSeconds": 360,
-              "topics": ["Fundamentos de IA para empresarios", "Conceptos clave de inteligencia artificial"]
+              "topics": [
+                "Cómo pasar de usuario casual a 'piloto de Fórmula 1' de la IA",
+                "Los 5 Dominios de la IA: Diseño de Prompts, Personalización, Funciones Avanzadas, Entrenamiento de GPTs, Automatización",
+                "Objetivos prácticos: naturalizar la IA, desarrollar criterio para prompts, iterar hasta obtener resultados, extraer y curar respuestas"
+              ]
             },
             {
               "id": "TMDM01L03",
-              "title": "Introducción al DISEÑO de PROMPTS - Parte 1",
+              "title": "Entiende los 5 Conceptos que Hacen Funcionar a la Inteligencia Artificial",
               "durationSeconds": 360,
-              "topics": ["Primeros pasos en diseño de prompts", "Conceptos básicos de prompt engineering"]
+              "topics": [
+                "Deep Learning vs Machine Learning: aprendizaje profundo y capas de procesamiento",
+                "GPT: Generative Pre-trained Transformer (transformador generativo preentrenado)",
+                "Transformers y el mecanismo de atención ('Attention is All You Need')",
+                "Redes Neuronales Artificiales inspiradas en el cerebro humano",
+                "Grandes Modelos de Lenguaje (LLM) y NLP: diferencia entre ChatGPT gratuito y Plus"
+              ]
             },
             {
               "id": "TMDM01L04",
-              "title": "Introducción al DISEÑO de PROMPTS - Parte 2",
+              "title": "Diseña tus Primeros Prompts con Rol y Verbo para Comandar a la IA",
               "durationSeconds": 360,
-              "topics": ["Técnicas avanzadas de diseño de prompts", "Fórmula A-F para prompts"]
+              "topics": [
+                "El prompt como el volante del vehículo: la instrucción que dirige a la IA",
+                "Las 4 influencias que condicionan la respuesta: forma de escribir, historial, memoria, instrucciones personalizadas",
+                "Ejercicio en vivo: de '¿qué es la IA?' a un pedido como a una persona",
+                "Parte A (sustantivo clave / tema) + Parte B (verbo / intención)",
+                "Asignación de rol: pedirle a la IA que actúe como un profesor de primaria"
+              ]
             }
           ]
         }

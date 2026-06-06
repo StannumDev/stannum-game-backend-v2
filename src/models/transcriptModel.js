@@ -22,6 +22,15 @@ const chunkSchema = new Schema(
     { _id: false }
 );
 
+// Capítulo de la línea de tiempo por topics: un topic curado + el segundo donde arranca en el video.
+const chapterSchema = new Schema(
+    {
+        title: { type: String, required: true, trim: true },
+        startSec: { type: Number, default: 0 },
+    },
+    { _id: false }
+);
+
 const cleanupSchema = new Schema(
     {
         applied: { type: Boolean, default: false },
@@ -50,8 +59,20 @@ const transcriptSchema = new Schema(
         fullText: { type: String, default: "" }, // limpio/normalizado (lo que se indexa)
         segments: { type: [segmentSchema], default: [] },
         chunks: { type: [chunkSchema], default: [] },
+        chapters: { type: [chapterSchema], default: [] }, // línea de tiempo por topics (topic → startSec)
 
         cleanup: { type: cleanupSchema, default: () => ({}) },
+        chaptersMeta: {
+            type: new Schema(
+                {
+                    version: { type: String, default: "" },
+                    embedModel: { type: String, default: "" },
+                    generatedAt: { type: Date, default: null },
+                },
+                { _id: false }
+            ),
+            default: () => ({}),
+        },
         indexMeta: {
             type: new Schema(
                 {

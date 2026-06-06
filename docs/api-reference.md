@@ -32,6 +32,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 15. [Programas (Admin/Trenno Dashboard)](#programas-admin--trenno-dashboard)
 16. [Admin](#admin)
 17. [Feedback](#feedback)
+18. [Entrenador IA (Trainer)](#entrenador-ia-trainer)
 
 ---
 
@@ -59,8 +60,10 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 ```
 
 **Errors:**
-- `401 AUTH_INVALID_CREDENTIALS` — username/password inválidos o usuario inactivo
-- `403 AUTH_PASSWORD_LOGIN_DISABLED` — el usuario solo puede entrar con Google
+- `400 VALIDATION_USERNAME_REQUIRED` / `400 VALIDATION_PASSWORD_REQUIRED` — falta username o password
+- `401 AUTH_INVALID_CREDENTIALS` — username/password inválidos o usuario inactivo (`status: false`)
+- `403 AUTH_PASSWORD_LOGIN_DISABLED` — el usuario solo puede entrar con Google (`preferences.allowPasswordLogin: false`)
+- `403 AUTH_ACCOUNT_NOT_ACTIVATED` — cuenta stub que aún no completó la activación (no puede loguearse aunque tenga password)
 
 ---
 
@@ -129,7 +132,7 @@ Documentación completa de todos los endpoints del backend de STANNUM Game.
 ---
 
 ### POST `/auth/google`
-**Login con Google OAuth** (rate limited: `authLimiter`)
+**Login con Google OAuth** (rate limited: `googleAuthLimiter`)
 
 **Body:** `{ "token": "<google_access_token>" }`
 
@@ -293,6 +296,17 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 ```
 
 **Errors:** `409 USER_ALREADY_ACTIVATED`, `409 AUTH_USERNAME_ALREADY_EXISTS`, `400 VALIDATION_USERNAME_INVALID` (si arranca con `pending_` o `google_`), `400 VALIDATION_USERNAME_OFFENSIVE`.
+
+---
+
+### POST `/auth/resend-activation`
+**Reenviar correo de activación (magic link) a una cuenta stub pendiente** (rate limited: `otpLimiter` + `passwordLimiter`)
+
+**Body:** `{ "email": "lead@example.com" }`
+
+**Response 200:** `{ "success": true, "message": "Si la cuenta existe y está pendiente de activación, te reenviamos el correo." }`
+
+> Siempre devuelve 200 (respuesta genérica) para no filtrar si la cuenta existe. Solo regenera y reenvía el magic link si el user existe, está activo (`status: true`) y su `profileStatus` es `needs_activation`. Error `400 VALIDATION_EMAIL_REQUIRED` si falta el email.
 
 ---
 
@@ -816,6 +830,70 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 
 ---
 
+### POST `/product-key/generate-and-send-bulk`
+**Generar y enviar product keys en lote (email simple por cada uno)**
+
+**Auth:** header `x-api-key`
+
+**Body:**
+```json
+{
+  "emails": ["a@example.com", "b@example.com"],
+  "product": "tia",
+  "team": "equipo_alpha"
+}
+```
+
+**Validaciones:** `emails` array de 1 a 100, cada uno email válido. `product` ∈ `tia | tmd | tia_summer | tia_pool` (default `tia`). `team` default `no_team`. Los emails se deduplican (lowercase + trim) preservando el orden.
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "results": [
+    { "email": "a@example.com", "status": "sent", "code": "ABCD-1234-EFGH-5678" },
+    { "email": "b@example.com", "status": "error", "message": "Error desconocido" }
+  ],
+  "summary": { "succeeded": 1, "failed": 1 }
+}
+```
+
+> Procesa en batches. Por cada key, si el email falla se hace rollback de la key creada (no quedan huérfanas). Devuelve 200 aunque algunos fallen — revisar `results[i].status` (`sent` | `error`).
+
+---
+
+### POST `/product-key/auto-enroll-bulk`
+**Auto-enroll (user stub + magic link) en lote**
+
+**Auth:** header `x-api-key`
+
+**Body:**
+```json
+{
+  "emails": ["a@example.com", "b@example.com"],
+  "product": "tia",
+  "team": "equipo_alpha"
+}
+```
+
+**Validaciones:** `emails` array de 1 a 100, cada uno email válido. `product` ∈ `tia | tmd | tia_summer | tia_pool` (default `tia`). `team` default `no_team`. Dedup por email. El `fullName` se deriva del email (parte antes de `@`, máx 50 chars).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "results": [
+    { "email": "a@example.com", "status": "new_user" },
+    { "email": "b@example.com", "status": "already_owned" }
+  ],
+  "summary": { "succeeded": 2, "failed": 0 }
+}
+```
+
+> `status` por email: `new_user` | `existing_stub_resent` | `activated_for_existing_user` | `already_owned` | `error`. Cualquier estado distinto de `error` cuenta como `succeeded`.
+
+---
+
 ### GET `/product-key/check/:code`
 **Verificar estado de product key (soporte / integración externa)**
 
@@ -1182,6 +1260,50 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 
 ---
 
+### GET `/prompt/stats`
+**Estadísticas agregadas de prompts**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, ... }` con totales/agregados de la comunidad de prompts.
+
+---
+
+### GET `/prompt/top`
+**Top prompts (más populares)**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Query params:** `limit` (1-50)
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### GET `/prompt/user/:userId`
+**Prompts publicados por un usuario específico**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Params:** `userId` (MongoId válido)
+
+**Query params:** `page` (≥1), `limit` (1-50)
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### PUT `/prompt/:id/visibility`
+**Cambiar la visibilidad de un prompt propio**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:** `{ "visibility": "published" | "draft" | "hidden" }`
+
+**Response 200:** `{ "success": true, "message": "..." }`
+
+---
+
 ## Assistants (Comunidad)
 
 ### GET `/assistant`
@@ -1190,11 +1312,74 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 **Headers:** `Authorization: Bearer {token}`
 
 **Query params:** (similares a `/prompt`)
-- `page`, `limit`, `category`, `difficulty`, `sortBy`, `search`
-- `platform`: `chatgpt` | `claude` | `gemini` | `poe` | `perplexity` | `other`
-- `favoritesOnly`, `stannumVerifiedOnly`
+- `page` (≥1), `limit` (1-50), `category`, `difficulty`, `search` (min 2)
+- `sortBy`: `popular` | `newest` | `mostUsed` | `mostLiked` | `mostViewed` | `verified` (nota: assistants usa `mostUsed`, no `mostCopied`)
+- `platform` (singular): `chatgpt` | `claude` | `gemini` | `poe` | `perplexity` | `other`
+- `favoritesOnly`, `stannumVerifiedOnly`: `true` | `false`
 
 **Response 200:** (estructura similar a prompts)
+
+---
+
+### GET `/assistant/stats`
+**Estadísticas agregadas de assistants**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, ... }`
+
+---
+
+### GET `/assistant/top`
+**Top assistants (más populares)**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Query params:** `limit` (1-50)
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### GET `/assistant/user/:userId`
+**Assistants publicados por un usuario específico**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Params:** `userId` (MongoId válido). **Query:** `page` (≥1), `limit` (1-50).
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### GET `/assistant/me/assistants`
+**Mis assistants creados**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Query params:** `page` (≥1), `limit` (1-50)
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### GET `/assistant/me/favorites`
+**Mis assistants favoritos**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, "data": [...] }`
+
+---
+
+### GET `/assistant/:id`
+**Obtener assistant completo por ID**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Params:** `id` (MongoId válido)
+
+**Response 200:** `{ "success": true, "assistant": {...} }`
 
 ---
 
@@ -1217,6 +1402,8 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 }
 ```
 
+**Validaciones:** `title` 1-80, `description` 10-500, `assistantUrl` URL válida, `category` ∈ lista de prompts, `platform` ∈ `chatgpt|claude|gemini|poe|perplexity|other`, `difficulty` opcional, `tags` opcional (máx 10, cada uno 2-30), `useCases` opcional (máx 1000). (rate limited: `contentCreationLimiter`)
+
 **Response 201:**
 ```json
 {
@@ -1225,6 +1412,17 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
   "assistantId": "..."
 }
 ```
+
+---
+
+### PUT `/assistant/:id`
+**Actualizar assistant propio**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:** mismos campos que POST + `visibility` opcional (`published` | `draft`).
+
+**Response 200:** `{ "success": true, "message": "..." }`
 
 ---
 
@@ -1255,6 +1453,44 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
   "message": "Like agregado"
 }
 ```
+
+---
+
+### DELETE `/assistant/:id/like`
+**Quitar like de assistant**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, "message": "Like removido" }`
+
+---
+
+### POST `/assistant/:id/favorite`
+**Toggle favorito de assistant**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, "isFavorited": true, "message": "..." }`
+
+---
+
+### PUT `/assistant/:id/visibility`
+**Cambiar la visibilidad de un assistant propio**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Body:** `{ "visibility": "published" | "draft" | "hidden" }`
+
+**Response 200:** `{ "success": true, "message": "..." }`
+
+---
+
+### DELETE `/assistant/:id`
+**Eliminar assistant (soft delete)**
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:** `{ "success": true, "message": "Assistant eliminado exitosamente" }`
 
 ---
 
@@ -1499,21 +1735,39 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 ## Pagos - Mercado Pago
 
 ### POST `/payment/create-preference`
-**Crear preferencia de pago (compra unica)**
+**Crear preferencia de pago (compra unica)** (rate limited: `paymentLimiter`)
 
 **Headers:** `Authorization: Bearer {token}`
 
-**Body:**
+**Body (compra propia):**
 ```json
 {
   "programId": "tia",
-  "isGift": false,
-  "giftEmail": null,
-  "giftName": null,
-  "giftMessage": null,
+  "type": "self",
   "couponCode": "DESCUENTO20"
 }
 ```
+
+**Body (regalo):**
+```json
+{
+  "programId": "tia",
+  "type": "gift",
+  "giftDelivery": "email",
+  "giftEmail": "amigo@example.com",
+  "couponCode": "DESCUENTO20"
+}
+```
+
+**Validaciones:**
+- `programId`: requerido. Debe ser un programa de compra única (`type: purchase` y `purchasable`).
+- `type`: requerido, `self` | `gift`.
+- Si `type === "gift"`: `giftDelivery` requerido (`email` | `manual`); si es `email`, `giftEmail` requerido.
+- `couponCode`: opcional.
+
+**Errors:** `400 PAYMENT_INVALID_PROGRAM`, `400 PAYMENT_PROGRAM_NOT_PURCHASABLE`, `400 PAYMENT_PROGRAM_ALREADY_OWNED` (solo `type: self`), `400 VALIDATION_EMAIL_REQUIRED`.
+
+> Si ya existe una orden `pending` no expirada con `mpPreferenceId`, se reutiliza (devuelve el mismo `orderId`/`preferenceId`).
 
 **Response 200:**
 ```json
@@ -1528,11 +1782,11 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 ---
 
 ### POST `/payment/verify`
-**Verificar pago completado**
+**Verificar pago completado** (rate limited: `paymentLimiter`)
 
 **Headers:** `Authorization: Bearer {token}`
 
-**Body:**
+**Body:** (al menos uno de los dos)
 ```json
 {
   "paymentId": "12345678",
@@ -1544,15 +1798,11 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 ```json
 {
   "success": true,
-  "status": "approved",
-  "order": {
-    "orderId": "...",
-    "programId": "tia",
-    "amount": 50000,
-    "status": "completed"
-  }
+  "order": { "...": "detalles vía order.getOrderDetails()" }
 }
 ```
+
+> Devuelve la orden serializada con `getOrderDetails()`. Errors: `404 PAYMENT_ORDER_NOT_FOUND`, `400 VALIDATION_GENERIC_ERROR` (si no viene ni `paymentId` ni `orderId`).
 
 ---
 
@@ -1567,16 +1817,28 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
   "success": true,
   "orders": [
     {
-      "orderId": "...",
+      "id": "...",
       "programId": "tia",
-      "amount": 50000,
-      "status": "completed",
-      "isGift": false,
-      "createdAt": "2025-01-15T10:30:00.000Z"
+      "type": "self",
+      "giftDelivery": null,
+      "giftEmail": null,
+      "keysQuantity": 1,
+      "discountApplied": 0,
+      "originalAmount": 50000,
+      "finalAmount": 50000,
+      "currency": "ARS",
+      "status": "approved",
+      "productKeys": [{ "code": "ABCD-1234-EFGH-5678", "used": false }],
+      "receiptNumber": "0001-00001234",
+      "fulfilledAt": "...",
+      "giftEmailSent": false,
+      "createdAt": "2026-01-15T10:30:00.000Z"
     }
   ]
 }
 ```
+
+> Ordenadas por `createdAt` desc. Mismos campos que `order.getOrderDetails()`.
 
 ---
 
@@ -1590,19 +1852,27 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 {
   "success": true,
   "order": {
-    "orderId": "...",
+    "id": "...",
     "programId": "tia",
-    "amount": 50000,
-    "status": "completed",
-    "isGift": false,
-    "giftEmail": null,
-    "couponCode": null,
-    "discount": 0,
-    "createdAt": "...",
-    "completedAt": "..."
+    "type": "gift",
+    "giftDelivery": "email",
+    "giftEmail": "amigo@example.com",
+    "keysQuantity": 1,
+    "discountApplied": 0,
+    "originalAmount": 50000,
+    "finalAmount": 50000,
+    "currency": "ARS",
+    "status": "approved",
+    "productKeys": [{ "code": "ABCD-1234-EFGH-5678", "used": false }],
+    "receiptNumber": "0001-00001234",
+    "fulfilledAt": "...",
+    "giftEmailSent": true,
+    "createdAt": "..."
   }
 }
 ```
+
+**Error:** `404 PAYMENT_ORDER_NOT_FOUND`.
 
 ---
 
@@ -1650,7 +1920,7 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 ---
 
 ### POST `/payment/apply-coupon`
-**Aplicar cupon de descuento**
+**Validar/previsualizar cupon de descuento** (rate limited: `sensitiveOperationLimiter`)
 
 **Headers:** `Authorization: Bearer {token}`
 
@@ -1662,52 +1932,62 @@ No requiere `Authorization` ni body — el refresh token se lee de la cookie `re
 }
 ```
 
+> Solo valida y calcula (no reserva el uso del cupón; el claim atómico ocurre en `create-preference`).
+
 **Response 200:**
 ```json
 {
   "success": true,
-  "discount": 10000,
-  "finalPrice": 40000,
-  "coupon": {
-    "code": "DESCUENTO20",
-    "type": "percentage",
-    "value": 20
-  }
+  "valid": true,
+  "discountType": "percentage",
+  "discountValue": 20,
+  "discountApplied": 10000,
+  "originalAmount": 50000,
+  "finalAmount": 40000
 }
 ```
+
+**Errors:** `404 PAYMENT_COUPON_NOT_FOUND`, `400 PAYMENT_COUPON_EXPIRED`, `400 PAYMENT_COUPON_NOT_APPLICABLE`, `400 PAYMENT_COUPON_MIN_AMOUNT`, `400 PAYMENT_COUPON_MAX_USES`, `400 PAYMENT_COUPON_MAX_USES_PER_USER`.
 
 ---
 
 ### POST `/payment/coupon` (ADMIN)
 **Crear cupon de descuento**
 
-**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+**Auth:** cookie `access_token` (validateJWT) + `isAdmin`
 
 **Body:**
 ```json
 {
   "code": "DESCUENTO20",
-  "type": "percentage",
-  "value": 20,
+  "discountType": "percentage",
+  "discountValue": 20,
+  "applicablePrograms": ["tia", "tia_summer"],
+  "minAmount": 0,
   "maxUses": 100,
-  "expiresAt": "2025-12-31T23:59:59.000Z",
-  "applicablePrograms": ["tia", "tia_summer"]
+  "maxUsesPerUser": 1,
+  "validFrom": "2026-01-01T00:00:00.000Z",
+  "validUntil": "2026-12-31T23:59:59.000Z"
 }
 ```
+
+**Validaciones:** `code` requerido; `discountType` ∈ `percentage` | `fixed`; `discountValue` float ≥ 0; `validFrom` y `validUntil` ISO8601 (requeridos). `applicablePrograms` default `[]` (vacío = todos), `minAmount` default 0, `maxUses` default `null` (ilimitado), `maxUsesPerUser` default 1.
 
 ---
 
 ### GET `/payment/coupons` (ADMIN)
 **Listar todos los cupones**
 
-**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+**Auth:** cookie `access_token` (validateJWT) + `isAdmin`
 
 ---
 
 ### PUT `/payment/coupon/:id` (ADMIN)
 **Actualizar cupon**
 
-**Headers:** `Authorization: Bearer {token}` (requiere rol ADMIN)
+**Auth:** cookie `access_token` (validateJWT) + `isAdmin`
+
+**Body:** campos editables: `discountType`, `discountValue`, `applicablePrograms`, `minAmount`, `maxUses`, `maxUsesPerUser`, `validFrom`, `validUntil`, `isActive` (el resto se ignora).
 
 ---
 
@@ -1900,34 +2180,158 @@ Maneja notificaciones de:
 
 ## Admin
 
-> Todos los endpoints requieren `x-api-key` + rate limit propio (`adminLimiter`: 60 req / 15 min).
+> Todos los endpoints requieren `x-api-key`. Los de usuario/stats usan `adminLimiter` (60 req / 15 min); los de feedback usan un limiter más alto (`feedbackLimiter`: 600 req / 15 min) porque el dashboard hace muchas llamadas desde una sola IP.
 
 ### GET `/admin/user`
 **Buscar un user puntual**
 
-**Query:** `email` (opcional, validado isEmail) o `username` (opcional, 1-50 chars).
+**Query:** `email` (opcional, validado isEmail) o `username` (opcional, 1-50 chars). Debe venir al menos uno.
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "user": {
+    "username": "usuario123",
+    "email": "usuario@example.com",
+    "status": true,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "lastLogin": "2026-06-01T10:30:00.000Z",
+    "profile": { "name": "Juan Pérez", "country": "Argentina", "region": "Buenos Aires" },
+    "enterprise": {...},
+    "level": {...},
+    "dailyStreak": { "count": 7, "lastActivityLocalDate": "2026-06-01", "shields": 1 },
+    "coins": 500,
+    "achievementsCount": 12,
+    "communityStats": {...},
+    "programs": { "tia": { "isPurchased": true, "hasAccessFlag": true, "hasAccess": true, "totalXp": 1500, "acquiredAt": "...", "lessonsCompleted": 10, "totalLessons": 25, "instructionsSubmitted": 5, "instructionsGraded": 4, "totalInstructions": 8, "averageScore": 82, "lastActivity": "..." } },
+    "xpHistory": [...]
+  }
+}
+```
+
+> Incluye `lastLogin` (nuevo). Para programas de suscripción se agrega `programs.<pid>.subscription` con `status` y `currentPeriodEnd`.
+
+**Errors:** `400 ADMIN_INVALID_PARAMS` (sin email ni username), `404 ADMIN_USER_NOT_FOUND`.
 
 ### GET `/admin/users`
 **Listar users con filtros y paginación**
 
-**Query:** `enterprise` (max 100), `search` (max 100), `page` (≥1), `limit` (1-100).
+**Query:** `enterprise` (max 100), `search` (max 100), `page` (≥1), `limit` (1-100, default 20).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "username": "usuario123",
+      "email": "usuario@example.com",
+      "profile": { "name": "Juan Pérez" },
+      "enterprise": {...},
+      "level": { "currentLevel": 5, "experienceTotal": 1500, "progress": 75 },
+      "dailyStreak": { "count": 7, "lastActivityLocalDate": "2026-06-01" },
+      "coins": 500,
+      "achievementsCount": 12,
+      "programsActive": ["tia", "tmd"],
+      "createdAt": "...",
+      "lastLogin": "2026-06-01T10:30:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 200, "totalPages": 10 }
+}
+```
+
+> Cada user expone `lastLogin` (nuevo) y `programsActive` (lista de programas con `hasAccessFlag`). Solo lista users con `status: true`, ordenados por `level.experienceTotal` desc.
 
 ### GET `/admin/stats`
-**Stats agregadas de la plataforma**
+**Stats agregadas de la plataforma** (cacheado 5 min)
+
+**Response 200:** `{ "success": true, "stats": { "totalUsers", "activeUsers7d", "activeUsers30d", "levelDistribution": [...], "averageLevel", "averageStreak", "usersWithActiveStreak", "streakRetentionRate", "totalAchievementsUnlocked", "averageAchievements", "programStats": {...} } }`
 
 ### GET `/admin/enterprises`
 **Listar enterprises distintas presentes en la base**
+
+**Response 200:** `{ "success": true, "enterprises": ["Empresa A", "Empresa B", ...] }` (ordenadas alfabéticamente, solo users `status: true`).
+
+### PATCH `/admin/user/:username/programs/:programId/access`
+**Otorgar o revocar acceso de un usuario a un programa**
+
+**Params:** `username` (1-50), `programId` (1-50, debe ser un programa válido).
+
+**Body:** `{ "grant": true }` (boolean estricto, requerido — `true` activa, `false` revoca).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "program": {
+    "programId": "tia",
+    "isPurchased": true,
+    "hasAccessFlag": true,
+    "hasAccess": true,
+    "acquiredAt": "2026-06-05T10:30:00.000Z"
+  }
+}
+```
+
+**Errors:** `400 ADMIN_INVALID_PARAMS` (grant no booleano o programId inválido), `404 ADMIN_USER_NOT_FOUND`.
+
+> Internamente usa `activateProgramForUser` / `deactivateProgramForUser`. Ver [políticas de logros](#) — revocar/restaurar no re-otorga retroactivos.
+
+### GET `/admin/feedback`
+**Listar feedback (paginación por cursor)** (auth: `x-api-key`)
+
+**Query:** `type` (max 50), `resolved` (`true`|`false`), `from` / `to` / `cursor` (ISO8601), `limit` (1-200, default 50).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": [ { "_id": "...", "type": "nps", "rating": 9, "message": "...", "context": {...}, "resolved": false, "createdAt": "..." } ],
+  "nextCursor": "2026-06-01T10:30:00.000Z"
+}
+```
+
+> Paginación por cursor sobre `createdAt` descendente (`nextCursor` = createdAt del último item, o `null` si no hay más).
+
+### GET `/admin/feedback/stats`
+**Estadísticas agregadas de feedback (últimos 30 días, cacheado 5 min)** (auth: `x-api-key`)
+
+**Response 200:** `{ "success": true, "stats": { "totalByType", "unresolved", "lessonSatisfaction", "instructionSatisfaction", "onboardingSatisfaction", "nps": { "promoters", "passives", "detractors", "score", "total" }, "worstLessons": [...], "byProgram": {...}, "onboardingMessages": [...], "periodDays": 30 } }`
+
+### PATCH `/admin/feedback/:id/resolve`
+**Marcar feedback como resuelto** (auth: `x-api-key`)
+
+**Response 200:** `{ "success": true, "data": { "id": "...", "resolved": true } }`. Error `404 FEEDBACK_NOT_FOUND`.
 
 ---
 
 ## Feedback
 
-> Endpoints para captar feedback del game frontend (NPS, lecciones, instrucciones, onboarding) y errores client-side.
+> Endpoints montados bajo `/api/feedback` para captar feedback del game frontend (NPS, lecciones, instrucciones, onboarding) y errores client-side. Las versiones admin para el dashboard de Trenno (con `x-api-key` y cursor) viven aparte bajo [`/api/admin/feedback`](#admin) — ver sección Admin.
 
 ### POST `/feedback/error`
 **Ingestar errores client-side** (auth: `x-api-key`, rate limit: `errorIngestLimiter`)
 
-Recibe payload arbitrario para reportar errores capturados en el frontend (ej. `ErrorFeedbackReporter`). No requiere JWT — sirve para errores que ocurren antes/después de la sesión válida.
+**Body:**
+```json
+{
+  "userId": "507f1f77bcf86cd799439011",   // opcional (24 hex), si la sesión existe
+  "requestId": "uuid",                      // opcional, max 80
+  "context": { "route": "...", "appVersion": "...", "userAgent": "..." },
+  "errorPayload": {
+    "stack": "...",        // requerido al menos stack o message
+    "message": "...",
+    "route": "...",
+    "statusCode": 500
+  }
+}
+```
+
+**Response 201:** `{ "success": true, "data": { "id": "..." } }` (o `{ "success": true, "idempotent": true }` si `requestId` duplicado). Error `400 FEEDBACK_INVALID_ERROR_PAYLOAD` si no viene `stack` ni `message`.
+
+> No requiere JWT — sirve para errores que ocurren antes/después de la sesión válida. Dispara una alerta por email (best-effort, deduplicada por hash del stack).
 
 ### POST `/feedback`
 **Crear feedback del usuario** (auth: cookie `access_token` + rate limit dinámico según tipo)
@@ -1936,21 +2340,145 @@ Recibe payload arbitrario para reportar errores capturados en el frontend (ej. `
 ```json
 {
   "type": "lesson" | "instruction" | "nps" | "onboarding",
-  "rating": 8.5,            // opcional, 0-10 (NPS)
-  "reaction": "up" | "down", // opcional (lesson/instruction)
+  "rating": 8.5,             // opcional, 0-10 (NPS)
+  "reaction": "up" | "down", // opcional (lesson/instruction/onboarding)
+  "secondaryReactions": {     // opcional (instruction)
+    "evaluationFair": "up" | "down",
+    "instructionsClear": "up" | "down"
+  },
   "message": "...",          // opcional, max 2000
-  "requestId": "uuid",       // opcional, max 80
-  "context": { ... }         // opcional, objeto libre
+  "requestId": "uuid",       // opcional, max 80 (idempotencia)
+  "context": { ... }         // opcional (lessonId, instructionId, programId, route, appVersion, userAgent)
 }
 ```
 
-> Rate limiter aplicado según `type`: `feedbackNpsLimiter`, `feedbackOnboardingLimiter`, `feedbackInteractionLimiter`. El usuario actualiza `feedbackState.lastNpsAt` / `lastOnboardingFeedbackAt` para evitar prompts repetidos.
+**Response 201:** `{ "success": true, "data": { "id": "...", "type": "nps", "createdAt": "..." } }`.
+
+> Si `requestId` ya existe para ese user, responde `200 { success: true, idempotent: true, data }`. Rate limiter según `type`: `feedbackNpsLimiter`, `feedbackOnboardingLimiter`, o `feedbackInteractionLimiter` (lesson/instruction). El user actualiza `feedbackState.lastNpsAt` / `lastOnboardingFeedbackAt` para evitar prompts repetidos. `type: "error"` no se acepta acá (usar `/feedback/error`).
 
 ### GET `/feedback`
-**Listar feedback (admin)** — auth: cookie `access_token` + `isAdmin`.
+**Listar feedback (admin)** — auth: cookie `access_token` + `isAdmin`. Mismo controller `listFeedback` que `/admin/feedback` (paginación por cursor).
 
 ### PATCH `/feedback/:id/resolve`
-**Marcar feedback como resuelto (admin)** — auth: cookie `access_token` + `isAdmin`.
+**Marcar feedback como resuelto (admin)** — auth: cookie `access_token` + `isAdmin`. Response `{ "success": true, "data": { "id": "...", "resolved": true } }`.
+
+---
+
+## Entrenador IA (Trainer)
+
+> Chatbot RAG (STAN) que responde dudas sobre las lecciones. Recupera y cita solo de lecciones ya desbloqueadas del programa al que el user tiene acceso. El índice RAG se carga in-memory al boot. Cap de concurrencia global de llamadas a OpenAI (`TRAINER_MAX_INFLIGHT`, default 10): por encima responde `503`. Si `TRAINER_ENABLED === "false"` responde `503`.
+
+### POST `/trainer/ask`
+**Preguntar a STAN (respuesta JSON completa)** (auth: cookie `access_token` + rate limit: `trainerLimiter`, 25 req / 5 min por usuario)
+
+**Body:**
+```json
+{
+  "question": "¿Qué es un prompt de sistema?",
+  "programId": "tia",
+  "lessonId": "TIAM01L01",
+  "history": [
+    { "role": "user", "content": "Hola" },
+    { "role": "assistant", "content": "¡Hola! ¿En qué te ayudo?" }
+  ]
+}
+```
+
+**Validaciones:**
+- `question`: requerido, 2-800 chars.
+- `programId`: requerido (debe ser un programa válido al que el user tiene acceso).
+- `lessonId`: opcional, max 40 chars. Solo se usa si pertenece de verdad al programa; restringe el contexto a lecciones desbloqueadas (orden ≤ lección actual).
+- `history`: opcional, array de máx 12 turnos; cada item `{ role: "user" | "assistant", content: string (max 2000) }`.
+
+> El `userName` **NO** se manda en el body: se deriva server-side de `profile.name` (cierra el vector de inyección).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "answer": "Un prompt de sistema es...",
+    "citations": [
+      { "lessonId": "TIAM01L01", "title": "Introducción a prompts", "startSec": 125 }
+    ],
+    "interactionId": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+> `citations`: máx 5, solo chunks con score suficiente, deduplicadas por lección + bucket de 30s. `interactionId` puede ser `null` si la persistencia falla (best-effort). Usalo para `/trainer/feedback`.
+
+**Errors:** `400 VALIDATION_PROGRAM_NAME_INVALID`, `404 VALIDATION_PROGRAM_NOT_FOUND`, `403 VALIDATION_LESSON_NOT_PURCHASED` (sin acceso al programa), `429 AUTH_TOO_MANY_ATTEMPTS`, `503` (desactivado, saturado, o error upstream).
+
+---
+
+### POST `/trainer/ask/stream`
+**Preguntar a STAN con streaming (SSE)** (auth: cookie `access_token` + rate limit: `trainerLimiter`)
+
+**Body:** idéntico a `/trainer/ask`.
+
+**Response:** `Content-Type: text/event-stream` (NO JSON). El cliente debe consumir el stream SSE. Cada evento llega como `data: {json}\n\n`:
+
+- `{ "type": "delta", "text": "fragmento " }` — tokens incrementales de la respuesta (se repite N veces).
+- `{ "type": "done", "citations": [...], "interactionId": "..." }` — fin exitoso; mismas `citations`/`interactionId` que `/ask`.
+- `{ "type": "error", "message": "No pude responder ahora. Probá de nuevo." }` — error durante el stream.
+
+> También emite comentarios SSE de keep-alive (`: open`, `: ping` cada 15s). Si la validación/gating falla **antes** de abrir el stream, responde un `503`/`4xx` JSON normal (no SSE). Headers anti-buffering: `Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`.
+
+---
+
+### POST `/trainer/feedback`
+**Calificar una respuesta de STAN (👍/👎)** (auth: cookie `access_token` + rate limit: `feedbackInteractionLimiter`)
+
+**Body:**
+```json
+{
+  "interactionId": "507f1f77bcf86cd799439011",
+  "value": 1
+}
+```
+
+**Validaciones:** `interactionId` MongoId válido; `value` entero ∈ `1` (👍) | `-1` (👎) | `0` (sin valoración).
+
+**Response 200:** `{ "success": true }`. Error `404 TRAINER_INTERACTION_NOT_FOUND` si la interacción no existe o no pertenece al user (solo el dueño puede calificarla).
+
+---
+
+### GET `/trainer/health` (ADMIN)
+**Estado del índice RAG** (auth: cookie `access_token` + `isAdmin`)
+
+**Response 200:** `{ "success": true, "data": { "chunksInMemory": 1234 } }`
+
+---
+
+### GET `/trainer/metrics` (ADMIN)
+**Métricas de uso del Entrenador** (auth: cookie `access_token` + `isAdmin`)
+
+**Query params:** `programId` (opcional, filtra por programa).
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "total": 540,
+    "feedback": { "up": 120, "down": 15 },
+    "topLessons": [
+      { "programId": "tia", "lessonId": "TIAM01L01", "count": 42, "up": 10, "down": 2 }
+    ],
+    "byProgram": [ { "programId": "tia", "count": 400 } ]
+  }
+}
+```
+
+> `topLessons`: hasta 20, ordenadas por volumen de preguntas.
+
+---
+
+### POST `/trainer/reload-index` (ADMIN)
+**Recargar el índice RAG in-memory desde la fuente** (auth: cookie `access_token` + `isAdmin`)
+
+**Response 200:** `{ "success": true, "data": { "chunksInMemory": 1234 } }`. Error `500 SERVER_INTERNAL_ERROR` si la recarga falla.
 
 ---
 
@@ -1963,10 +2491,11 @@ Configurado en `src/middlewares/rateLimiter.js`. Limiters principales:
 | Limiter | Aplica a |
 |---------|----------|
 | `globalLimiter` | Todos los requests (montado en `app.use`) |
-| `authLimiter` | Login, register, Google, magic link |
+| `authLimiter` | Login, register, magic link |
+| `googleAuthLimiter` | Login con Google (`/auth/google`) |
 | `validationLimiter` | check-email, validate-username, validate-recaptcha |
-| `otpLimiter` | password-recovery, verify-recovery-otp, password-reset |
-| `passwordLimiter` | password-recovery + password-reset |
+| `otpLimiter` | password-recovery, verify-recovery-otp, password-reset, resend-activation |
+| `passwordLimiter` | password-recovery, password-reset, resend-activation |
 | `refreshLimiter` | refresh-token |
 | `searchLimiter` | búsquedas (users, prompts, assistants) |
 | `submissionLimiter` | presign + submit de instrucciones |
@@ -1976,7 +2505,9 @@ Configurado en `src/middlewares/rateLimiter.js`. Limiters principales:
 | `contentCreationLimiter` | crear prompts/assistants |
 | `feedbackNpsLimiter` / `feedbackOnboardingLimiter` / `feedbackInteractionLimiter` | feedback según tipo |
 | `errorIngestLimiter` | feedback/error |
-| `adminLimiter` | endpoints `/admin/*` (60 req / 15 min) |
+| `trainerLimiter` | trainer/ask + trainer/ask/stream (25 req / 5 min por usuario) |
+| `adminLimiter` | endpoints admin de user/stats (60 req / 15 min) |
+| `feedbackLimiter` | endpoints `/admin/feedback*` (600 req / 15 min) |
 | `webhookLimiter` | webhooks MP (60 req / min) |
 
 ### Paginación

@@ -9,10 +9,13 @@ El sistema de Product Keys permite la activación de programas mediante códigos
 - ✅ Activar acceso a programas de compra única (TIA, TMD, TIA_SUMMER, TIA_POOL)
 - ✅ Asignar usuarios a equipos automáticamente
 - ✅ Tracking de uso (usado/no usado, quién activó, cuándo)
-- ✅ Envío automático por email con templates HTML
+- ✅ Envío automático por email con templates HTML (individual y bulk)
 - ✅ Prevención de uso duplicado (transacciones MongoDB con session)
 - ✅ Integración con Make.com para automatización
-- ✅ Auto-enroll con magic link para usuarios stub (lead → activación sin password)
+- ✅ Auto-enroll con magic link para usuarios stub (lead → activación sin password), individual y bulk
+- ✅ Endpoint admin para otorgar/revocar acceso a programas sin product key
+
+> **Auto-enroll a programas de suscripción:** `auto-enroll` activa programas de **compra única** (los del enum del modelo). `trenno_ia` se gestiona por suscripción (Mercado Pago).
 
 > **Importante:** `trenno_ia` se activa por suscripción (Mercado Pago), no por product key. El enum del modelo solo acepta `tmd | tia | tia_summer | tia_pool`.
 
@@ -32,10 +35,12 @@ El sistema de Product Keys permite la activación de programas mediante códigos
   used: Boolean,             // ¿Fue activado?
   usedAt: Date,              // Cuándo se activó
   usedBy: ObjectId (User),   // Quién lo activó
-  product: Enum ['tmd', 'tia', 'tia_summer', 'tia_pool'],
-  team: String               // Nombre del equipo o "no_team"
+  product: Enum ['tmd', 'tia', 'tia_summer', 'tia_pool'],  // required
+  team: String               // required, trim, maxlength 50. "no_team" si no aplica
 }
 ```
+
+> `email`, `product` y `team` son **required**. `team` tiene `maxlength: 50` (ver gotcha en § 8). `code` lleva regex `^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$`. El schema declara `createdAt` explícito **y** `timestamps: true` (agrega también `updatedAt`).
 
 **Índices:**
 ```javascript
@@ -127,14 +132,17 @@ if (key.team && key.team !== 'no_team') {
 
 ```javascript
 const teamSchema = new Schema({
+  // Los tres campos son required, trim, minlength 2, maxlength 50
   programName: String,  // "tia", "tia_summer", "tia_pool", "tmd"
   teamName: String,     // "equipo_alpha", "equipo_ventas", etc.
-  role: String          // "member", "leader" (actualmente solo member)
+  role: String          // en la práctica siempre "member" (lo setea activateProgramForUser)
 }, { _id: false });
 
 // En userSchema:
 teams: [teamSchema]
 ```
+
+> El campo `role` está en el schema (required, 2..50 chars) pero el código solo escribe `"member"` al asignar team. No hay flujo que setee "leader".
 
 ### Ejemplo de Datos
 
@@ -242,12 +250,18 @@ Esto garantiza que **solo un usuario puede activar el código**, y que si la act
 
 ### Endpoints de Generación
 
+Todos usan `validateAPIKey` (header `x-api-key` o `Authorization: Bearer`, comparado timing-safe contra `MAKE_API_KEY`). **No tienen rate limiting** (ver § 8). Las rutas se montan en `/api/product-key`.
+
 | Endpoint | Auth | Uso | Email |
 |----------|------|-----|-------|
 | `POST /api/product-key/generate` | API Key | Crear sin enviar | ❌ |
 | `POST /api/product-key/generate-and-send` | API Key | Crear y enviar email simple | ✅ |
 | `POST /api/product-key/generate-and-send-make` | API Key | Crear y enviar con diagnóstico (Make) | ✅ |
+| `POST /api/product-key/generate-and-send-bulk` | API Key | Crear y enviar a un array de emails (batch) | ✅ |
 | `POST /api/product-key/auto-enroll` | API Key | Crear key + activar programa + magic link / login | ✅ |
+| `POST /api/product-key/auto-enroll-bulk` | API Key | Auto-enroll a un array de emails (batch) | ✅ |
+
+> **Manejo de `ValidationError`:** si Mongoose rechaza el documento al crear la key (ej. `team` > 50 chars, email o product inválidos), los endpoints devuelven **400** con el detalle concreto de los campos inválidos (`getError("VALIDATION_GENERIC_ERROR", ...)` con `techMessage`/`friendlyMessage` armados desde `error.errors`), en lugar del antiguo **500 opaco** que el caller (ej. el dashboard de Trenno) no podía interpretar. Ver helper `validationErrorResponse`.
 
 ### Método 1: Generar Sin Enviar
 
@@ -370,8 +384,12 @@ Crea (o reutiliza) un usuario stub, genera un product key, lo consume internamen
    - User stub → continuar al paso 3
 3. **Generar y consumir product key** dentro de la transacción (key se crea con `used: true` directo)
 4. **Activar programa** vía `activateProgramForUser(userId, product, team, session)`
-5. **Generar magic link** (`crypto.randomBytes(32).hex` → 64 hex chars) con TTL `MAGIC_LINK_TTL_DAYS` (default 7), guarda hash SHA-256 en `user.magicLink.token`
+5. **Generar magic link** (`crypto.randomBytes(32).hex` → 64 hex chars) con TTL `MAGIC_LINK_TTL_HOURS` (default 72), guarda hash SHA-256 en `user.magicLink.token`
 6. **Enviar email** con `${FRONTEND_URL}/activate/<rawToken>`
+
+> **Detección de race:** la transacción re-chequea `hasAccess(programs[product])` dentro de la sesión antes de crear la ProductKey, para no dejar keys huérfanas si otro request activó el producto en paralelo.
+> **Caso stub que ya tenía el producto** (Make hizo enroll antes y el user nunca activó): no se crea una nueva ProductKey, solo se regenera el magic link y se reenvía el mail (`status: "existing_stub_resent"`).
+> **Validación de producto:** `auto-enroll` solo acepta `tia | tmd | tia_summer | tia_pool` (`ACTIVATION_PRODUCTS`); otro valor → 400 `VALIDATION_GENERIC_ERROR`.
 
 **Response (stub user, magic link enviado):**
 ```json
@@ -391,9 +409,112 @@ Crea (o reutiliza) un usuario stub, genera un product key, lo consume internamen
 }
 ```
 
-**Variables de entorno relacionadas:** `MAGIC_LINK_TTL_DAYS`, `FRONTEND_URL`.
+**Variables de entorno relacionadas:** `MAGIC_LINK_TTL_HOURS` (default 72), `FRONTEND_URL`.
 
 > El consumo del magic link y la activación de la cuenta del lado del usuario se documentan en [authentication.md § Magic Link](./authentication.md#magic-link--auto-enroll).
+
+---
+
+### Método 5: Generar y Enviar en Bulk
+
+**POST** `/api/product-key/generate-and-send-bulk` (auth: `validateAPIKey`)
+
+Genera y envía por email una product key (template simple, sin diagnóstico) a una **lista de emails**.
+
+**Body:**
+```json
+{
+  "emails": ["a@example.com", "b@example.com"],  // array 1..100, validado y deduplicado (lowercase+trim)
+  "product": "tia",                               // tia | tmd | tia_summer | tia_pool
+  "team": "no_team"
+}
+```
+
+**Procesamiento:**
+- Corre en lotes de `BULK_BATCH_SIZE = 10` con `Promise.allSettled` (un email que falla no aborta el resto).
+- Si falla el envío del mail, hace **rollback** de la key creada (`deleteOne`) para no dejar huérfanas.
+
+**Response (siempre 200):**
+```json
+{
+  "success": true,
+  "results": [
+    { "email": "a@example.com", "status": "sent", "code": "ABCD-1234-EFGH-5678" },
+    { "email": "b@example.com", "status": "error", "message": "..." }
+  ],
+  "summary": { "succeeded": 1, "failed": 1 }
+}
+```
+
+---
+
+### Método 6: Auto-Enroll en Bulk
+
+**POST** `/api/product-key/auto-enroll-bulk` (auth: `validateAPIKey`)
+
+Versión batch de `auto-enroll`: por cada email aplica la misma lógica find-or-create stub + activación + magic link / login. El `fullName` se deriva del local-part del email (no se pasa Base64 por item).
+
+**Body:**
+```json
+{
+  "emails": ["a@example.com", "b@example.com"],  // array 1..100, deduplicado
+  "product": "tia",                               // tia | tmd | tia_summer | tia_pool (ACTIVATION_PRODUCTS)
+  "team": "no_team"
+}
+```
+
+**Procesamiento:**
+- Lotes de 10 con `Promise.allSettled`. Cada item corre en su propia sesión/transacción.
+- Mismos `status` por item que `auto-enroll`: `new_user`, `existing_stub_resent`, `activated_for_existing_user`, `already_owned`, o `error`.
+
+**Response (siempre 200):**
+```json
+{
+  "success": true,
+  "results": [
+    { "email": "a@example.com", "status": "new_user" },
+    { "email": "b@example.com", "status": "already_owned" }
+  ],
+  "summary": { "succeeded": 2, "failed": 0 }
+}
+```
+
+---
+
+## 🛠️ ADMIN: REVOCAR / RESTAURAR ACCESO A PROGRAMAS
+
+**PATCH** `/api/admin/user/:username/programs/:programId/access` (auth: `validateAPIKey` + `adminLimiter`)
+
+Permite a un operador externo (dashboard de Trenno) **otorgar o revocar** acceso a un programa de un usuario, sin product key. Implementado en `adminController.setProgramAccess` sobre `programActivationService`.
+
+**Body:**
+```json
+{ "grant": true }   // true = activar, false = desactivar (boolean estricto)
+```
+
+**Comportamiento:**
+- `grant: true` → `activateProgramForUser(userId, programId)` (sin team → no asigna equipo). Idempotente: si ya estaba comprado, no re-otorga.
+- `grant: false` → `deactivateProgramForUser(userId, programId)`: setea `isPurchased = false` y `hasAccessFlag = false`.
+  - **Guard:** si el programa tiene `subscription.status === "active"` → 409 `PROGRAM_HAS_ACTIVE_SUBSCRIPTION` (no se puede revocar un programa con suscripción activa).
+- `programId` debe estar en `VALID_PROGRAMS` (`tmd, tia, tia_summer, tia_pool, trenno_ia`), si no → 400 `ADMIN_INVALID_PARAMS`.
+
+**Response:**
+```json
+{
+  "success": true,
+  "program": {
+    "programId": "tia",
+    "isPurchased": true,
+    "hasAccessFlag": true,
+    "hasAccess": true,
+    "acquiredAt": "2026-05-26T10:00:00.000Z"
+  }
+}
+```
+
+**Errores:** 404 `ADMIN_USER_NOT_FOUND`, 400 `ADMIN_INVALID_PARAMS`, 409 `PROGRAM_HAS_ACTIVE_SUBSCRIPTION`.
+
+> La desactivación **no** borra progreso (lecciones, instrucciones, XP): solo apaga los flags de acceso. Si se vuelve a otorgar, `acquiredAt` se conserva (solo se setea si estaba vacío).
 
 ---
 
@@ -511,29 +632,42 @@ await generateAndSendProductKey({
 
 ## ⚠️ 7. ERRORES Y VALIDACIONES
 
-### Errores de Activación
+### Errores de Activación y Generación
 
-| Error Code | Causa |
-|------------|-------|
-| `VALIDATION_PRODUCT_KEY_REQUIRED` | No se envió código |
-| `VALIDATION_PRODUCT_KEY_NOT_FOUND` | Código no existe |
-| `VALIDATION_PRODUCT_KEY_ALREADY_USED` | Código ya activado |
-| `VALIDATION_PRODUCT_ALREADY_OWNED` | Usuario ya tiene el programa |
-| `AUTH_USER_NOT_FOUND` | Usuario no existe (rollback automático) |
+Columna "Código" = `code` interno del catálogo (`src/config/errors.json`).
 
-### Rollback Automático
+| Constante | Código | Status | Causa |
+|-----------|--------|--------|-------|
+| `VALIDATION_PRODUCT_KEY_REQUIRED` | — | 400 | No se envió código |
+| `VALIDATION_PRODUCT_KEY_NOT_FOUND` | `PRODUCT_001` | 404 | Código no existe |
+| `VALIDATION_PRODUCT_KEY_ALREADY_USED` | `PRODUCT_002` | 404 (verify) / 400 (activate) | Código ya activado |
+| `VALIDATION_PRODUCT_ALREADY_OWNED` | `PRODUCT_003` | 400 | Usuario ya tiene el programa (rollback de la transacción) |
+| `AUTH_USER_NOT_FOUND` | `AUTH_002` | 404 | Usuario no existe (rollback de la transacción) |
+| `VALIDATION_GENERIC_ERROR` | `VALIDATION_001` | 400 | `ValidationError` de Mongoose (ej. `team` > 50, product/email inválido) o body bulk inválido |
+| `AUTH_API_KEY_MISSING` / `AUTH_API_KEY_INVALID` | — | 401 / 403 | Falta o no coincide el API key (`validateAPIKey`) |
+| `PROGRAM_HAS_ACTIVE_SUBSCRIPTION` | `PROGRAM_002` | 409 | Intento de revocar acceso con suscripción activa (admin) |
+| `ADMIN_USER_NOT_FOUND` / `ADMIN_INVALID_PARAMS` | `ADMIN_001` / `ADMIN_002` | 404 / 400 | Endpoint admin de acceso |
 
-Si la activación falla después de marcar la key como usada, se revierte:
+### Rollback Automático (vía transacción)
+
+`activateProductKey` corre dentro de `session.withTransaction()`. El `findOneAndUpdate` que marca la key como usada y la activación del programa comparten la misma sesión. Si la activación throwea (user inexistente → `AUTH_USER_NOT_FOUND`, o `alreadyOwned` → `VALIDATION_PRODUCT_ALREADY_OWNED`), **la transacción hace rollback automático** y la key vuelve a `used: false`. No hay un `findOneAndUpdate` manual de reversión: lo maneja MongoDB.
 
 ```javascript
-// Si el usuario no existe o ya tiene el programa
-await ProductKey.findOneAndUpdate(
-  { code: code.toUpperCase() },
-  { used: false, usedAt: null, usedBy: null }
-);
+await session.withTransaction(async () => {
+  const key = await ProductKey.findOneAndUpdate(
+    { code: code.toUpperCase(), used: false },
+    { used: true, usedAt: new Date(), usedBy: userId },
+    { new: true, session }
+  );
+  if (!key) { /* 404 NOT_FOUND o 400 ALREADY_USED según exista o no */ }
+
+  const { newlyUnlocked, alreadyOwned } = await activateProgramForUser(userId, key.product, key.team, session);
+  if (alreadyOwned) throw { statusCode: 400, errorKey: "VALIDATION_PRODUCT_ALREADY_OWNED" };
+  // un throw aquí rollbackea también el used:true de la key
+});
 ```
 
-Esto permite que otro usuario pueda activar el código.
+Esto permite que otro usuario pueda activar el código si la activación de este falló.
 
 ---
 
@@ -567,16 +701,13 @@ Previene XSS si el diagnóstico contiene HTML malicioso.
 
 ### Rate Limiting
 
-Generación de códigos debería tener rate limiting (no implementado actualmente):
+Los endpoints de **generación** de product keys (`/generate`, `/generate-and-send`, `/generate-and-send-make`, `/auto-enroll`, `/generate-and-send-bulk`, `/auto-enroll-bulk`) **no tienen un rate limiter dedicado**; solo están protegidos por `validateAPIKey`. La única contención de volumen es el límite de 1..100 emails por request en los endpoints bulk. El `globalLimiter` (15 min / 3000 req por IP) aplica a toda la app.
 
-```javascript
-// Recomendación:
-const generateRateLimiter = rateLimit({
-  windowMs: 60 * 1000,     // 1 minuto
-  max: 10,                 // 10 generaciones
-  message: "Demasiadas generaciones, intenta más tarde"
-});
-```
+El endpoint admin de acceso (`PATCH /api/admin/user/.../access`) sí usa `adminLimiter` (15 min / 60 req por IP).
+
+### Límite de `team` (gotcha cross-repo)
+
+`team` es un `String` con `maxlength: 50` en el modelo. Si el caller (ej. el dashboard de Trenno generando keys con el **nombre de la empresa** como team) envía un valor > 50 caracteres, Mongoose lanza un `ValidationError`. Hoy eso se traduce en un **400 con detalle** (gracias a `validationErrorResponse`); antes cascadeaba a un 500 opaco difícil de diagnosticar. **El integrador debe truncar el `team` a ≤ 50 chars** antes de llamar.
 
 ---
 
@@ -698,6 +829,14 @@ Ver [payments.md](./payments.md) para documentación completa del sistema de pag
 
 Cuando un usuario con `demo_trenno` compra `trenno_ia`, su progreso del demo se transfiere al programa completo (lecciones completadas, instrucciones, etc.).
 
+### Otorgamiento manual (Admin)
+
+`PATCH /api/admin/user/:username/programs/:programId/access` con `{ grant: true }` activa el programa sin product key (ver [§ Admin: Revocar / Restaurar](#-admin-revocar--restaurar-acceso-a-programas)). Tampoco asigna equipo. `grant: false` revoca (apaga `isPurchased`/`hasAccessFlag`).
+
+### Auto-Enroll (Magic Link)
+
+`auto-enroll` / `auto-enroll-bulk` crean el stub user, generan una ProductKey con `used: true` y activan el programa en una transacción, todo en el mismo paso (ver § 4 Método 4/6).
+
 ---
 
 ## 📌 NOTAS TÉCNICAS
@@ -706,9 +845,10 @@ Cuando un usuario con `demo_trenno` compra `trenno_ia`, su progreso del demo se 
 
 **Por qué XXXX-XXXX-XXXX-XXXX:**
 - Fácil de leer y escribir
-- Evita confusión (sin O/0, I/1)
 - Base36 (0-9, A-Z) = 36^16 combinaciones posibles
 - Probabilidad de colisión extremadamente baja
+
+> El alfabeto base36 **incluye** caracteres ambiguos (0/O, 1/I): no hay exclusión de caracteres confusos en `generateProductCode`.
 
 ### Unicidad
 
@@ -718,15 +858,14 @@ Con 4 segmentos de 4 caracteres base36:
 
 ### Performance
 
-**Índices recomendados:**
+**Índices reales del modelo** (`src/models/productKeyModel.js`):
 ```javascript
-productKeySchema.index({ code: 1 }, { unique: true });
-productKeySchema.index({ email: 1 });
-productKeySchema.index({ used: 1 });
-productKeySchema.index({ product: 1, team: 1 });
-productKeySchema.index({ product: 1, used: 1 });  // Consultas de claves disponibles por producto
-productKeySchema.index({ usedBy: 1 });              // Buscar claves usadas por un usuario específico
+// unique en `code` (creado automáticamente por unique: true en el campo)
+productKeySchema.index({ product: 1, used: 1 });  // claves disponibles por producto
+productKeySchema.index({ usedBy: 1 });            // claves usadas por un usuario específico
 ```
+
+No existen índices dedicados sobre `email`, `team`, ni `used` por sí solo.
 
 ---
 
