@@ -73,10 +73,13 @@ app.use((req, res, next) => {
 
   if (req.headers['x-api-key']) return next();
 
+  // De dónde viene (trust proxy=1 → req.ip = IP real del X-Forwarded-For que mete Railway).
+  const who = `ip=${req.ip} xff="${req.headers['x-forwarded-for'] || '-'}" ua="${(req.headers['user-agent'] || '-').slice(0, 160)}"`;
+
   const origin = req.headers.origin;
   if (origin) {
     if (allowedOrigins.includes(origin)) return next();
-    console.error(`CSRF blocked: origin=${origin}, method=${req.method}, url=${req.originalUrl}`);
+    console.error(`CSRF blocked: origin=${origin}, method=${req.method}, url=${req.originalUrl} ${who}`);
     return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
   }
 
@@ -86,11 +89,11 @@ app.use((req, res, next) => {
       const refererOrigin = new URL(referer).origin;
       if (allowedOrigins.includes(refererOrigin)) return next();
     } catch {}
-    console.error(`CSRF blocked: referer=${referer}, method=${req.method}, url=${req.originalUrl}`);
+    console.error(`CSRF blocked: referer=${referer}, method=${req.method}, url=${req.originalUrl} ${who}`);
     return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
   }
 
-  console.error(`CSRF blocked: no origin/referer, method=${req.method}, url=${req.originalUrl}`);
+  console.error(`CSRF blocked: no origin/referer, method=${req.method}, url=${req.originalUrl} ${who}`);
   return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", friendlyMessage: "Origen no permitido." });
 });
 
@@ -129,6 +132,13 @@ app.use((err, req, res, next) => {
       friendlyMessage: "El formato de los datos enviados es inválido.",
     });
   }
+  // Rechazo de CORS (origin no permitido): lo tira el origin callback de cors() ANTES del
+  // middleware CSRF. Lo logueamos compacto con IP/UA (de dónde viene) y devolvemos 403, no 500.
+  if (err && err.message === "Not allowed by CORS") {
+    console.error(`CORS blocked: origin=${req.headers.origin || '-'}, method=${req.method}, url=${req.originalUrl} ip=${req.ip} xff="${req.headers['x-forwarded-for'] || '-'}" ua="${(req.headers['user-agent'] || '-').slice(0, 160)}"`);
+    return res.status(403).json({ success: false, code: "CSRF_ORIGIN_MISMATCH", type: "error", friendlyMessage: "Origen no permitido." });
+  }
+
   console.error(err);
   return res.status(500).json({
     success: false,

@@ -11,3 +11,6 @@ src/scripts/backups/
 # Local analysis scripts and their generated output
 src/scripts/analyzeEnterprises.js
 src/scripts/out/
+
+# Eval harness local (DeepEval): venv ~150MB, goldens y outputs regenerables
+evals/
