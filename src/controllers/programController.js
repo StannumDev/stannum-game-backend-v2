@@ -105,6 +105,9 @@ const getAllPrograms = async (req, res) => {
             id: p.id,
             name: p.name,
             categories: p.categories,
+            type: p.type,
+            trainingType: p.trainingType ?? null,
+            hidden: p.hidden ?? false,
             sectionCount: p.sections?.length || 0,
             moduleCount: (p.sections || []).reduce((acc, s) => acc + (s.modules?.length || 0), 0),
             lessonCount: (p.sections || []).reduce((acc, s) => acc + (s.modules || []).reduce((a2, m) => a2 + (m.lessons?.length || 0), 0), 0),
@@ -155,7 +158,7 @@ const getProgramById = async (req, res) => {
 const updateProgram = async (req, res) => {
     try {
         const { programId } = req.params;
-        const allowedFields = ["name", "price", "href", "categories", "description", "type", "priceARS", "subscriptionPriceARS", "purchasable", "hidden", "longDescription", "learningPoints", "logoUrl", "backgroundUrl"];
+        const allowedFields = ["name", "price", "href", "categories", "description", "type", "trainingType", "priceARS", "subscriptionPriceARS", "purchasable", "hidden", "longDescription", "learningPoints", "logoUrl", "backgroundUrl"];
         const updates = {};
         for (const key of allowedFields) {
             if (req.body[key] !== undefined) updates[key] = req.body[key];

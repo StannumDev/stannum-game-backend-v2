@@ -737,6 +737,15 @@ const completeActivation = async (req, res) => {
 
     invalidateUser(user._id);
 
+    // Avisar a Trenno Dashboard del primer ingreso (cuenta provisionada que se
+    // activa). Fire-and-forget; no bloquea ni afecta la respuesta al usuario.
+    try {
+        const { notifyTrenno } = require("../services/trennoWebhookService");
+        notifyTrenno("user.activated", updatedUser.email, { activatedAt: new Date().toISOString() });
+    } catch (err) {
+        console.error("notifyTrenno (activation) error:", err.message);
+    }
+
     const accessToken = await newJWT(updatedUser.id, updatedUser.role);
     if (!accessToken) return res.status(500).json(getError("JWT_GENERATION_FAILED"));
 

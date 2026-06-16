@@ -39,6 +39,7 @@ const tiaProgram = {
     price: 50,
     href: 'https://docs.google.com/forms/d/e/1FAIpQLSfK4Wp2c27wa-xxfgd4Bw9AhY7cuUHsLL4Rk4_YXAbuz2zL4Q/viewform?usp=sharing&ouid=118137140539958374058',
     categories: ['main'],
+    trainingType: 'starter',
     description: 'Programa intensivo especializado en el entrenamiento en inteligencia artificial para líderes de empresas y sus equipos.',
     sections: [
         {
@@ -427,6 +428,7 @@ const tiaSummerProgram = {
     price: 250,
     href: 'https://stannum.com.ar/trenno-ia-summer-2026',
     categories: ['main'],
+    trainingType: 'pool',
     hidden: true,
     description: 'Programa intensivo especializado en el entrenamiento en inteligencia artificial para líderes de empresas y sus equipos.',
     sections: [
@@ -1395,6 +1397,7 @@ const tiaPoolProgram = {
     price: 250,
     href: 'https://stannum.com.ar/trenno-ia-pool-2026',
     categories: ['main'],
+    trainingType: 'pool',
     description: 'Programa intensivo especializado en el entrenamiento en inteligencia artificial para líderes de empresas y sus equipos.',
     sections: [
         {

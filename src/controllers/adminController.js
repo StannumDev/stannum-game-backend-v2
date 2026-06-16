@@ -362,4 +362,4 @@ const setProgramAccess = async (req, res) => {
     }
 };
 
-module.exports = { getUser, getUsers, getStats, getEnterprises, setProgramAccess };
+module.exports = { getUser, getUsers, getStats, getEnterprises, setProgramAccess, buildUserPrograms };
