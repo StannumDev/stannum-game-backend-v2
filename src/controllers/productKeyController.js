@@ -10,6 +10,7 @@ const { getProfileStatus } = require("../helpers/getProfileStatus");
 const { invalidateUser } = require("../cache/cacheService");
 const { hasAccess } = require("../utils/accessControl");
 const { getError } = require("../helpers/getError");
+const { buildUserPrograms } = require("./adminController");
 
 const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -520,9 +521,15 @@ const autoEnroll = async (req, res) => {
         const isStub = profileStatus === "needs_activation";
         const alreadyHasProduct = hasAccess(user.programs?.[product]);
 
+        // Lookup del código de soporte existente (para los casos sin key nueva).
+        const findExistingCode = async () => {
+            const existing = await ProductKey.findOne({ email: normalizedEmail, product }).sort({ usedAt: -1 }).lean();
+            return existing?.code ?? null;
+        };
+
         // Caso: user completo + ya tiene este producto → no-op idempotente
         if (!isStub && alreadyHasProduct) {
-            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail });
+            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail, code: await findExistingCode() });
         }
 
         // Si es stub y el admin pasa un nombre completo distinto, actualizarlo (last-write-wins en stubs)
@@ -558,6 +565,7 @@ const autoEnroll = async (req, res) => {
                 success: true,
                 status: "existing_stub_resent",
                 email: normalizedEmail,
+                code: await findExistingCode(),
             });
         }
 
@@ -605,7 +613,7 @@ const autoEnroll = async (req, res) => {
         // Para !stub esto equivale a "already_owned". Para stub, seguimos al envío del magic link
         // (el user sigue necesitando completar la activación).
         if (raceSkipped && !isStub) {
-            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail });
+            return res.status(200).json({ success: true, status: "already_owned", email: normalizedEmail, code: await findExistingCode() });
         }
 
         // Caso: user completo SIN este producto → activar y mandar mail simple (sin magic link)
@@ -621,6 +629,7 @@ const autoEnroll = async (req, res) => {
                 success: true,
                 status: "activated_for_existing_user",
                 email: normalizedEmail,
+                code: productCode ?? await findExistingCode(),
             });
         }
 
@@ -651,6 +660,7 @@ const autoEnroll = async (req, res) => {
             success: true,
             status: wasNewUser ? "new_user" : "existing_stub_resent",
             email: normalizedEmail,
+            code: productCode ?? await findExistingCode(),
         });
     } catch (error) {
         if (error.statusCode && error.errorKey) {
@@ -939,6 +949,37 @@ const autoEnrollBulk = async (req, res) => {
     }
 };
 
+// ── GET /product-key/user-progress/:email ──
+// Progreso del usuario por programa (XP, nivel, lecciones e instrucciones).
+// Consumido por el Trenno Dashboard (API key) para la ficha del trainee.
+// Reusa buildUserPrograms (mismo desglose que /admin/user).
+const userProgress = async (req, res) => {
+    try {
+        const email = (req.params.email || "").toLowerCase().trim();
+        if (!email) return res.status(400).json(getError("VALIDATION_EMAIL_REQUIRED"));
+
+        const user = await User.findOne({ email }, "username email level programs").lean();
+        if (!user) return res.status(404).json(getError("ADMIN_USER_NOT_FOUND"));
+
+        const programs = await buildUserPrograms(user.programs);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                email: user.email,
+                username: user.username,
+                xp: user.level?.experienceTotal ?? 0,
+                level: user.level?.currentLevel ?? 1,
+                progress: user.level?.progress ?? 0,
+                programs,
+            },
+        });
+    } catch (error) {
+        console.error("❌ Error en userProgress:", error);
+        return res.status(500).json(getError("SERVER_INTERNAL_ERROR"));
+    }
+};
+
 module.exports = {
     verifyProductKey,
     activateProductKey,
@@ -949,4 +990,5 @@ module.exports = {
     autoEnroll,
     generateAndSendBulk,
     autoEnrollBulk,
+    userProgress,
 };

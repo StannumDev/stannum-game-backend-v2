@@ -8,6 +8,18 @@ const productKeyController = require("../controllers/productKeyController");
 
 const router = Router();
 
+// Progreso del usuario (API key) — consumido por el Trenno Dashboard.
+// Antes de "/:code" para que la ruta de dos segmentos no caiga en el matcher de código.
+router.get(
+  "/user-progress/:email",
+  [
+    validateAPIKey,
+    param("email", "Email inválido").isEmail(),
+    fieldsValidate,
+  ],
+  productKeyController.userProgress
+);
+
 router.get(
   "/:code",
   [

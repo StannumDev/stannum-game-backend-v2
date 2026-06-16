@@ -21,7 +21,7 @@ const mongoose = require('mongoose');
 const { Program } = require('../models/programModel');
 
 const PROGRAM_TOP_FIELDS = [
-    'name', 'price', 'href', 'categories', 'description', 'type',
+    'name', 'price', 'href', 'categories', 'description', 'type', 'trainingType',
     'priceARS', 'subscriptionPriceARS', 'purchasable', 'hidden',
     'longDescription', 'learningPoints', 'logoUrl', 'backgroundUrl',
 ];

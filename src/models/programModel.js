@@ -97,6 +97,10 @@ const programSchema = new Schema(
         categories: { type: [String], default: [] },
         description: { type: String, default: "", trim: true },
         type: { type: String, enum: ["purchase", "subscription", "demo"], default: "purchase" },
+        // Clasificación operativa para el cockpit ECLI del Trenno Dashboard:
+        // "starter" (empresas B2B) | "pool" (tandas de individuos) | null (no clasificado / fuera del cockpit).
+        // Independiente de `type` (modelo comercial). Los programas sin trainingType no aparecen en el cockpit.
+        trainingType: { type: String, enum: ["starter", "pool", null], default: null },
         priceARS: { type: Number, default: null },
         subscriptionPriceARS: { type: Number, default: null },
         purchasable: { type: Boolean, default: false },
