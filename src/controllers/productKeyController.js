@@ -426,11 +426,21 @@ const checkProductKeyStatus = async (req, res) => {
     const { code } = req.params;
     try {
         const productKey = await ProductKey.findOne({ code: code.toUpperCase() })
-            .populate("usedBy", "profile.name email");
+            .populate("usedBy", "profile.name email username lastLogin");
 
         if (!productKey) {
             return res.status(404).json(getError("VALIDATION_PRODUCT_KEY_NOT_FOUND"));
         }
+
+        // "isActivated" = el USUARIO realmente activó/ingresó (no que la key fue
+        // consumida). En auto-enroll la key se marca usada AL PROVISIONAR (la canjea
+        // el dashboard, no el usuario), así que basarse en `usedBy` daría falsos
+        // positivos. La señal real es que la cuenta dejó de ser stub: el username
+        // pre-activación es `pending_*` y pasa a ser el real recién al usar el magic
+        // link. En el flujo viejo (canje manual del código) el usuario también tiene
+        // username real, así que esta lógica vale para ambos.
+        const u = productKey.usedBy;
+        const userActivated = !!u && !u.username?.startsWith("pending_");
 
         return res.status(200).json({
             success: true,
@@ -438,11 +448,11 @@ const checkProductKeyStatus = async (req, res) => {
                 code: productKey.code,
                 email: productKey.email,
                 product: productKey.product,
-                isActivated: !!productKey.usedBy,
-                activatedAt: productKey.usedBy ? productKey.usedAt : null,
-                user: productKey.usedBy ? {
-                    name: productKey.usedBy.profile?.name,
-                    email: productKey.usedBy.email
+                isActivated: userActivated,
+                activatedAt: userActivated ? (u.lastLogin || productKey.usedAt) : null,
+                user: u ? {
+                    name: u.profile?.name,
+                    email: u.email
                 } : null
             }
         });
