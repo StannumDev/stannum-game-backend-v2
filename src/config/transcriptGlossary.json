@@ -1,0 +1,30 @@
+{
+  "version": "1",
+  "description": "Reemplazos determinísticos para corregir errores de ASR en nombres propios y de marca de STANNUM Game. Se aplican como whole-word, case-insensitive, ANTES de la pasada LLM. Orden: frases/variantes largas primero.",
+  "replacements": [
+    { "from": "estan un game", "to": "STANNUM Game" },
+    { "from": "están un game", "to": "STANNUM Game" },
+    { "from": "esta un game", "to": "STANNUM Game" },
+    { "from": "estanun game", "to": "STANNUM Game" },
+    { "from": "stanum game", "to": "STANNUM Game" },
+    { "from": "stánum game", "to": "STANNUM Game" },
+    { "from": "stannum game", "to": "STANNUM Game" },
+    { "from": "stánum", "to": "STANNUM" },
+    { "from": "stanum", "to": "STANNUM" },
+    { "from": "trenoía", "to": "Trenno IA" },
+    { "from": "treno ía", "to": "Trenno IA" },
+    { "from": "treno ia", "to": "Trenno IA" },
+    { "from": "trenno ia", "to": "Trenno IA" },
+    { "from": "trennoía", "to": "Trenno IA" },
+    { "from": "treno", "to": "Trenno" },
+    { "from": "trenno", "to": "Trenno" },
+    { "from": "martín merlinny", "to": "Martín Merlini" },
+    { "from": "martin merlinny", "to": "Martín Merlini" },
+    { "from": "martín merliny", "to": "Martín Merlini" },
+    { "from": "martin merliny", "to": "Martín Merlini" },
+    { "from": "martín merlin", "to": "Martín Merlini" },
+    { "from": "martin merlin", "to": "Martín Merlini" },
+    { "from": "merlinny", "to": "Merlini" },
+    { "from": "merliny", "to": "Merlini" }
+  ]
+}

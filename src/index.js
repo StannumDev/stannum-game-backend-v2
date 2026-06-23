@@ -22,6 +22,7 @@ const adminRouter = require("./routes/adminRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
 const subscriptionRouter = require("./routes/subscriptionRoutes");
 const feedbackRouter = require("./routes/feedbackRoutes");
+const trainerRouter = require("./routes/trainerRoutes");
 const cron = require("node-cron");
 const { reconcilePayments } = require("./services/paymentService");
 const { expireCancelledSubscriptions, retryFailedDemoTransfers } = require("./services/subscriptionService");
@@ -113,6 +114,7 @@ app.use("/api/subscription", subscriptionRouter);
 app.use("/api/programs", programRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/feedback", feedbackRouter);
+app.use("/api/trainer", trainerRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
@@ -146,6 +148,11 @@ mongoose.connect(process.env.DB_URL)
     const server = app.listen(PORT, () => {
       console.log(`API Rest escuchando el puerto ${PORT}`);
     });
+
+    // Warmup del índice RAG del Entrenador IA (no bloquea el boot si falla).
+    require("./helpers/retrieveChunks").ensureIndexLoaded()
+      .then((idx) => console.log(`[Trainer] Índice RAG cargado: ${idx.length} chunks`))
+      .catch((err) => console.error("[Trainer] Warmup del índice falló:", err.message));
 
     // ─── Cron jobs (node-cron with America/Argentina/Buenos_Aires timezone) ───
     const cronOpts = { timezone: 'America/Argentina/Buenos_Aires' };
