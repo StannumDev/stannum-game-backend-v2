@@ -70,6 +70,11 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
 
+  // The read-only MCP endpoint has its own shared-secret gate (x-mcp-key) and is
+  // consumed server-to-server (no browser Origin), so the browser-CSRF guard
+  // does not apply. Skip it here — the /mcp router still enforces its own auth.
+  if (req.path === '/mcp' || req.path.startsWith('/mcp/')) return next();
+
   if (req.headers['x-api-key']) return next();
 
   const origin = req.headers.origin;
@@ -140,8 +145,31 @@ app.use((err, req, res, next) => {
 });
 
 mongoose.connect(process.env.DB_URL)
-  .then(() => {
+  .then(async () => {
     console.log("Conectado a la base de datos.");
+
+    // ─── Read-only MCP endpoint (opt-in via MCP_ENABLED) ───
+    // The MCP server lives in ./mcp (self-contained ESM package). We mount its
+    // Streamable-HTTP router here via dynamic import so the CommonJS backend can
+    // load the ESM module. It reads the Game API with the existing x-api-key
+    // (GAME_API_KEY, defaults to MAKE_API_KEY) and is gated by its own shared
+    // secret (MCP_GATE_KEY). Failures are swallowed so a misconfigured MCP can
+    // never prevent the API from booting.
+    if (process.env.MCP_ENABLED === "true") {
+      try {
+        if (!process.env.GAME_API_KEY && process.env.MAKE_API_KEY) {
+          process.env.GAME_API_KEY = process.env.MAKE_API_KEY;
+        }
+        if (!process.env.GAME_API_URL) {
+          process.env.GAME_API_URL = `http://127.0.0.1:${PORT}/api`;
+        }
+        const { createMcpRouter } = await import("../mcp/dist/http.js");
+        app.use("/mcp", createMcpRouter());
+        console.log("STANNUM Game MCP mounted at /mcp");
+      } catch (err) {
+        console.error("[MCP] Failed to mount /mcp endpoint (API continues without it):", err.message);
+      }
+    }
 
     const server = app.listen(PORT, () => {
       console.log(`API Rest escuchando el puerto ${PORT}`);

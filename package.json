@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "dev": "nodemon --env-file=.env src/index.js"
+    "dev": "nodemon --env-file=.env src/index.js",
+    "build:mcp": "npm --prefix mcp install && npm --prefix mcp run build",
+    "postinstall": "npm run build:mcp"
   },
   "keywords": [],
   "author": "",

@@ -12,3 +12,5 @@ src/scripts/backups/
 src/scripts/analyzeEnterprises.js
 src/scripts/out/
 evals
+# MCP build artifacts (rebuilt on deploy via postinstall)
+mcp/dist/
