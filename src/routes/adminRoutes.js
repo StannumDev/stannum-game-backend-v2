@@ -54,7 +54,7 @@ router.get(
     [
         validateAPIKey,
         adminLimiter,
-        query("email").optional().trim().isEmail().normalizeEmail(),
+        query("email").optional().trim().isEmail().normalizeEmail({ gmail_remove_dots: false }),
         query("username").optional().trim().isLength({ min: 1, max: 50 }),
         fieldsValidate,
     ],
