@@ -84,7 +84,7 @@ router.post(
   "/auto-enroll",
   [
     validateAPIKey,
-    check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail(),
+    check("email", "El email es obligatorio y debe ser válido.").trim().notEmpty().withMessage("El email no puede estar vacío.").isEmail().withMessage("El formato del email es inválido.").normalizeEmail({ gmail_remove_dots: false }),
     check("fullName", "El nombre completo es obligatorio.").notEmpty().withMessage("El nombre no puede estar vacío.").isBase64().withMessage("El nombre debe estar codificado en Base64."),
     check("message", "El diagnóstico debe estar codificado en Base64.").optional().trim().isBase64().withMessage("El diagnóstico debe estar codificado en Base64."),
     check("product", "El producto debe ser un string válido.").optional().trim().isIn(["tia", "tmd", "tia_summer", "tia_pool"]).withMessage("El producto debe ser: TRENNO IA, TRENNO MARK DIGITAL, TRENNO IA SUMMER o TRENNO IA POOL."),
