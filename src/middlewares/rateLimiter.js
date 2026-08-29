@@ -162,9 +162,19 @@ const errorIngestLimiter = rateLimit({
     keyGenerator: (req) => req.ip,
 });
 
+const trainerLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 25,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    keyGenerator: (req) => req.userAuth?.id?.toString() || req.ip,
+});
+
 module.exports = {
     globalLimiter,
     authLimiter,
+    trainerLimiter,
     googleAuthLimiter,
     searchLimiter,
     otpLimiter,
