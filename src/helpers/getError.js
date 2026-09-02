@@ -4,6 +4,7 @@ const getError = (code, overrides = {}) => {
     const error = errors[code];
 
     if (!error) {
+        console.error(`getError: unknown error code "${code}" — add it to src/config/errors.json`);
         return {
             success: false,
             code: "UNKNOWN_ERROR",

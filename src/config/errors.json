@@ -53,6 +53,33 @@
         "techMessage": "The reCAPTCHA token is required.",
         "friendlyMessage": "Debes completar el reCAPTCHA para continuar."
     },
+    "VALIDATION_RECAPTCHA_INVALID": {
+        "success": false,
+        "code": "VALIDATION_063",
+        "type": "warning",
+        "showAlert": true,
+        "title": "ReCAPTCHA inválido",
+        "techMessage": "Google reCAPTCHA rejected the token (invalid-input-response).",
+        "friendlyMessage": "El reCAPTCHA no es válido. Actualiza la página e intenta de nuevo."
+    },
+    "VALIDATION_RECAPTCHA_TIMEOUT": {
+        "success": false,
+        "code": "VALIDATION_064",
+        "type": "warning",
+        "showAlert": true,
+        "title": "ReCAPTCHA expirado",
+        "techMessage": "Google reCAPTCHA token expired or was already used (timeout-or-duplicate).",
+        "friendlyMessage": "El reCAPTCHA expiró. Vuelve a marcar la casilla e intenta de nuevo."
+    },
+    "VALIDATION_RECAPTCHA_UNKNOWN": {
+        "success": false,
+        "code": "VALIDATION_065",
+        "type": "warning",
+        "showAlert": true,
+        "title": "Error de ReCAPTCHA",
+        "techMessage": "Google reCAPTCHA verification failed with an unmapped error code.",
+        "friendlyMessage": "No pudimos verificar el reCAPTCHA. Actualiza la página e intenta de nuevo."
+    },
     "VALIDATION_USERNAME_REQUIRED": {
         "success": false,
         "code": "VALIDATION_011",
@@ -182,7 +209,7 @@
     "VALIDATION_USERNAME_LENGTH": {
         "success": false,
         "code": "VALIDATION_032",
-        "type": "error",
+        "type": "warning",
         "showAlert": true,
         "title": "Nombre de usuario inválido",
         "techMessage": "username length is invalid",
@@ -191,7 +218,7 @@
     "VALIDATION_USERNAME_OFFENSIVE": {
         "success": false,
         "code": "VALIDATION_033",
-        "type": "error",
+        "type": "warning",
         "showAlert": true,
         "title": "Nombre de usuario ofensivo",
         "techMessage": "username is offensive",
@@ -307,7 +334,7 @@
     },
     "AUTH_OTP_MISSING": {
         "success": false,
-        "code": "AUTH_011",
+        "code": "AUTH_023",
         "type": "error",
         "showAlert": true,
         "title": "Código inválido",
@@ -316,7 +343,7 @@
     },
     "AUTH_GOOGLE_TOKEN_REQUIRED": {
         "success": false,
-        "code": "AUTH_012",
+        "code": "AUTH_024",
         "type": "error",
         "showAlert": true,
         "title": "Error inesperado",
@@ -578,7 +605,7 @@
     "PROMPT_NOT_FOUND": {
         "success": false,
         "code": "PROMPT_001",
-        "type": "warning",
+        "type": "error",
         "showAlert": true,
         "title": "Prompt no encontrado",
         "techMessage": "The requested prompt was not found or is not available.",
@@ -650,7 +677,7 @@
     "ASSISTANT_NOT_FOUND": {
         "success": false,
         "code": "ASSISTANT_001",
-        "type": "warning",
+        "type": "error",
         "showAlert": true,
         "title": "Asistente no encontrado",
         "techMessage": "The requested assistant was not found or is not available.",
@@ -1054,7 +1081,7 @@
     },
     "PROGRAM_NOT_FOUND": {
         "success": false,
-        "code": "PROGRAM_001",
+        "code": "PROGRAM_003",
         "type": "error",
         "showAlert": true,
         "title": "Programa no encontrado",
